@@ -23,7 +23,7 @@ files.sort()
 # txt 파일 열기
 for i in range(0, len(files)):
     file_number = files[i]
-    file = open('/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'+f"{file_number}", "r")
+    file = open(mac_folder_path+f"{file_number}", "r")
 
     # 첫 번째 줄만 읽기
     line = file.readline()
