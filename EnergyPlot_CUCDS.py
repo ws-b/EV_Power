@@ -70,5 +70,3 @@ ax.set_ylabel('Power(kW)', fontsize=20)
 ax.tick_params(axis='both', labelsize=14)
 plt.subplots_adjust(top=0.93, left=0.09)
 plt.show()
-
-
