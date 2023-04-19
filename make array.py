@@ -12,7 +12,9 @@ def get_file_list(folder_path):
     return txt_files
 
 # 파일이 들어있는 폴더 경로
-folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
+win_folder_path =''
+mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
+folder_path = mac_folder_path
 
 # 파일 리스트 가져오기
 files = get_file_list(folder_path)
@@ -61,10 +63,15 @@ for i in range(0, len(files)):
     userID = items[0]
     m = 1
 
+
+win_save_path = ''
+mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/'
+save_path = mac_save_path
+
 # Open a CSV file for writing depending on trip number
     if len(cut) == 2:
         globals()[f"{userID}"] = gps[cut[0]:cut[1]] # Parsing Trip with i series
-        with open('/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/' + f"{userID}.csv", mode='w', newline='') as file:
+        with open(save_path + f"{userID}.csv", mode='w', newline='') as file:
             # Create a CSV writer object
             writer = csv.writer(file)
 
@@ -77,7 +84,7 @@ for i in range(0, len(files)):
             globals()[f"{userID}" + '_' + str(m)] = gps[cut[i]:cut[i+1]] # Parsing Trip with i series
             m += 1
         for i in range(1, m):
-            with open('/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/' + f"{userID}_{i}.csv", mode='w', newline='') as file:
+            with open(save_path + f"{userID}_{i}.csv", mode='w', newline='') as file:
                 # Create a CSV writer object
                 writer = csv.writer(file)
 

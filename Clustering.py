@@ -3,7 +3,9 @@ import os
 import pandas as pd
 from datetime import datetime
 
-path = '/Users/woojin/Desktop/대학교 자료/켄텍 자료/삼성미래과제/TripEnergy/Travel_dataset1/ChargeCar_Trip_Data/'
+win_path = ''
+mac_path = '/Users/woojin/Desktop/대학교 자료/켄텍 자료/삼성미래과제/TripEnergy/Travel_dataset1/ChargeCar_Trip_Data/'
+path = mac_path
 pathlists = ['scan_tool_datas','gps_datas']
 
 def maketriplist(path, pathlists):

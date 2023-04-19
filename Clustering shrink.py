@@ -5,7 +5,9 @@ import sklearn.cluster as clst
 import numpy as np
 import matplotlib.pyplot as plt
 
-path = '/Users/woojin/Desktop/대학교 자료/켄텍 자료/삼성미래과제/TripEnergy/Travel_dataset1/ChargeCar_Trip_Data/'
+win_path = ''
+mac_path = '/Users/woojin/Desktop/대학교 자료/켄텍 자료/삼성미래과제/TripEnergy/Travel_dataset1/ChargeCar_Trip_Data/'
+path = mac_path
 pathlists = ['scan_tool_datas','gps_datas']
 triplist = []
 for pathlist in pathlists:
