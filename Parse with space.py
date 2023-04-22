@@ -1,10 +1,10 @@
 # Set the file path
-win_file_path =''
+win_file_path ='D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\1. 포인트 경로 데이터.txt'
 mac_file_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/1. 포인트 경로 데이터.txt'
 file_path = mac_file_path
 
 # Set the save path
-win_save_path =''
+win_save_path ='D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터\\'
 mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
 save_path = mac_save_path
 

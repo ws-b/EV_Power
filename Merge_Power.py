@@ -2,9 +2,9 @@ import os
 import numpy as np
 
 # 파일이 들어있는 폴더 경로
-win_folder_path =''
+win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
 mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도:가속도 처리/'
-folder_path = mac_folder_path
+folder_path = win_folder_path
 
 def get_file_list(folder_path):
     # 폴더 내의 모든 파일 리스트 가져오기
@@ -63,11 +63,11 @@ for file in files:
         if a[i] >= 0:
             P_d.append(((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000)  # BATTERY ENERGY USAGE
         else:
-            P_d.append((((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000) + ((1 + inertia) * (model3.mass + model3.load) * abs(a[i]) / np.exp(0.04111/abs(a[i])) / 1000))
+            P_d.append((((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000) + ((1 + inertia) * (model3.mass + model3.load) * abs(a[i]) / np.exp(0.04111 / min(abs(a[i]), 1e10)) / 1000))
+
         P_d[i] = P_d[i] * v[i]
         if v[i] <= 0.5:
             P_e.append((model3.aux + model3.idle) / 1000)
         else:
             P_e.append(model3.aux / 1000)
         Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i]+ P_e[i]))
-

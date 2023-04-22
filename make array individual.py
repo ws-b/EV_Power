@@ -2,7 +2,7 @@ import csv
 import datetime
 
 # 파일이 들어있는 폴더 경로
-win_folder_path =''
+win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터\\'
 mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
 folder_path = mac_folder_path
 
