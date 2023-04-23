@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 # 파일이 들어있는 폴더 경로
@@ -20,7 +21,7 @@ def get_file_list(folder_path):
 files = get_file_list(folder_path)
 files.sort()
 
-all_distance_per_power = []
+all_distance_per_total_power = []
 
 for file in files:
     # 파일 경로 생성하기
@@ -30,16 +31,19 @@ for file in files:
     # 시간, 위도, 경도, 속도, 가속도, 총 이동거리, Power 추출
     t, lat, log, v, a, total_distance, Power = data.T
 
-    # Total distance / Power 계산
-    distance_per_power = [total_distance[i] / Power[i] for i in range(len(Power))]
+    # 전체 Power 합산
+    total_power = np.sum(Power)
 
-    # 모든 파일의 distance_per_power 값 모으기
-    all_distance_per_power.extend(distance_per_power)
+    # 각 파일의 Total distance / Total Power 계산 (Total Power가 0일 때, 값은 0으로 설정)
+    distance_per_total_power = total_distance[-1] / total_power if total_power != 0 else 0
+
+    # 모든 파일의 distance_per_total_power 값 모으기
+    all_distance_per_total_power.append(distance_per_total_power)
 
 # 전체 파일에 대한 히스토그램 그리기
-plt.hist(all_distance_per_power, bins='auto', alpha=0.7, color='blue')
-plt.xlabel('Total Distance / Power (m/kW)')
-plt.ylabel('Frequency')
-plt.title('Total Distance / Power Distribution for All Files')
+sns.histplot(all_distance_per_total_power, bins='auto', color='blue', kde=True)
+plt.xlabel('Total Distance / Total Power (m/W)')
+plt.ylabel('Number of trips')
+plt.title('Total Distance / Total Power Distribution)
 plt.grid(True)
 plt.show()
