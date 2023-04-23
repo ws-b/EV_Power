@@ -14,7 +14,11 @@ def get_file_list(folder_path):
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터\\'
 mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
+win_save_path = ''
+mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/'
+
 folder_path = mac_folder_path
+save_path = mac_save_path
 
 # 파일 리스트 가져오기
 files = get_file_list(folder_path)
@@ -62,11 +66,6 @@ for i in range(0, len(files)):
 
     userID = items[0]
     m = 1
-
-
-win_save_path = ''
-mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/'
-save_path = mac_save_path
 
 # Open a CSV file for writing depending on trip number
     if len(cut) == 2:
