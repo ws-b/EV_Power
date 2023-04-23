@@ -71,3 +71,14 @@ for file in files:
         else:
             P_e.append(model3.aux / 1000)
         Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i]+ P_e[i]))
+
+    # Convert Power list to a numpy array and reshape it to match the number of rows in the data array
+    Power_array = np.array(Power).reshape(-1, 1)
+
+    # Use numpy.column_stack() to append the Power_array as a new column
+    data = np.column_stack((data, Power_array))
+
+    # Export the array to a text file
+    save_path = folder_path  # Save to the same folder as the input file
+    np.savetxt(os.path.join(save_path, file), data, delimiter=",", fmt='%.8f')
+
