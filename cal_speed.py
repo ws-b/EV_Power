@@ -12,7 +12,6 @@ folder_path = win_folder_path
 save_path = win_save_path
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
-#file_list = '164_2.csv'
 for file_list in file_lists:
     file = open(folder_path + file_list, "r")
 
