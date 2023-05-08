@@ -33,5 +33,5 @@ for file_list in file_lists:
     combined_data = np.column_stack((data, extended_acceleration))
 
     # Save the combined data to a new CSV file in the save_path directory.
-    output_file_path = os.path.join(save_path, f"acceleration_{file_list}")
+    output_file_path = os.path.join(save_path, f"acceleration_{file_list[:-4]}.csv")
     np.savetxt(output_file_path, combined_data, delimiter=',', fmt='%.4f')
