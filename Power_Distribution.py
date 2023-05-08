@@ -34,15 +34,23 @@ for file in files:
     # 전체 Power 합산
     total_power = np.sum(Power)
 
+    # 시간의 총합 계산
+    total_time = np.sum(np.diff(t))
+
     # 각 파일의 Total distance / Total Power 계산 (Total Power가 0일 때, 값은 0으로 설정)
-    distance_per_total_power = total_distance[-1] / total_power if total_power != 0 else 0
+    distance_per_total_power_km_kWh = (total_distance[-1] / 1000) / ((total_power / 1000) * (total_time / 3600)) if total_power != 0 else 0
 
     # 모든 파일의 distance_per_total_power 값 모으기
-    all_distance_per_total_power.append(distance_per_total_power)
+    all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
 # 전체 파일에 대한 히스토그램 그리기
 sns.histplot(all_distance_per_total_power, bins='auto', color='blue', kde=True)
-plt.xlabel('Total Distance / Total Power (m/W)')
+
+# 평균 세로선 그리기
+mean_value = np.mean(all_distance_per_total_power)
+plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.2f}')
+
+plt.xlabel('Total Distance / Total Power (km/kWh)')
 plt.ylabel('Number of trips')
 plt.title('Total Distance / Total Power Distribution')
 plt.grid(True)
