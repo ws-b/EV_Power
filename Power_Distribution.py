@@ -50,6 +50,19 @@ sns.histplot(all_distance_per_total_power, bins='auto', color='blue', kde=True)
 mean_value = np.mean(all_distance_per_total_power)
 plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.2f}')
 
+# 평균값 표시
+plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
+"""
+# 중앙값 세로선 그리기
+median_value = np.median(all_distance_per_total_power)
+plt.axvline(median_value, color='green', linestyle='--', label=f'Median: {median_value:.2f}')
+
+# 중앙값 표시
+plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='green', fontsize=12)
+"""
+# 그리드 제거
+plt.grid(False)
+
 plt.xlabel('Total Distance / Total Power (km/kWh)')
 plt.ylabel('Number of trips')
 plt.title('Total Distance / Total Power Distribution')
