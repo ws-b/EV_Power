@@ -5,11 +5,11 @@ import os
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터\\'
 mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
-win_save_path = ''
+win_save_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 Processed\\'
 mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/'
 
-folder_path = mac_folder_path
-save_path = mac_save_path
+folder_path = win_folder_path
+save_path = win_save_path
 
 def get_file_list(folder_path):
     # 폴더 내의 모든 파일 리스트 가져오기
@@ -27,7 +27,7 @@ files.sort()
 # txt 파일 열기
 for i in range(0, len(files)):
     file_number = files[i]
-    file = open(mac_folder_path+f"{file_number}", "r")
+    file = open(folder_path+f"{file_number}", "r")
 
     # 첫 번째 줄만 읽기
     line = file.readline()
@@ -67,7 +67,7 @@ for i in range(0, len(files)):
     userID = items[0]
     m = 1
 
-# Open a CSV file for writing depending on trip number
+    # Open a CSV file for writing depending on trip number
     if len(cut) == 2:
         globals()[f"{userID}"] = gps[cut[0]:cut[1]] # Parsing Trip with i series
         with open(save_path + f"{userID}.csv", mode='w', newline='') as file:
