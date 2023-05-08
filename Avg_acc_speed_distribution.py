@@ -35,9 +35,14 @@ for file in files:
     all_average_acceleration.append(np.mean(a))
     all_average_speed.append(np.mean(v))
 
+# 범위 제한 (-0.5 ~ 0.5)
+lower_bound = -0.5
+upper_bound = 0.5
+filtered_average_acceleration = [x for x in all_average_acceleration if lower_bound <= x <= upper_bound]
+
 # 평균 가속도(Average acceleration) 히스토그램 그리기
 plt.figure()
-sns.histplot(all_average_acceleration, bins='auto', color='red', kde=True)
+sns.histplot(filtered_average_acceleration, bins='auto', color='red', kde=True)
 plt.xlabel('Average Acceleration (m/s^2)')
 plt.ylabel('Number of trips')
 plt.title('Average Acceleration Distribution')
