@@ -44,6 +44,6 @@ for file in files:
 sns.histplot(all_distance_per_total_power, bins='auto', color='blue', kde=True)
 plt.xlabel('Total Distance / Total Power (m/W)')
 plt.ylabel('Number of trips')
-plt.title('Total Distance / Total Power Distribution)
+plt.title('Total Distance / Total Power Distribution')
 plt.grid(True)
 plt.show()
