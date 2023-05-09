@@ -44,8 +44,8 @@ for file in files:
     # 모든 파일의 distance_per_total_power 값 모으기
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
-    # 각 파일의 평균 속도 저장
-    all_average_speed.append(np.mean(v))
+    # 각 파일의 평균 속도 저장 # Convert m/s to km/h
+    all_average_speed.append(np.mean(v) * 3.6)
 
 # 데이터를 2차원 히스토그램으로 변환
 hist, xedges, yedges = np.histogram2d(all_average_speed, all_distance_per_total_power, bins=30)
@@ -54,7 +54,7 @@ hist, xedges, yedges = np.histogram2d(all_average_speed, all_distance_per_total_
 sns.heatmap(hist, cmap='viridis', xticklabels=5, yticklabels=5)
 
 # 축 레이블 설정
-plt.xlabel('Average Speed (m/s)')
+plt.xlabel('Average Speed (km/h)')
 plt.ylabel('Total Distance / Total Power (km/kWh)')
 
 # 그래프 제목 설정
