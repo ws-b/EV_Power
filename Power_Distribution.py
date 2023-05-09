@@ -60,7 +60,8 @@ plt.axvline(median_value, color='green', linestyle='--', label=f'Median: {median
 # 중앙값 표시
 plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='green', fontsize=12)
 """
-
+# x축 범위 설정 (0부터 40까지)
+plt.xlim(0, 25)
 plt.xlabel('Total Distance / Total Power (km/kWh)')
 plt.ylabel('Number of trips')
 plt.title('Total Distance / Total Power Distribution')

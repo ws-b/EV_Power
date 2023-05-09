@@ -1,6 +1,7 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
 
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
@@ -34,26 +35,33 @@ for file in files:
     # 각 파일의 평균 가속도와 평균 속도 저장
     all_average_acceleration.append(np.mean(a))
     all_average_speed.append(np.mean(v))
-
+"""
 # 범위 제한 (-0.5 ~ 0.5)
-lower_bound = -0.5
-upper_bound = 0.5
-filtered_average_acceleration = [x for x in all_average_acceleration if lower_bound <= x <= upper_bound]
-
+lower_bound_accel = -0.02
+upper_bound_accel = 0.02
+filtered_average_acceleration = [x for x in all_average_acceleration if lower_bound_accel <= x <= upper_bound_accel]
+"""
 # 평균 가속도(Average acceleration) 히스토그램 그리기
 plt.figure()
-sns.histplot(filtered_average_acceleration, bins='auto', color='red', kde=True)
+sns.histplot(all_average_acceleration, bins='auto', color='red', kde=False)
 plt.xlabel('Average Acceleration (m/s^2)')
 plt.ylabel('Number of trips')
 plt.title('Average Acceleration Distribution')
+plt.xlim(-0.02, 0.02)
 plt.grid(False)
 plt.show()
-
+"""
+# 범위 제한 (0 ~ 60)
+lower_bound_speed = 0
+upper_bound_speed = 60
+filtered_average_speed = [x for x in all_average_speed if lower_bound_speed <= x <= upper_bound_speed]
+"""
 # 평균 속도(Average speed) 히스토그램 그리기
 plt.figure()
 sns.histplot(all_average_speed, bins='auto', color='purple', kde=True)
 plt.xlabel('Average Speed (m/s)')
 plt.ylabel('Number of trips')
 plt.title('Average Speed Distribution')
+plt.xlim(0, 35)
 plt.grid(False)
 plt.show()
