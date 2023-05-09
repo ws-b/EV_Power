@@ -38,7 +38,7 @@ for file in files:
 
 # 이동거리(Distance) 히스토그램 그리기
 plt.figure()
-sns.histplot(all_total_distance, bins='auto', color='blue', kde=True)
+sns.histplot(all_total_distance, bins='auto', color='blue', kde=False)
 plt.xlabel('Total Distance (m)')
 plt.ylabel('Number of trips')
 plt.title('Total Distance Distribution')
@@ -48,7 +48,7 @@ plt.show()
 
 # 총 시간(Total time) 히스토그램 그리기
 plt.figure()
-sns.histplot(all_total_time, bins='auto', color='green', kde=True)
+sns.histplot(all_total_time, bins='auto', color='green', kde=False)
 plt.xlabel('Total Time (s)')
 plt.ylabel('Number of trips')
 plt.title('Total Time Distribution')
