@@ -58,7 +58,7 @@ plt.xlabel('Average Speed (m/s)')
 plt.ylabel('Total Distance / Total Power (km/kWh)')
 
 # 그래프 제목 설정
-plt.title('Heatmap of Average Speed vs Total Distance / Total Power')
+plt.title('Heatmap of Average Speed vs Electric Mileage')
 
 # 그리드 표시
 plt.grid(False)
