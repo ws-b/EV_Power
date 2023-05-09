@@ -34,13 +34,8 @@ for file in files:
 
     # 각 파일의 평균 가속도와 평균 속도 저장
     all_average_acceleration.append(np.mean(a))
-    all_average_speed.append(np.mean(v))
-"""
-# 범위 제한 (-0.5 ~ 0.5)
-lower_bound_accel = -0.02
-upper_bound_accel = 0.02
-filtered_average_acceleration = [x for x in all_average_acceleration if lower_bound_accel <= x <= upper_bound_accel]
-"""
+    all_average_speed.append(np.mean(v) * 3.6) # Convert m/s to km/h
+
 # 평균 가속도(Average acceleration) 히스토그램 그리기
 plt.figure()
 sns.histplot(all_average_acceleration, bins='auto', color='red', kde=False)
@@ -50,18 +45,13 @@ plt.title('Average Acceleration Distribution')
 plt.xlim(-0.02, 0.02)
 plt.grid(False)
 plt.show()
-"""
-# 범위 제한 (0 ~ 60)
-lower_bound_speed = 0
-upper_bound_speed = 60
-filtered_average_speed = [x for x in all_average_speed if lower_bound_speed <= x <= upper_bound_speed]
-"""
+
 # 평균 속도(Average speed) 히스토그램 그리기
 plt.figure()
 sns.histplot(all_average_speed, bins='auto', color='purple', kde=True)
-plt.xlabel('Average Speed (m/s)')
+plt.xlabel('Average Speed (km/h)')
 plt.ylabel('Number of trips')
 plt.title('Average Speed Distribution')
-plt.xlim(0, 35)
+plt.xlim(0, 130)
 plt.grid(False)
 plt.show()
