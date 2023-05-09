@@ -44,7 +44,7 @@ for file in files:
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
 # 전체 파일에 대한 히스토그램 그리기
-sns.histplot(all_distance_per_total_power, bins='auto', color='blue', kde=False)
+hist_data = sns.histplot(all_distance_per_total_power, bins='auto', color='gray', kde=False)
 
 # 평균 세로선 그리기
 mean_value = np.mean(all_distance_per_total_power)
@@ -53,7 +53,18 @@ plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.
 # 평균값 표시
 plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
 
-# x축 범위 설정 (0부터 40까지)
+# 최빈값 계산
+counts, bin_edges = np.histogram(all_distance_per_total_power, bins='auto')
+mode_index = np.argmax(counts)
+mode_value = (bin_edges[mode_index] + bin_edges[mode_index + 1]) / 2
+
+# 최빈값 세로선 그리기
+plt.axvline(mode_value, color='blue', linestyle='--', label=f'Mode: {mode_value:.2f}')
+
+# 최빈값 표시
+plt.text(mode_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Mode: {mode_value:.2f}', color='blue', fontsize=12)
+
+# x축 범위 설정 (0부터 25까지)
 plt.xlim(0, 25)
 plt.xlabel('Total Distance / Total Power (km/kWh)')
 plt.ylabel('Number of trips')
