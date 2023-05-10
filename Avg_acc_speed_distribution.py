@@ -36,6 +36,9 @@ for file in files:
     all_average_acceleration.append(np.mean(a))
     all_average_speed.append(np.mean(v) * 3.6) # Convert m/s to km/h
 
+# 평균 가속도와 평균 속도 계산
+average_speed_mean = np.mean(all_average_speed)
+
 # 평균 가속도(Average acceleration) 히스토그램 그리기
 plt.figure()
 sns.histplot(all_average_acceleration, bins='auto', color='red', kde=False)
@@ -43,15 +46,19 @@ plt.xlabel('Average Acceleration (m/s^2)')
 plt.ylabel('Number of trips')
 plt.title('Average Acceleration Distribution')
 plt.xlim(-0.02, 0.02)
+plt.legend()
 plt.grid(False)
 plt.show()
 
 # 평균 속도(Average speed) 히스토그램 그리기
 plt.figure()
 sns.histplot(all_average_speed, bins='auto', color='purple', kde=True)
+plt.axvline(average_speed_mean, color='blue', linestyle='--', label='Avg Speed Mean')
+plt.text(average_speed_mean + 1, plt.gca().get_ylim()[1] * 0.8, f'{average_speed_mean:.2f}', color='blue')
 plt.xlabel('Average Speed (km/h)')
 plt.ylabel('Number of trips')
 plt.title('Average Speed Distribution')
 plt.xlim(0, 130)
+plt.legend()
 plt.grid(False)
 plt.show()
