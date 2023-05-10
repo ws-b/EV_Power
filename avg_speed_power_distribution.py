@@ -44,29 +44,28 @@ for file in files:
     # 모든 파일의 distance_per_total_power 값 모으기
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
-    # 각 파일의 평균 속도 저장 # Convert m/s to km/h
+    # 각 파일의 평균 속도 저장 (m/s to km/h)
     all_average_speed.append(np.mean(v) * 3.6)
-
-# 평균 속도와 전기 주행 거리의 평균 계산
-average_speed_mean = np.mean(all_average_speed)
-total_distance_per_total_power_mean = np.mean(all_distance_per_total_power)
 
 # 데이터를 2차원 히스토그램으로 변환
 hist, xedges, yedges = np.histogram2d(all_average_speed, all_distance_per_total_power, bins=30)
 
 # 히트맵 그리기
-sns.heatmap(hist, cmap='viridis', xticklabels=10, yticklabels=5)
-# 평균 선 그리기
-plt.axvline(average_speed_mean, color='red', linestyle='--')
-plt.axhline(total_distance_per_total_power_mean, color='blue', linestyle='--')
-# 평균값 표시
-plt.text(average_speed_mean + 1, 0.5, f"Mean Speed: {average_speed_mean:.2f} km/h", color='red')
-plt.text(1, total_distance_per_total_power_mean + 0.3, f"Mean Electric Mileage: {total_distance_per_total_power_mean:.2f} km/kWh", color='blue')
-plt.legend()
+sns.heatmap(hist, cmap='viridis', xticklabels=5, yticklabels=5)
+
+# 축 레이블 설정
 plt.xlabel('Average Speed (km/h)')
 plt.ylabel('Total Distance / Total Power (km/kWh)')
+
+# 그래프 제목 설정
 plt.title('Heatmap of Average Speed vs Electric Mileage')
+
+# 그리드 표시
 plt.grid(False)
-plt.xlim(0, 130)
+
+# x축,y축 범위제한 40까지
+plt.xlim(0, 40)
 plt.ylim(0, 10)
+
+# 그래프 보여주기
 plt.show()
