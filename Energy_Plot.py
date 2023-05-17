@@ -1,84 +1,87 @@
-import plotly.express as px
-import pandas as pd
+import os
+import numpy as np
+import matplotlib.pyplot as plt
 
-path = '/Users/woojin/Desktop/대학교 자료/켄텍 자료/삼성미래과제/TripEnergy/Travel_dataset1/ChargeCar_Trip_Data/scan_tool_datas/GA/Covington'
-file = '/540.txt'
-GPS = pd.read_csv(path + file, sep=",", header=None)
-GPS.columns = ["GMT time", "relative time", "elevation", "planar distance", "adjusted distance", "speed",
-               "acceleration", "power based on model", "Actual Power", "Current", "Voltage"]
-""" 
-1 lbf = 4.4482 N
-1 mile = 1.60934 km
-1 m/s = 2.237 mph
-"""
+# 파일이 들어있는 폴더 경로
+win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
+mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도-가속도 처리/'
+folder_path = mac_folder_path
 
+def get_file_list(folder_path):
+    # 폴더 내의 모든 파일 리스트 가져오기
+    file_list = os.listdir(folder_path)
+    csv_files = []
+    for file in file_list:
+        if file.endswith('.csv'):
+            csv_files.append(file)
+    return csv_files
+
+file = files[23]
+# 파일 리스트 가져오기
+files = get_file_list(folder_path)
+files.sort()
+
+# 파일 경로 생성하기
+file_path = os.path.join(folder_path, file)
+data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
+
+# Set parameters for vehicle model
 inertia = 0.05
 g = 9.18  # m/s**2
-v = GPS['speed'].to_list()
-a = GPS['acceleration'].to_list()
-t = GPS['relative time'].to_list()
-Power = GPS['power based on model'].to_list()
-A_Power = GPS['Actual Power'].to_list()
-s0 = 0
-for i in range(0, len(v)-1):
-    s0 += v[i]*(t[i+1]-t[i])
-for i in range(0, len(Power)):
-    Power[i] = -Power[i]
-for i in range(0, len(Power)):
-    A_Power[i] = -A_Power[i]
-
+t = data[:,0].tolist()
+t = [int(x) for x in t]
+v = data[:,3].tolist()
+a = data[:,4].tolist()
 
 class Vehicle:
-    def __init__(self, mass, load, Ca, Cb, Cc, eff):
-        self.mass = mass  # kg
-        self.load = load  # kg
-        self.Ca = Ca * 4.44822  # CONVERT lbf to N
-        self.Cb = Cb * 4.44822 * 2.237  # lbf/mph-> N/mps
-        self.Cc = Cc * 4.44822 * (2.237 ** 2)  # lbf/mph**2-> N/mps**2
-        self.eff = eff
-        self.pl = 741 # CONSTANT POWER LOSS in J/s
+def __init__(self, mass, load, Ca, Cb, Cc, aux, idle, eff):
+    self.mass = mass  # kg # Mass of vehicle
+    self.load = load  # kg # Load of vehicle
+    self.Ca = Ca * 4.44822  # CONVERT lbf to N # Air resistance coefficient
+    self.Cb = Cb * 4.44822 * 2.237  # lbf/mph-> N/mps # Rolling resistance coefficient
+    self.Cc = Cc * 4.44822 * (2.237 ** 2)  # lbf/mph**2-> N/mps**2 # Gradient resistance coefficient
+    self.eff = eff # Efficiency
+    self.aux = aux # Auxiliary Power, Not considering Heating and Cooling
+    self.idle = idle # IDLE Power
 
-Leaf = Vehicle(1640, 140, 30.08, 0.0713, 0.2206, 0.86035)
+# Calculate power demand for air resistance, rolling resistance, and gradient resistance
+model3 = Vehicle(1930, 0, 38.510, -0.08110, 0.016100, 737, 100, 0.87)
 
-E = []
+Power = []
 P_a = []
 P_b = []
 P_c = []
 P_d = []
 P_e = []
-Energy = 0
-TripEnergy = 0
-Actual_Power = 0
+
 for velocity in v:
-    P_a.append(Leaf.Ca * velocity)
-    P_b.append(Leaf.Cb * velocity * velocity)
-    P_c.append(Leaf.Cc * velocity * velocity * velocity)
-    P_e.append(Leaf.pl)
+    P_a.append(model3.Ca * velocity / model3.eff / 1000)
+    P_b.append(model3.Cb * velocity * velocity/ model3.eff / 1000)
+    P_c.append(model3.Cc * velocity * velocity * velocity / model3.eff / 1000)
+
+# Calculate power demand for acceleration and deceleration
 for i in range(0, len(v)):
     if a[i] >= 0:
-        P_d.append(((1 + inertia) * (Leaf.mass + Leaf.load) * a[i]) / Leaf.eff)  # BATTERY ENERGY USAGE
+        P_d.append(((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000)  # BATTERY ENERGY USAGE
     else:
-        P_d.append(((1 + inertia) * (Leaf.mass + Leaf.load) * a[i]) * Leaf.eff)
+        P_d.append((((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000) + ((1 + inertia) * (model3.mass + model3.load) * abs(a[i]) / np.exp(0.04111 / min(abs(a[i]), 1e10)) / 1000))
+
     P_d[i] = P_d[i] * v[i]
-    E.append(P_a[i] + P_b[i] + P_c[i] + P_d[i] + P_e[i])
-    E[i] = E[i] * 2.77778e-7*3600 # J -> kWh
-    Energy += E[i]
-    TripEnergy += Power[i]
-    Actual_Power += A_Power[i]
-diff = []
+    if v[i] <= 0.5:
+        P_e.append((model3.aux + model3.idle) / 1000)
+    else:
+        P_e.append(model3.aux / 1000)
+    Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i]+ P_e[i]))
 
-for i in range(0, len(v)):
-    diff.append(((E[i] - Power[i])**2)**(1/2))
+# Plotting
+plt.figure(figsize=(10,6))
 
-df1 = pd.DataFrame({'Time':t, 'Pe':P_e, 'Pa':P_a, 'Pb':P_b, 'Pc':P_c, 'Pd':P_d})
-fig1 = px.area(df1, x="Time", y=df1.columns[1:6], title='Energy consumption term by term', labels={"value" : "Energy(kW)"})
-fig1.show()
+# Convert seconds to minutes
+t_minutes = [i/60 for i in t]
 
-df2 = pd.DataFrame({'Time':t,'TripEnergy':Power, 'Energy cal by WJ':E, 'Actual Power':A_Power})
-fig2 = px.line(df2, x="Time", y=df2.columns[1:6], title='Energy Usage using TripEnergy', labels={"value" : "Energy(kW)"})
-fig2.show()
-
-print(s0)
-print(Energy)
-print(Actual_Power)
-print(TripEnergy)
+plt.stackplot(t_minutes, P_a, P_b, P_c, P_d, P_e, labels=['P_a','P_b','P_c','P_d','P_e'])
+plt.legend(loc='upper left')
+plt.title('Stacked Plot of Power')
+plt.xlabel('Time (minutes)')
+plt.ylabel('Power')
+plt.show()
