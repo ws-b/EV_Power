@@ -64,7 +64,7 @@ for i in range(0, len(v)):
     if a[i] >= 0:
         P_d.append(((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000)  # BATTERY ENERGY USAGE
     else:
-        P_d.append((((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000) + ((1 + inertia) * (model3.mass + model3.load) * abs(a[i]) / np.exp(0.04111 / min(abs(a[i]), 1e10)) / 1000))
+        P_d.append((((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000) + ((1 + inertia) * (model3.mass + model3.load) * abs(a[i]) / np.exp(0.04111 / abs(a[i])) / 1000))
 
     P_d[i] = P_d[i] * v[i]
     if v[i] <= 0.5:
