@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import numpy as np
+import math
 
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
@@ -46,17 +47,25 @@ for file in files:
     # 모든 파일의 avg_speed와 mileage 값 모으기
     all_avg_speed_and_mileage.append((avg_speed, mileage))
 
-# 전체 파일에 대한 scatter plot 그리기
-avg_speeds, mileages = zip(*all_avg_speed_and_mileage)
-plt.scatter(avg_speeds, mileages)
+# 평균 속도를 10km/h 단위로 범주화
+bins = range(0, 160, 10)
+binned_avg_speed_and_mileage = [[] for _ in bins]
 
+for avg_speed, mileage in all_avg_speed_and_mileage:
+    bin_index = math.floor(avg_speed / 10)
+    if bin_index < len(bins):
+        binned_avg_speed_and_mileage[bin_index].append(mileage)
+
+# 각 범주별 박스 플롯 그리기
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=binned_avg_speed_and_mileage)
 plt.xlabel('Average Speed (km/h)')
 plt.ylabel('Mileage (km/kWh)')
+plt.xticks(range(len(bins)), bins)
 
-# x축,y축 범위제한 40까지
-plt.xlim(0, 150)
-plt.ylim(0, 25)
+# x축, y축 범위 제한
+plt.ylim(0, 16)
+plt.xlim(-0.5, 10.5)
 
 plt.title('Mileage by Average Speed')
-plt.grid(True)
 plt.show()
