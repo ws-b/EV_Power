@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
+mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도-가속도 처리'
 
-folder_path = win_folder_path
+folder_path = mac_folder_path
 
 def get_file_list(folder_path):
     # 폴더 내의 모든 파일 리스트 가져오기
@@ -53,16 +53,16 @@ plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.
 # 평균값 표시
 plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
 
-# 최빈값 계산
-counts, bin_edges = np.histogram(all_distance_per_total_power, bins='auto')
-mode_index = np.argmax(counts)
-mode_value = (bin_edges[mode_index] + bin_edges[mode_index + 1]) / 2
-
-# 최빈값 세로선 그리기
-plt.axvline(mode_value, color='blue', linestyle='--', label=f'Mode: {mode_value:.2f}')
-
-# 최빈값 표시
-plt.text(mode_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Mode: {mode_value:.2f}', color='blue', fontsize=12)
+# # 최빈값 계산
+# counts, bin_edges = np.histogram(all_distance_per_total_power, bins='auto')
+# mode_index = np.argmax(counts)
+# mode_value = (bin_edges[mode_index] + bin_edges[mode_index + 1]) / 2
+#
+# # 최빈값 세로선 그리기
+# plt.axvline(mode_value, color='blue', linestyle='--', label=f'Mode: {mode_value:.2f}')
+#
+# # 최빈값 표시
+# plt.text(mode_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Mode: {mode_value:.2f}', color='blue', fontsize=12)
 
 # x축 범위 설정 (0부터 25까지)
 plt.xlim(0, 25)
