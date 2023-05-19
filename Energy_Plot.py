@@ -16,7 +16,7 @@ def get_file_list(folder_path):
             csv_files.append(file)
     return csv_files
 
-file = files[23]
+file = files[35]
 # 파일 리스트 가져오기
 files = get_file_list(folder_path)
 files.sort()
