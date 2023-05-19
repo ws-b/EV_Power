@@ -25,13 +25,14 @@ files.sort()
 # 모든 파일에 대해
 for file in files:
     # '|'를 구분자로 사용해 입력 파일을 읽습니다.
-    with open(file_path + file, 'r') as infile, open(save_path + file[:-4] + "_parsed.csv", 'w', newline='') as outfile:
+    with open(file_path + file, 'r') as infile:
         reader = csv.reader(infile, delimiter='|')
-        writer = csv.writer(outfile, delimiter=',')
 
-        # 모든 행을 순회하며
-        for i, row in enumerate(reader):
-            # 첫 번째 행 (i == 0) 또는 세 번째 행 (i == 2)이 아닌 경우
-            if i not in [0, 2]:
+        # ','를 구분자로 사용해 출력 파일을 작성합니다.
+        with open(save_path + file[:-4] + "_parsed.csv", 'w', newline='') as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+
+            # 입력 파일의 각 행에 대해
+            for row in reader:
                 # 출력 파일에 행을 작성합니다.
                 writer.writerow(row)
