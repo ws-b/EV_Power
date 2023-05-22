@@ -2,14 +2,14 @@ import csv
 import os
 
 # Set the file path
-win_file_path ='D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\1. 포인트 경로 데이터.txt'
+win_file_path ='D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\'
 mac_file_path = '/Users/woojin/Downloads/한국에너지공과대학교_샘플데이터/'
-file_path = mac_file_path
+file_path = win_file_path
 
 # Set the save path
-win_save_path ='D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터\\'
+win_save_path ='D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\processed\\'
 mac_save_path = '/Users/woojin/Downloads/한국에너지공과대학교_샘플데이터/processed/'
-save_path = mac_save_path
+save_path = win_save_path
 
 
 def get_file_list(folder_path):
@@ -28,11 +28,19 @@ for file in files:
     with open(file_path + file, 'r') as infile:
         reader = csv.reader(infile, delimiter='|')
 
-        # ','를 구분자로 사용해 출력 파일을 작성합니다.
-        with open(save_path + file[:-4] + "_parsed.csv", 'w', newline='') as outfile:
-            writer = csv.writer(outfile, delimiter=',')
+        data = []
+        last_line = None
+        for i, row in enumerate(reader):
+            if i == 0 or i == 2:  # skip first and third row
+                continue
+            if last_line is not None:
+                data.append(last_line)
+            last_line = row
 
-            # 입력 파일의 각 행에 대해
-            for row in reader:
-                # 출력 파일에 행을 작성합니다.
-                writer.writerow(row)
+        # 첫 번째 행에서 각 열의 공백을 제거합니다.
+        data[0] = [col.strip() for col in data[0]]
+
+        # ','를 구분자로 사용해 출력 파일을 작성합니다.
+        with open(os.path.join(save_path, file[:-4] + "_parsed.csv"), 'w', newline='') as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+            writer.writerows(data)
