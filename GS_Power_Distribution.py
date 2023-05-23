@@ -26,16 +26,26 @@ all_distance_per_total_power = []
 for file in files:
     # 파일 경로 생성하기
     file_path = os.path.join(folder_path, file)
-    data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
+    data = np.loadtxt(file_path, delimiter=',', dtype=np.float64, header=None, usecols= (0,1,2,3,4))
 
     # 시간, 위도, 경도, 속도, 가속도, 총 이동거리, Power 추출
-    t, lat, log, v, a, total_distance, Power = data.T
+    time, speed, acceleration, regen_brake, discharge = data.T
+
+    # 'time'과 'speed' 열 추출
+    time = data[:, 0]
+    speed = data[:, 1]
+
+    # 각 행 사이의 시간 간격 계산
+    delta_time = np.diff(time, prepend=time[0])
+
+    # 누적 거리 계산
+    total_distance = np.cumsum(speed * delta_time)
 
     # 전체 Power 합산
-    total_power = np.sum(Power)
+    total_power = np.sum(discharge) - np.sum(regen_brake)
 
     # 시간의 총합 계산
-    total_time = np.sum(np.diff(t))
+    total_time = np.sum(np.diff(time))
 
     # 각 파일의 Total distance / Total Power 계산 (Total Power가 0일 때, 값은 0으로 설정)
     distance_per_total_power_km_kWh = (total_distance[-1] / 1000) / ((total_power / 1000) * (total_time / 3600)) if total_power != 0 else 0
