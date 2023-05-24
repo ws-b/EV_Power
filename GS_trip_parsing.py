@@ -1,6 +1,9 @@
+import os
+import numpy as np
+import pandas as pd
 import csv
 import datetime
-import os
+
 
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\speed-acc\\'
@@ -24,58 +27,29 @@ def get_file_list(folder_path):
 files = get_file_list(folder_path)
 files.sort()
 
-# txt 파일 열기
-for i in range(0, len(files)):
-    # csv 파일 읽기
-    data = np.genfromtxt('your_file.csv', delimiter=',', skip_header=1)
+#for file in files:
+    # csv 파일 불러오기
+#    df = pd.read_csv(folder_path + file, sep=',')
+    file = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\speed-acc\\01241228177-02.csv'
+    df = pd.read_csv(file, sep=',')
+    df['time'] = pd.to_datetime(df['time'])
 
-    # 'time'과 'speed' 열 추출
-    time = data[:, 0]
-    speed = data[:, 1]
+    # pandas DataFrame을 numpy 배열로 변환
+    data = df.values
 
-    # 각 행 사이의 시간 간격 계산
-    delta_time = np.diff(time, prepend=time[0])
+    # DATETIME을 초로 변환
+    time_in_seconds = (data[:, 0] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
 
-    cut_time = 300 # 정차시간을 5분으로 잡아서 trip parsing
-    cut = [0]
-    trip[0][0] = 0
-    for i in range(1, len(utc_times)):
-        if (utc_times[i]-utc_times[i-1]).seconds >= cut_time:
-            cut.append(i)
-        elif i + 1 == len(utc_times):
-            cut.append(i)
-    j = 0
-    for i in range(1, len(utc_times)):
-        if (utc_times[i] - utc_times[i-1]).seconds < cut_time:
-            trip[i][0] = (utc_times[i] - utc_times[cut[j]]).seconds
-        elif (utc_times[i] - utc_times[i-1]).seconds >= cut_time:
-            j += 1
-            trip[i][0] = (utc_times[i] - utc_times[cut[j]]).seconds
+    # Speed가 0인 기간이 300초 이상인 경우, 혹은 chrg_cable_connect가 1인 경우를 찾기
+    split_conditions = np.logical_or((data[:, 1] == 0) & (np.diff(time_in_seconds, prepend=time_in_seconds[0]) >= 300), data[:, 5] == 1)
 
-    userID = items[0]
-    m = 1
-
-    # Open a CSV file for writing depending on trip number
-    if len(cut) == 2:
-        globals()[f"{userID}"] = trip[cut[0]:cut[1]] # Parsing Trip with i series
-        with open(save_path + f"{userID}.csv", mode='w', newline='') as file:
-            # Create a CSV writer object
-            writer = csv.writer(file)
-
-            # Write each row of the list to the CSV file
-            for row in globals()[f"{userID}"]:
-                writer.writerow(row)
-        del globals()[f"{userID}"]
-    else:
-        for i in range(0,len(cut)-1):
-            globals()[f"{userID}" + '_' + str(m)] = trip[cut[i]:cut[i+1]] # Parsing Trip with i series
-            m += 1
-        for i in range(1, m):
-            with open(save_path + f"{userID}_{i}.csv", mode='w', newline='') as file:
-                # Create a CSV writer object
-                writer = csv.writer(file)
-
-                # Write each row of the list to the CSV file
-                for row in globals()[f"{userID}_{i}"]:
-                    writer.writerow(row)
-            del globals()[f"{userID}_{i}"]
+    # 위 조건에 해당하는 지점에서 데이터 분할
+    split_indices = np.where(split_conditions)[0]
+    split_indices = np.append(split_indices, len(data))  # 마지막 인덱스 추가
+"""
+    # 각각의 데이터 조각을 별도의 csv 파일로 저장
+    for i in range(len(split_indices) - 1):
+        split_data = data[split_indices[i]:split_indices[i + 1]]
+        pd.DataFrame(split_data, columns=df.columns).to_csv(f'output_{i}.csv', index=False)
+        
+"""

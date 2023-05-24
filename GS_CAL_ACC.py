@@ -37,7 +37,7 @@ for file_list in file_lists:
     # NaN 값을 0으로 바꿔주거나, 원하는 값으로 채워줍니다.
     df['acceleration'] = df['acceleration'].replace(np.nan, 0)    # 각 컬럼을 하나의 DataFrame으로 합치기
 
-    data_save = df[['time', 'emobility_spd_m_per_s', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'soc', 'soh']].copy()
+    data_save = df[['time', 'emobility_spd_m_per_s', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'chrg_cable_conn', 'soc', 'soh']].copy()
 
     # csv 파일로 저장하기
     data_save.to_csv(f"{save_path}{df['device_no'].iloc[0].replace(' ', '')}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv", index=False)
