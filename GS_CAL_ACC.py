@@ -18,6 +18,9 @@ for file_list in file_lists:
     # Load CSV file into a pandas DataFrame
     df = pd.read_csv(file, dtype={'device_no': str, 'measured_month': str})
 
+    # index 기준으로 거꾸로 정렬
+    df = df[::-1]
+
     # 속도 단위를 km/h에서 m/s로 변환
     df['emobility_spd_m_per_s'] = df['emobility_spd'] * 0.27778
 
