@@ -27,6 +27,11 @@ def get_file_list(folder_path):
 files = get_file_list(folder_path)
 files.sort()
 
-#for file in files:
+# for file in files:
+    file =
     # csv 파일 불러오기
-#    df = pd.read_csv(folder_path + file, sep=',')
+    data = np.genfromtxt(folder_path + file, delimiter=',', skip_header=1)
+
+    for i in range(len(data)):
+        # 시간 데이터를 datetime 형식으로 변환
+        data[i][0] = datetime.datetime.strptime(data[i][0], '%Y-%m-%d %H:%M:%S')
