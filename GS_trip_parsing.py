@@ -39,7 +39,7 @@ for file_list in file_lists:
 
     trip_counter = 1  # Start trip number from 1 for each file
     for i in range(len(cut)-1):
-        if data.loc[i, 'chrg_cable_conn'] == 0:
+        if data.loc[cut[i], 'chrg_cable_conn'] == 0:
             trip = data.loc[cut[i]:cut[i+1]-1, :]
 
             # Check the duration of the trip
