@@ -34,7 +34,7 @@ for file_list in file_lists:
             self.idle = idle # IDLE Power
 
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
-    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.90)
+    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.87)
 
     Power = []
     P_a = []

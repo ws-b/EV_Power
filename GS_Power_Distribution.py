@@ -17,26 +17,26 @@ file_lists.sort()
 all_distance_per_total_power = []
 
 for file_list in file_lists:
-    data = pd.read_csv(folder_path + file_list)
+    # 파일 경로 생성하기
+    file_path = os.path.join(folder_path, file_list)
+    data = pd.read_csv(file_path)
 
-    # 시간, 속도, 가속도, Power 추출
+    # 시간, 속도, Power 추출
     t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+    v = data['emobility_spd_m_per_s']
+    Power = data['Power']
 
-    # The first time in the time column set as reference (0 seconds
-    t = (t - t.iloc[0]).dt.total_seconds().tolist()
-
-    v = data['emobility_spd_m_per_s'].tolist()
-    a = data['acceleration'].tolist()
-    Power = data['Power'].tolist()
-
-    # 총 이동거리 계산 (속도는 m/s 단위로 가정합니다.)
-    total_distance = sum(v) * 2 / 1000  # 시간 간격(2초)와 속도를 m에서 km로 변환
+    # 샘플링 간격 (2초)를 고려하여 총 이동거리 계산
+    total_distance = np.sum(v * 2)
 
     # 전체 Power 합산
-    total_power = sum(Power)
+    total_power = np.sum(Power)
+
+    # 시간의 총합 계산
+    total_time = np.sum(t.diff().dt.total_seconds())
 
     # 각 파일의 Total distance / Total Power 계산 (Total Power가 0일 때, 값은 0으로 설정)
-    distance_per_total_power_km_kWh = total_distance / total_power if total_power != 0 else 0
+    distance_per_total_power_km_kWh = (total_distance / 1000) / ((total_power / 1000) * (total_time / 3600)) if total_power != 0 else 0
 
     # 모든 파일의 distance_per_total_power 값 모으기
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
