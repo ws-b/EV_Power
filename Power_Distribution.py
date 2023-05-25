@@ -9,23 +9,15 @@ mac_folder_path = '/Users/woojin/Downloads/경로데이터 ᄉ
 
 folder_path = win_folder_path
 
-def get_file_list(folder_path):
-    # 폴더 내의 모든 파일 리스트 가져오기
-    file_list = os.listdir(folder_path)
-    csv_files = []
-    for file in file_list:
-        if file.endswith('.csv'):
-            csv_files.append(file)
-    return csv_files
-
-files = get_file_list(folder_path)
-files.sort()
+# get a list of all files in the folder with the .csv extension
+file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
+file_lists.sort()
 
 all_distance_per_total_power = []
 
-for file in files:
+for file_list in file_lists:
     # 파일 경로 생성하기
-    file_path = os.path.join(folder_path, file)
+    file_path = os.path.join(folder_path, file_list)
     data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
 
     # 시간, 위도, 경도, 속도, 가속도, 총 이동거리, Power 추출

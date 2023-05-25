@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 
 # 파일이 들어있는 폴더 경로
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
+win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\Ioniq5\\'
 mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/Ioniq5/'
-folder_path = mac_folder_path
+folder_path = win_folder_path
 
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -62,13 +62,9 @@ for file_list in file_lists:
             P_e.append(ioniq5.aux / 1000)
         Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i]+ P_e[i]))
 
-    # Convert Power list to a numpy array and reshape it to match the number of rows in the data array
-    Power_array = np.array(Power).reshape(-1, 1)
 
-    # Use numpy.column_stack() to append the Power_array as a new column
-    data = np.column_stack((data, Power_array))
+    # 각 파일에 대해 Power 열을 데이터 프레임에 추가합니다.
+    data['Power'] = Power
 
-    # Export the array to a text file
-    save_path = folder_path  # Save to the same folder as the input file
-
-
+    # 데이터를 동일한 .csv 파일에 덮어씌웁니다.
+    data.to_csv(os.path.join(folder_path, file_list), index=False)
