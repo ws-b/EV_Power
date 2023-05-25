@@ -13,8 +13,7 @@ save_path = win_save_path
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 for file_list in file_lists:
     file = open(folder_path + file_list, "r")
-#   file = '/Users/woojin/Downloads/한국에너지공과대학교_샘플데이터/processed/bms.01241228177.02_parsed.csv'
-#   file = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\processed\\bms.01241228177.02_parsed.csv'
+
     # Load CSV file into a pandas DataFrame
     df = pd.read_csv(file, dtype={'device_no': str, 'measured_month': str})
 

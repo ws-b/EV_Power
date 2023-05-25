@@ -1,32 +1,57 @@
 import os
-import numpy as np
 import pandas as pd
-import csv
-import datetime
-
 
 # 파일이 들어있는 폴더 경로
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\speed-acc\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
+mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/speed-acc/'
 win_save_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\trip_by_trip\\'
-mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/'
+mac_save_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip/'
 
-folder_path = win_folder_path
-save_path = win_save_path
+folder_path = mac_folder_path
+save_path = mac_save_path
 
-def get_file_list(folder_path):
-    # 폴더 내의 모든 파일 리스트 가져오기
-    file_list = os.listdir(folder_path)
-    txt_files = []
-    for file in file_list:
-        if file.endswith('.txt'):
-            txt_files.append(file)
-    return txt_files
+# get a list of all files in the folder with the .csv extension
+file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
+for file_list in file_lists:
+    file = open(folder_path + file_list, "r")
 
-# 파일 리스트 가져오기
-files = get_file_list(folder_path)
-files.sort()
+    # Load CSV file into a pandas DataFrame
+    data = pd.read_csv(file)
+    cut = []
 
-#for file in files:
-    # csv 파일 불러오기
-#    df = pd.read_csv(folder_path + file, sep=',')
+    # Parse Trip by cable connection status
+    if data.loc[0, 'chrg_cable_conn'] == 0:
+        cut.append(0)
+    for i in range(len(data)-1):
+        if data.loc[i, 'chrg_cable_conn'] != data.loc[i+1, 'chrg_cable_conn']:
+            cut.append(i+1)
+    if data.loc[len(data)-1, 'chrg_cable_conn'] == 0:
+        cut.append(len(data)-1)
+
+    # Parse Trip by Time difference
+    cut_time = pd.Timedelta(seconds=300)  # 300sec 이상 차이 날 경우 다른 Trip으로 인식
+    data['time'] = pd.to_datetime(data['time'])  # Convert 'time' column to datetime
+    for i in range(len(data) - 1):
+        if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
+            cut.append(i + 1)
+    cut = list(set(cut))
+    cut.sort()
+
+    trip_counter = 1  # Start trip number from 1 for each file
+    for i in range(len(cut)-1):
+        if data.loc[i, 'chrg_cable_conn'] == 0:
+            trip = data.loc[cut[i]:cut[i+1]-1, :]
+
+            # Check the duration of the trip
+            duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
+            if duration >= pd.Timedelta(minutes=3):
+                # Save to file
+                trip.to_csv(f"{save_path}/{file_list[:-4]}-trip-{trip_counter}.csv", index=False)
+                trip_counter += 1
+
+
+        # for the last trip
+        trip = data.loc[cut[-1]:, :]
+        duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
+        if duration >= pd.Timedelta(minutes=3):
+            trip.to_csv(f"{save_path}/{file_list[:-4]}-trip-{trip_counter}.csv", index=False)
