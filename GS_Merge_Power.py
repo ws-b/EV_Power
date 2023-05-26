@@ -35,6 +35,7 @@ for file_list in file_lists:
 
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
     ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.87)
+    kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 737, 100, 0.87)
 
     Power = []
     P_a = []
