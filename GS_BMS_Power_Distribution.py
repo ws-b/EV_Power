@@ -8,7 +8,7 @@ import os
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\Ioniq5\\'
 mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/Ioniq5/'
 
-folder_path = mac_folder_path
+folder_path = win_folder_path
 
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -56,3 +56,10 @@ plt.ylabel('Number of trips')
 plt.title('Total Distance / Net Discharge Distribution')
 plt.grid(False)
 plt.show()
+
+# Total Distance / Net Discharge 값이 1 이하인 파일들의 목록을 생성
+low_distance_power_files = [file for file, value in zip(file_lists, all_distance_per_total_power) if value <= 1]
+
+# 출력
+for file in low_distance_power_files:
+    print(file)

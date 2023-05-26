@@ -49,7 +49,6 @@ for file_list in file_lists:
                 trip.to_csv(f"{save_path}/{file_list[:-4]}-trip-{trip_counter}.csv", index=False)
                 trip_counter += 1
 
-
         # for the last trip
         trip = data.loc[cut[-1]:, :]
         duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
