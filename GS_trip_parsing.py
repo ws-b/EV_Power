@@ -7,8 +7,8 @@ mac_folder_path = '/Users/woojin/Documents/켄텍 자료/ᄉ�
 win_save_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\trip_by_trip\\'
 mac_save_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip/'
 
-folder_path = mac_folder_path
-save_path = mac_save_path
+folder_path = win_folder_path
+save_path = win_save_path
 
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -34,6 +34,12 @@ for file_list in file_lists:
     for i in range(len(data) - 1):
         if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
             cut.append(i + 1)
+
+    # Parse Trip by Trip Charge & Trip Discharge
+    for i in range(len(data) - 1):
+        if data.loc[i + 1, 'trip_dischrg_pw'] - data.loc[i, 'trip_dischrg_pw'] != 0 and data.loc[i + 1, 'trip_chrg_pw'] - data.loc[i, 'trip_chrg_pw'] != 0  and data.loc[i+1, 'trip_dischrg_pw'] == 0 and data.loc[i+1, 'trip_chrg_pw'] == 0:
+            cut.append(i + 1)
+
     cut = list(set(cut))
     cut.sort()
 
@@ -44,7 +50,7 @@ for file_list in file_lists:
 
             # Check the duration of the trip
             duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-            if duration >= pd.Timedelta(minutes=3):
+            if duration >= pd.Timedelta(minutes=5):
                 # Save to file
                 trip.to_csv(f"{save_path}/{file_list[:-4]}-trip-{trip_counter}.csv", index=False)
                 trip_counter += 1
@@ -52,5 +58,5 @@ for file_list in file_lists:
         # for the last trip
         trip = data.loc[cut[-1]:, :]
         duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-        if duration >= pd.Timedelta(minutes=3):
+        if duration >= pd.Timedelta(minutes=5):
             trip.to_csv(f"{save_path}/{file_list[:-4]}-trip-{trip_counter}.csv", index=False)
