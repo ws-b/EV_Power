@@ -3,13 +3,13 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# 파일이 들어있는 폴더 경로
+# Folder path containing the files
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
 mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도-가속도 처리'
 
 folder_path = win_folder_path
 
-# get a list of all files in the folder with the .csv extension
+# Get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
@@ -17,50 +17,50 @@ all_distance_per_total_power = []
 over_50_files = []
 
 for file_list in file_lists:
-    # 파일 경로 생성하기
+    # Create the file path
     file_path = os.path.join(folder_path, file_list)
     data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
 
-    # 시간, 위도, 경도, 속도, 가속도, 총 이동거리, Power 추출
+    # Extract time, latitude, longitude, speed, acceleration, total distance, and power
     t, lat, log, v, a, total_distance, Power = data.T
 
-    # 전체 Power 합산
+    # Calculate the total power
     total_power = np.sum(Power)
 
-    # 시간의 총합 계산
+    # Calculate the total time
     total_time = np.sum(np.diff(t))
 
-    # 각 파일의 Total distance / Total Power 계산 (Total Power가 0일 때, 값은 0으로 설정)
+    # Calculate Total distance / Total Power for each file (if total_power is 0, set the value to 0)
     distance_per_total_power_km_kWh = (total_distance[-1] / 1000) / ((total_power / 1000) * (total_time / 3600)) if total_power != 0 else 0
 
-    # 만약 distance_per_total_power_km_kWh가 50 이상이면, 해당 파일 이름을 over_50_files에 추가
+    # If distance_per_total_power_km_kWh is greater than or equal to 50, add the file name to over_50_files
     if distance_per_total_power_km_kWh >= 50:
         over_50_files.append(file_list)
-    # 모든 파일의 distance_per_total_power 값 모으기
+    # Collect all distance_per_total_power values
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
-# 전체 파일에 대한 히스토그램 그리기
+# Create a histogram for all files
 hist_data = sns.histplot(all_distance_per_total_power, bins='auto', color='gray', kde=False)
 
-# 평균 세로선 그리기
+# Draw a vertical line for the mean
 mean_value = np.mean(all_distance_per_total_power)
 plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.2f}')
 
-# 평균값 표시
+# Display the mean value
 plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
 
-# # 최빈값 계산
+# # Calculate the mode
 # counts, bin_edges = np.histogram(all_distance_per_total_power, bins='auto')
 # mode_index = np.argmax(counts)
 # mode_value = (bin_edges[mode_index] + bin_edges[mode_index + 1]) / 2
 #
-# # 최빈값 세로선 그리기
+# # Draw a vertical line for the mode
 # plt.axvline(mode_value, color='blue', linestyle='--', label=f'Mode: {mode_value:.2f}')
 #
-# # 최빈값 표시
+# # Display the mode value
 # plt.text(mode_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Mode: {mode_value:.2f}', color='blue', fontsize=12)
 
-# x축 범위 설정 (0부터 25까지)
+# Set the x-axis range (from 0 to 25)
 #plt.xlim(0, 25)
 plt.xlabel('Total Distance / Total Power (km/kWh)')
 plt.ylabel('Number of trips')
@@ -68,7 +68,7 @@ plt.title('Total Distance / Total Power Distribution')
 plt.grid(False)
 plt.show()
 
-# 50 이상의 비율을 가진 파일들 출력
+# Print files with a ratio of Total Distance / Total Power greater than 50
 print("Files with a ratio of Total Distance / Total Power greater than 50:")
 for file in over_50_files:
     print(file)

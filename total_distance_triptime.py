@@ -1,13 +1,13 @@
 import os
 import numpy as np
 
-# 파일이 들어있는 폴더 경로
+# Folder path containing the files
 win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
 mac_folder_path = '/Users/woojin/Desktop/대학교 자료/켄텍 자료/삼성미래과제/Driving Pattern/Drive Cycle Processed/'
 folder_path = mac_folder_path
 
 def get_file_list(folder_path):
-    # 폴더 내의 모든 파일 리스트 가져오기
+    # Get a list of all files in the folder
     file_list = os.listdir(folder_path)
     csv_files = []
     for file in file_list:
@@ -15,18 +15,18 @@ def get_file_list(folder_path):
             csv_files.append(file)
     return csv_files
 
-# 파일 리스트 가져오기
+# Get the list of files
 files = get_file_list(folder_path)
 files.sort()
 
-# 파일 리스트 순차적으로 읽기
+# Iterate over the files
 for file in files:
-    # 파일 경로 생성하기
+    # Create the file path
     file_path = os.path.join(folder_path, file)
 
-    # 파일 열기
+    # Open the file
     with open(file_path, 'r') as f:
-        # 파일 읽기
+        # Read the file
         data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
         total_distance = np.cumsum(data[:, 1])
         data = np.column_stack((data, total_distance))
