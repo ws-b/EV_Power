@@ -31,7 +31,11 @@ for file_list in file_lists:
     total_distance = np.sum(v * 2)
 
     # calculate net_discharge by subtracting CHARGE sum from DISCHARGE sum
-    net_discharge = DISCHARGE[-1] - CHARGE[-1]
+    net_discharge = 0
+    for i in range(len(DISCHARGE) - 1, -1, -1):
+        net_discharge = DISCHARGE[i] - CHARGE[i]
+        if net_discharge != 0:
+            break
 
     # calculate Total distance / net_discharge for each file (if net_discharge is 0, set the value to 0)
     distance_per_total_power_km_kWh = (total_distance / 1000) / net_discharge if net_discharge != 0 else 0
