@@ -3,9 +3,16 @@ import numpy as np
 import pandas as pd
 
 # 파일이 들어있는 폴더 경로
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\Ioniq5\\'
+win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\kona_ev\\'
 mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/Ioniq5/'
 folder_path = win_folder_path
+
+"""
+차종별 차량번호
+포터2 - 01241228177
+코나EV - 01241248726
+아이오닉5 - 01241248782
+"""
 
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -36,6 +43,7 @@ for file_list in file_lists:
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
     ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.87)
     kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 737, 100, 0.87)
+    EV = ioniq5
 
     Power = []
     P_a = []
@@ -45,22 +53,22 @@ for file_list in file_lists:
     P_e = []
 
     for velocity in v:
-        P_a.append(ioniq5.Ca * velocity / ioniq5.eff / 1000)
-        P_b.append(ioniq5.Cb * velocity * velocity/ ioniq5.eff / 1000)
-        P_c.append(ioniq5.Cc * velocity * velocity * velocity / ioniq5.eff / 1000)
+        P_a.append(EV.Ca * velocity / EV.eff / 1000)
+        P_b.append(EV.Cb * velocity * velocity/ EV.eff / 1000)
+        P_c.append(EV.Cc * velocity * velocity * velocity / EV.eff / 1000)
 
     # Calculate power demand for acceleration and deceleration
     for i in range(0, len(v)):
         if a[i] >= 0:
-            P_d.append(((1 + inertia) * (ioniq5.mass + ioniq5.load) * a[i]) / ioniq5.eff / 1000)  # BATTERY ENERGY USAGE
+            P_d.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) / EV.eff / 1000)  # BATTERY ENERGY USAGE
         else:
-            P_d.append((((1 + inertia) * (ioniq5.mass + ioniq5.load) * a[i]) / ioniq5.eff / 1000) + ((1 + inertia) * (ioniq5.mass + ioniq5.load) * abs(a[i]) / np.exp(0.04111 / min(abs(a[i]), 1e10)) / 1000))
+            P_d.append((((1 + inertia) * (EV.mass + EV.load) * a[i]) / EV.eff / 1000) + ((1 + inertia) * (EV.mass + EV.load) * abs(a[i]) / np.exp(0.04111 / min(abs(a[i]), 1e10)) / 1000))
 
         P_d[i] = P_d[i] * v[i]
         if v[i] <= 0.5:
-            P_e.append((ioniq5.aux + ioniq5.idle) / 1000)
+            P_e.append((EV.aux + EV.idle) / 1000)
         else:
-            P_e.append(ioniq5.aux / 1000)
+            P_e.append(EV.aux / 1000)
         Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i]+ P_e[i]))
 
 

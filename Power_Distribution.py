@@ -14,6 +14,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 all_distance_per_total_power = []
+over_50_files = []
 
 for file_list in file_lists:
     # 파일 경로 생성하기
@@ -32,6 +33,9 @@ for file_list in file_lists:
     # 각 파일의 Total distance / Total Power 계산 (Total Power가 0일 때, 값은 0으로 설정)
     distance_per_total_power_km_kWh = (total_distance[-1] / 1000) / ((total_power / 1000) * (total_time / 3600)) if total_power != 0 else 0
 
+    # 만약 distance_per_total_power_km_kWh가 50 이상이면, 해당 파일 이름을 over_50_files에 추가
+    if distance_per_total_power_km_kWh >= 50:
+        over_50_files.append(file_list)
     # 모든 파일의 distance_per_total_power 값 모으기
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
@@ -57,9 +61,14 @@ plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.
 # plt.text(mode_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Mode: {mode_value:.2f}', color='blue', fontsize=12)
 
 # x축 범위 설정 (0부터 25까지)
-plt.xlim(0, 25)
+#plt.xlim(0, 25)
 plt.xlabel('Total Distance / Total Power (km/kWh)')
 plt.ylabel('Number of trips')
 plt.title('Total Distance / Total Power Distribution')
 plt.grid(False)
 plt.show()
+
+# 50 이상의 비율을 가진 파일들 출력
+print("Files with a ratio of Total Distance / Total Power greater than 50:")
+for file in over_50_files:
+    print(file)
