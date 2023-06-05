@@ -20,7 +20,7 @@ file_lists.sort()
 
 # Iterate over each file
 for file_list in file_lists:
-    file = open(folder_path + file_list, "r")
+    file = open(os.path.join(folder_path, file_list), "r")
 
     # Read the data from the file into a pandas DataFrame
     data = pd.read_csv(file)
@@ -44,7 +44,7 @@ for file_list in file_lists:
             self.idle = idle  # IDLE Power
 
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
-    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.87)
+    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 0, 0, 0.87)
     kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 737, 100, 0.87)
     EV = ioniq5
 

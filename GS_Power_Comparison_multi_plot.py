@@ -6,8 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # folder path where files are stored
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\ioniq5\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도-가속도 처리'
+win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\kona_ev\\'
+mac_folder_path = ''
 
 folder_path = win_folder_path
 
@@ -30,6 +30,10 @@ with PdfPages('C:\\Users\\WSONG\\Desktop\\multiple_graphs.pdf') as pdf_pages:
 
         # calculate difference between CHARGE and DISCHARGE
         net_charge = np.array(DISCHARGE) - np.array(CHARGE)
+
+        # Skip the file if the maximum absolute value of net_charge is less than 1.0
+        if np.max(np.abs(net_charge)) < 1.0:
+            continue
 
         # convert Power data to kWh and perform cumulative calculation
         Power_kWh = data['Power'] * 0.00055556  # convert kW to kWh considering the 2-second time interval
