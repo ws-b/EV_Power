@@ -35,7 +35,7 @@ for file in file_lists:
         net_discharge = DISCHARGE[i] - CHARGE[i]
         if net_discharge != 0:
             break
-
+-
     # calculate Total distance / net_discharge for each file (if net_discharge is 0, set the value to 0)
     distance_per_total_power_km_kWh = (total_distance / 1000) / net_discharge if net_discharge != 0 else 0
 
@@ -60,10 +60,12 @@ plt.title('Total Distance / Net Discharge Distribution')
 plt.grid(False)
 plt.show()
 
-# generate a list of files where Total Distance / Net Discharge value is less than or equal to 1
+# generate a list of files where Total Distance / Net Discharge depending on value
 low_distance_power_files = [file for file, value in zip(file_lists, all_distance_per_total_power) if value <= 1]
-
+high_distance_power_files = [file for file, value in zip(file_lists, all_distance_per_total_power) if value >= 15]
 # output
 for file in low_distance_power_files:
     print(file)
 
+for file in high_distance_power_files:
+    print(file)
