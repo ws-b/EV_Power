@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # folder path where files are stored
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\kona_ev'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
 mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
@@ -72,7 +72,7 @@ with PdfPages('C:\\Users\\WSONG\\Desktop\\multiple_graphs.pdf') as pdf_pages:
             date = t.iloc[0].strftime('%Y-%m-%d')
             plt.text(1, 1, date, transform=ax1.transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: '+file_list, transform=ax1.transAxes, fontsize=12,
+            plt.text(0, 1, 'File: '+file, transform=ax1.transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             # set y limit based on the range of both datasets
