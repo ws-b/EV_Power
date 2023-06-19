@@ -4,10 +4,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Folder path containing the files
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도-가속도 처리'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 속도-가속도 처리'
+mac_folder_path = ''
 
-folder_path = win_folder_path
+folder_path = os.path.normpath(win_folder_path)
 
 # Get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -16,9 +16,9 @@ file_lists.sort()
 all_distance_per_total_power = []
 over_50_files = []
 
-for file_list in file_lists:
+for file in file_lists:
     # Create the file path
-    file_path = os.path.join(folder_path, file_list)
+    file_path = os.path.join(folder_path, file)
     data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
 
     # Extract time, latitude, longitude, speed, acceleration, total distance, and power
@@ -35,7 +35,7 @@ for file_list in file_lists:
 
     # If distance_per_total_power_km_kWh is greater than or equal to 50, add the file name to over_50_files
     if distance_per_total_power_km_kWh >= 50:
-        over_50_files.append(file_list)
+        over_50_files.append(file)
     # Collect all distance_per_total_power values
     all_distance_per_total_power.append(distance_per_total_power_km_kWh)
 
@@ -70,5 +70,5 @@ plt.show()
 
 # Print files with a ratio of Total Distance / Total Power greater than 50
 print("Files with a ratio of Total Distance / Total Power greater than 50:")
-for file in over_50_files:
-    print(file)
+for over_50_file in over_50_files:
+    print(over_50_file)

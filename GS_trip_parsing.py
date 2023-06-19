@@ -2,21 +2,21 @@ import os
 import pandas as pd
 
 # folder path where the files are stored
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\speed-acc\\'
-mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/speed-acc/'
-win_save_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\trip_by_trip\\'
-mac_save_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip/'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
+win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\trip_by_trip'
 
-folder_path = win_folder_path
-save_path = win_save_path
+folder_path = os.path.normpath(win_folder_path)
+save_path = os.path.normpath(win_save_path)
 
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
-for file_list in file_lists:
-    file = open(folder_path + file_list, "r")
+file_lists.sort()
+
+for file in file_lists:
+    file_path = os.path.join(folder_path, file)
 
     # Load CSV file into a pandas DataFrame
-    data = pd.read_csv(file)
+    data = pd.read_csv(file_path)
     cut = []
 
     # Parse Trip by cable connection status

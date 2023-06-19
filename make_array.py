@@ -3,30 +3,21 @@ import datetime
 import os
 
 # Folder paths
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
-win_save_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 Processed\\'
-mac_save_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 Processed/'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터'
+mac_folder_path = ''
+win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 Processed'
+mac_save_path = ''
 
-folder_path = win_folder_path
-save_path = win_save_path
+folder_path = os.path.normpath(win_folder_path)
+save_path = os.path.normpath(win_save_path)
 
-def get_file_list(folder_path):
-    # Get a list of all files in the folder
-    file_list = os.listdir(folder_path)
-    txt_files = []
-    for file in file_list:
-        if file.endswith('.txt'):
-            txt_files.append(file)
-    return txt_files
-
-# Get the list of files
-files = get_file_list(folder_path)
-files.sort()
+# get a list of all files in the folder with the .csv extension
+file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.txt')]
+file_lists.sort()
 
 # Open each TXT file
-for i in range(0, len(files)):
-    file_number = files[i]
+for i in range(0, len(file_lists)):
+    file_number = file_lists[i]
     file = open(folder_path+f"{file_number}", "r")
 
     # Read only the first line

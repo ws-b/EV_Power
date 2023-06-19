@@ -5,27 +5,17 @@ import numpy as np
 import math
 
 # Folder paths
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\경로데이터 샘플 및 데이터 정의서\\포인트 경로 데이터 속도-가속도 처리\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터/'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 속도-가속도 처리'
 
-folder_path = win_folder_path
+folder_path = os.path.normpath(win_folder_path)
 
-def get_file_list(folder_path):
-    # Get a list of all files in the folder
-    file_list = os.listdir(folder_path)
-    csv_files = []
-    for file in file_list:
-        if file.endswith('.csv'):
-            csv_files.append(file)
-    return csv_files
-
-# Get the list of files
-files = get_file_list(folder_path)
-files.sort()
+# get a list of all .csv files in the folder
+file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
+file_lists.sort()
 
 all_avg_speed_and_mileage = []
 
-for file in files:
+for file in file_lists:
     # Create the file path
     file_path = os.path.join(folder_path, file)
     data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)

@@ -5,10 +5,9 @@ import pandas as pd
 import os
 
 # folder path where the files are stored
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\kona_ev\\'
-mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/Ioniq5/'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\kona_ev'
 
-folder_path = win_folder_path
+folder_path = os.path.normpath(win_folder_path)
 
 # get a list of all .csv files in the folder
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -16,9 +15,9 @@ file_lists.sort()
 
 all_distance_per_total_power = []
 
-for file_list in file_lists:
+for file in file_lists:
     # create file path
-    file_path = os.path.join(folder_path, file_list)
+    file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
 
     # extract time, speed, CHARGE, DISCHARGE

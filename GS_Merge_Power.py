@@ -3,9 +3,8 @@ import numpy as np
 import pandas as pd
 
 # folder path where the files are stored
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\ioniq5\\'
-mac_folder_path = '/Users/woojin/Documents/켄텍 자료/삼성미래과제/한국에너지공과대학교_샘플데이터/Ioniq5/'
-folder_path = win_folder_path
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
+folder_path = os.path.normpath(win_folder_path)
 
 """
 차종별 차량번호
@@ -19,11 +18,11 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # Iterate over each file
-for file_list in file_lists:
-    file = open(os.path.join(folder_path, file_list), "r")
+for file in file_lists:
+    file_path = os.path.join(folder_path, file)
 
     # Read the data from the file into a pandas DataFrame
-    data = pd.read_csv(file)
+    data = pd.read_csv(file_path)
 
     # Set parameters for the vehicle model
     inertia = 0.05
@@ -79,4 +78,4 @@ for file_list in file_lists:
     data['Power'] = Power
 
     # Overwrite the data to the same .csv file
-    data.to_csv(os.path.join(folder_path, file_list), index=False)
+    data.to_csv(os.path.join(folder_path, file), index=False)

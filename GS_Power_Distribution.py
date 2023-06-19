@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # folder path where the files are stored
-win_folder_path = 'D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\ioniq5\\'
-mac_folder_path = '/Users/woojin/Downloads/경로데이터 샘플 및 데이터 정의서/포인트 경로 데이터 속도-가속도 처리'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
+mac_folder_path = ''
 
-folder_path = win_folder_path
+folder_path = os.path.normpath(win_folder_path)
 
 # get a list of all .csv files in the folder
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -17,9 +17,9 @@ file_lists.sort()
 all_distance_per_total_power = []
 over_30_files = []
 
-for file_list in file_lists:
+for file in file_lists:
     # create file path
-    file_path = os.path.join(folder_path, file_list)
+    file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
 
     # extract time, speed, Power
@@ -44,7 +44,7 @@ for file_list in file_lists:
 
     # if distance_per_total_power_km_kWh is over 30, add the file name to over_30_files
     if distance_per_total_power_km_kWh >= 30:
-        over_30_files.append(file_list)
+        over_30_files.append(file)
 
 # plot histogram for all files
 hist_data = sns.histplot(all_distance_per_total_power, bins='auto', color='gray', kde=False)
@@ -66,5 +66,5 @@ plt.show()
 
 # print files with a Total Distance / Total Power ratio greater than 50
 print("Files with a ratio of Total Distance / Total Power greater than 50:")
-for file in over_30_files:
-    print(file)
+for over_30_file in over_30_files:
+    print(over_30_file)
