@@ -61,11 +61,11 @@ for file in file_lists:
 
     # Calculate power demand for acceleration and deceleration
     for i in range(0, len(v)):
-        if a[i] >= 0:
+        if a[i] >= -0.000001:
             P_d.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) / EV.eff / 1000)  # BATTERY ENERGY USAGE
         else:
             P_d.append((((1 + inertia) * (EV.mass + EV.load) * a[i]) / EV.eff / 1000) + (
-                    (1 + inertia) * (EV.mass + EV.load) * abs(a[i]) / np.exp(0.04111 / min(abs(a[i]), 1e10)) / 1000))
+                    (1 + inertia) * (EV.mass + EV.load) * abs(a[i]) / np.exp(0.04111 / abs(a[i])) / 1000))
 
         P_d[i] = P_d[i] * v[i]
         if v[i] <= 0.5:
