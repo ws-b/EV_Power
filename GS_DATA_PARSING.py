@@ -18,21 +18,23 @@ file_lists.sort()
 for file in file_lists:
     # '|'를 구분자로 사용해 입력 파일을 읽습니다.
     file_path = os.path.join(folder_path, file)
-    reader = csv.reader(file_path, delimiter='|')
+    with open(file_path, 'r') as infile:  # Open the file
+        reader = csv.reader(infile, delimiter='|')
 
-    data = []
-    last_line = None
-    for i, row in enumerate(reader):
-        if i == 0 or i == 2:  # skip first and third row
-            continue
-        if last_line is not None:
-            data.append(last_line)
-        last_line = row
+        data = []
+        last_line = None
+        for i, row in enumerate(reader):
+            if i == 0 or i == 2:  # skip first and third row
+                continue
+            if last_line is not None:
+                data.append(last_line)
+            last_line = row
 
-    # 첫 번째 행에서 각 열의 공백을 제거합니다.
-    data[0] = [col.strip() for col in data[0]]
+        # 첫 번째 행에서 각 열의 공백을 제거합니다.
+        if data:  # Make sure data is not empty
+            data[0] = [col.strip() for col in data[0]]
 
-    # ','를 구분자로 사용해 출력 파일을 작성합니다.
-    with open(os.path.join(save_path, file[:-4] + "_parsed.csv"), 'w', newline='') as outfile:
-        writer = csv.writer(outfile, delimiter=',')
-        writer.writerows(data)
+        # ','를 구분자로 사용해 출력 파일을 작성합니다.
+        with open(os.path.join(save_path, file[:-4] + "_parsed.csv"), 'w', newline='') as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+            writer.writerows(data)
