@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # folder path where the files are stored
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\Ioniq5'
 folder_path = os.path.normpath(win_folder_path)
 
 """
