@@ -2,11 +2,11 @@ import csv
 import os
 
 # Set the file path
-win_file_path ='G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터'
+win_file_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터'
 folder_path = os.path.normpath(win_file_path)
 
 # Set the save path
-win_save_path ='G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\processed'
+win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\processed'
 save_path = os.path.normpath(win_save_path)
 
 

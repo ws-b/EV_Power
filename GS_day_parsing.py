@@ -3,7 +3,7 @@ import pandas as pd
 # Folder path containing the files
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
 
-win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\trip_by_trip'
+win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\day_by_day'
 
 folder_path = os.path.normpath(win_folder_path)
 save_path = os.path.normpath(win_save_path)
@@ -27,4 +27,4 @@ for file in file_lists:
         group = group.drop(columns=['DATE'])
 
         # Save the file
-        group.to_csv(f"{save_path}/{file_list[:-6]}{date}.csv", index=False)
+        group.to_csv(f"{save_path}/{file[:-6]}{date}.csv", index=False)
