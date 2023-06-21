@@ -15,8 +15,9 @@ folder_path = os.path.normpath(win_folder_path)
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
+save_path = r'C:\Users\WSONG\Desktop'
 # create a PdfPages object
-with PdfPages('C:\\Users\\WSONG\\Desktop\\multiple_graphs.pdf') as pdf_pages:
+with PdfPages(os.path.join(save_path,'ioniq5_multiple_graphs.pdf')) as pdf_pages:
     # plot graphs for each file
     for file in file_lists:
         # create file path
