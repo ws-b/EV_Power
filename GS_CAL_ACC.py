@@ -2,11 +2,11 @@ import os
 import numpy as np
 import pandas as pd
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 Processed'
-win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 속도-가속도 처리'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\processed'
+win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
 
 folder_path = os.path.normpath(win_folder_path)
-save_path = os.path.normpath((win_save_path)
+save_path = os.path.normpath(win_save_path)
 
 # get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -41,4 +41,4 @@ for file in file_lists:
     data_save = df[['time', 'emobility_spd_m_per_s', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh']].copy()
 
     # save as a CSV file
-    data_save.to_csv(f"{save_path}{df['device_no'].iloc[0].replace(' ', '')}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv", index=False)
+    data_save.to_csv(os.path.join(save_path,f"{df['device_no'].iloc[0].replace(' ', '')}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"), index=False)
