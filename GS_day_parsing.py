@@ -9,6 +9,8 @@ folder_path = os.path.normpath(win_folder_path)
 save_path = os.path.normpath(win_save_path)
 
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
+file_lists.sort()
+
 for file in file_lists:
     file_path = os.path.join(folder_path, file)
 
