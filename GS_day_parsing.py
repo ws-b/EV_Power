@@ -28,5 +28,8 @@ for file in file_lists:
         # Drop the 'DATE' column
         group = group.drop(columns=['DATE'])
 
+        # Format the date
+        date_str = date.strftime('%y-%m-%d')
+
         # Save the file
-        group.to_csv(f"{save_path}/{file[:-6]}{date}.csv", index=False)
+        group.to_csv(f"{save_path}/{file[:-6]}{date_str}.csv", index=False)
