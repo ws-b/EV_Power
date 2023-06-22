@@ -3,6 +3,8 @@ import numpy as np
 
 # Folder path containing the files
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 속도-가속도 처리'
+mac_folder_path = ''
+
 folder_path = os.path.normpath(win_folder_path)
 
 # get a list of all files in the folder with the .csv extension

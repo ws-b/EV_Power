@@ -3,6 +3,7 @@ import matplotlib.dates as mdates
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import stats
 
 # folder path where files are stored
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
@@ -15,7 +16,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # plot graphs for each file
-for file in file_lists:
+for file in file_lists[20:30]:
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
@@ -31,6 +32,13 @@ for file in file_lists:
     # convert Power data to kWh and perform cumulative calculation
     Power_kWh = data['Power'] * 0.00055556  # convert kW to kWh considering the 2-second time interval
     Power_kWh_cumulative = Power_kWh.cumsum()
+
+    # # filter data
+    # filtered_data = data[Power_kWh_cumulative > 1]
+    #
+    # # t-test
+    # t_stat, p_val = stats.ttest_ind(data['Power'], filtered_data['Power'])
+    # print(f"For file {file}, T-statistic: {t_stat}, P-value: {p_val}")
 
     # only plot the graph if the time range is more than 5 minutes
     time_range = t.iloc[-1] - t.iloc[0]
@@ -65,7 +73,7 @@ for file in file_lists:
         date = t.iloc[0].strftime('%Y-%m-%d')
         plt.text(1, 1, date, transform=ax1.transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='right', color='black')
-        plt.text(0, 1, 'File: '+file_list, transform=ax1.transAxes, fontsize=12,
+        plt.text(0, 1, 'File: '+file, transform=ax1.transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='left', color='black')
 
         # set y limit based on the range of both datasets

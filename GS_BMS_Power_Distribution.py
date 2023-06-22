@@ -6,6 +6,7 @@ import os
 
 # folder path where the files are stored
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\kona_ev'
+mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
 
