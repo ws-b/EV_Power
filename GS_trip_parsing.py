@@ -58,5 +58,5 @@ for file in file_lists:
         # for the last trip
         trip = data.loc[cut[-1]:, :]
         duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-        if duration >= pd.Timedelta(minutes=5):
+        if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
             trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)

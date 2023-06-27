@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # folder path where the files are stored
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\Ioniq5'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\kona_ev'
 mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
@@ -47,7 +47,7 @@ for file in file_lists:
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
     ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.87)
     kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 737, 100, 0.87)
-    EV = ioniq5
+    EV = kona_ev
 
     Power = []
     P_a = []

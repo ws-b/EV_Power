@@ -33,13 +33,6 @@ for file in file_lists[20:30]:
     Power_kWh = data['Power'] * 0.00055556  # convert kW to kWh considering the 2-second time interval
     Power_kWh_cumulative = Power_kWh.cumsum()
 
-    # # filter data
-    # filtered_data = data[Power_kWh_cumulative > 1]
-    #
-    # # t-test
-    # t_stat, p_val = stats.ttest_ind(data['Power'], filtered_data['Power'])
-    # print(f"For file {file}, T-statistic: {t_stat}, P-value: {p_val}")
-
     # only plot the graph if the time range is more than 5 minutes
     time_range = t.iloc[-1] - t.iloc[0]
     if time_range.total_seconds() >= 300:  # 5 minutes = 300 seconds

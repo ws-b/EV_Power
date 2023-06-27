@@ -65,6 +65,6 @@ plt.grid(False)
 plt.show()
 
 # print files with a Total Distance / Total Power ratio greater than 50
-print("Files with a ratio of Total Distance / Total Power greater than 50:")
+print("Files with a ratio of Total Distance / Total Power greater than 30:")
 for over_30_file in over_30_files:
     print(over_30_file)
