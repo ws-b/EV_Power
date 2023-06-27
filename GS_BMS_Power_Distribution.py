@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 # folder path where the files are stored
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\kona_ev'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\Ioniq5'
 mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
@@ -36,7 +36,7 @@ for file in file_lists:
         net_discharge = DISCHARGE[i] - CHARGE[i]
         if net_discharge != 0:
             break
--
+
     # calculate Total distance / net_discharge for each file (if net_discharge is 0, set the value to 0)
     distance_per_total_power_km_kWh = (total_distance / 1000) / net_discharge if net_discharge != 0 else 0
 

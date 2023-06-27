@@ -32,20 +32,19 @@ for file in file_lists[20:30]:
     Power_kWh = data['Power'] * 0.00055556  # convert kW to kWh considering the 2-second time interval
     Power_kWh_cumulative = Power_kWh.cumsum()
 
-    # calculate the difference between the two y values
-    y_diff = Power_kWh_cumulative - net_charge
+    # calculate the difference
+    diff = Power_kWh_cumulative - net_charge
 
     # only plot the graph if the time range is more than 5 minutes
     time_range = t.iloc[-1] - t.iloc[0]
     if time_range.total_seconds() >= 300:  # 5 minutes = 300 seconds
-
         # plot the graph
         fig, ax = plt.subplots(figsize=(10, 6))  # set the size of the graph
 
         color = 'tab:blue'
         ax.set_xlabel('Time')
-        ax.set_ylabel('Difference (kWh)', color=color)
-        ax.plot(t, y_diff, color=color)
+        ax.set_ylabel('Difference between Cumulative Power and Net Charge (kWh)', color=color)
+        ax.plot(t, diff, color=color)
         ax.tick_params(axis='y', labelcolor=color)
 
         # format the ticks
@@ -61,6 +60,11 @@ for file in file_lists[20:30]:
                  verticalalignment='top', horizontalalignment='right', color='black')
         plt.text(0, 1, 'File: '+file, transform=ax.transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='left', color='black')
+
+        # set y limit based on the range of diff
+        min_val = min(diff)
+        max_val = max(diff)
+        ax.set_ylim(min_val, max_val)
 
         plt.title('Difference between Cumulative Power and Net Charge over Time')
         plt.show()

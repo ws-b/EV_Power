@@ -24,8 +24,11 @@ for file in file_lists:
     # Extract time, latitude, longitude, speed, acceleration, total distance, and power
     t, lat, log, v, a, total_distance, Power = data.T
 
+    # Normalize the acceleration
+    a_normalized = a / np.max(np.abs(a))
+
     # Save the average acceleration and average speed for each file
-    all_average_acceleration.append(np.mean(a))
+    all_average_acceleration.append(np.mean(a_normalized))
     all_average_speed.append(np.mean(v) * 3.6)  # Convert m/s to km/h
 
 # Calculate the mean of average speed
@@ -34,23 +37,23 @@ average_speed_mean = np.mean(all_average_speed)
 # Plotting the histogram of average acceleration
 plt.figure()
 sns.histplot(all_average_acceleration, bins='auto', color='red', kde=False)
-plt.xlabel('Average Acceleration (m/s^2)')
+plt.xlabel('Normalized Average Acceleration')
 plt.ylabel('Number of trips')
-plt.title('Average Acceleration Distribution')
+plt.title('Normalized Average Acceleration Distribution')
 plt.xlim(-0.02, 0.02)
 plt.legend()
 plt.grid(False)
 plt.show()
 
-# Plotting the histogram of average speed
-plt.figure()
-sns.histplot(all_average_speed, bins='auto', color='purple', kde=True)
-plt.axvline(average_speed_mean, color='blue', linestyle='--', label='Avg Speed Mean')
-plt.text(average_speed_mean + 1, plt.gca().get_ylim()[1] * 0.8, f'{average_speed_mean:.2f}', color='blue')
-plt.xlabel('Average Speed (km/h)')
-plt.ylabel('Number of trips')
-plt.title('Average Speed Distribution')
-plt.xlim(0, 130)
-plt.legend()
-plt.grid(False)
-plt.show()
+# # Plotting the histogram of average speed
+# plt.figure()
+# sns.histplot(all_average_speed, bins='auto', color='purple', kde=True)
+# plt.axvline(average_speed_mean, color='blue', linestyle='--', label='Avg Speed Mean')
+# plt.text(average_speed_mean + 1, plt.gca().get_ylim()[1] * 0.8, f'{average_speed_mean:.2f}', color='blue')
+# plt.xlabel('Average Speed (km/h)')
+# plt.ylabel('Number of trips')
+# plt.title('Average Speed Distribution')
+# plt.xlim(0, 130)
+# plt.legend()
+# plt.grid(False)
+# plt.show()
