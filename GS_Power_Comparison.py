@@ -16,7 +16,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # plot graphs for each file
-for file in file_lists[20:30]:
+for file in file_lists[20:29]:
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
@@ -31,6 +31,7 @@ for file in file_lists[20:30]:
 
     # convert Power data to kWh and perform cumulative calculation
     Power_kWh = data['Power'] * 0.00055556  # convert kW to kWh considering the 2-second time interval
+                                            # kWs to kWh 0.00027778
     Power_kWh_cumulative = Power_kWh.cumsum()
 
     # only plot the graph if the time range is more than 5 minutes

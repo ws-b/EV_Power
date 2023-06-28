@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 # folder path where the files are stored
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\day_by_day'
+win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
 win_save_path = r'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\trip_by_trip'
 
 folder_path = os.path.normpath(win_folder_path)
