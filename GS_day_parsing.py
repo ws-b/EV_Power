@@ -1,8 +1,6 @@
 import pandas as pd
 
-# Folder path containing the files
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
-
 win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\day_by_day'
 
 folder_path = os.path.normpath(win_folder_path)

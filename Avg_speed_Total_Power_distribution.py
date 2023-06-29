@@ -4,7 +4,6 @@ import os
 import numpy as np
 import math
 
-# Folder paths
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 속도-가속도 처리'
 mac_folder_path = ''
 

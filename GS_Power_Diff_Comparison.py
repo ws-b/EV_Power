@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# folder path where files are stored
 win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
 mac_folder_path = ''
 
@@ -14,7 +13,6 @@ folder_path = os.path.normpath(win_folder_path)
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
-# plot graphs for each file
 for file in file_lists[20:30]:
     # create file path
     file_path = os.path.join(folder_path, file)
