@@ -1,11 +1,10 @@
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
+import pandas as pd
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 Processed'
-mac_folder_path = ''
+win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230706'
 
 folder_path = os.path.normpath(win_folder_path)
 
@@ -18,10 +17,12 @@ departure_minutes = []
 for file in file_lists:
     # Create the file path
     file_path = os.path.join(folder_path, file)
-    T = np.loadtxt(file_path, delimiter=',', dtype=str, usecols=0)
+
+    # Read the data from the file into a pandas DataFrame
+    data = pd.read_csv(file_path)
 
     # Get the first T value (departure time)
-    departure_time_str = T[0]
+    departure_time_str = data['time'].iloc[0]  # Get the first time value
 
     # Convert to datetime object
     departure_time = datetime.strptime(departure_time_str, "%Y-%m-%d %H:%M:%S")

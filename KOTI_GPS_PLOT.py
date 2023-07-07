@@ -3,10 +3,10 @@ import pandas as pd
 import folium
 from pyproj import Transformer
 
-win_folder_path = r'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230705'
+win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230706'
 folder_path = os.path.normpath(win_folder_path)
 
-win_save_path = r'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230705\map'
+win_save_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230706\map'
 save_path = os.path.normpath(win_save_path)
 
 # check if save_path exists
@@ -19,7 +19,8 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # Open each CSV file
-for file in file_lists[10:20]:
+#for file in file_lists[10:20]:
+    file = '40489.csv'
     file_path = os.path.join(folder_path, file)
 
     # Read the CSV file into a pandas DataFrame
@@ -34,10 +35,18 @@ for file in file_lists[10:20]:
     data['latitude'], data['longitude'] = transformer.transform(data['latitude'].values, data['longitude'].values)
 
     # Define a valid range of latitude and longitude for South Korea
-    valid_latitude_range = [33, 38]  # replace with your valid latitude range
-    valid_longitude_range = [124, 132]  # replace with your valid longitude range
+    valid_latitude_range = [32, 43]  # replace with your valid latitude range
+    valid_longitude_range = [123, 134]  # replace with your valid longitude range
 
-    # Remove data points outside the valid range
+    # # Get the indices of data points outside the valid range
+    # invalid_indices = data.index[~((data['latitude'] >= valid_latitude_range[0]) &
+    #                                (data['latitude'] <= valid_latitude_range[1]) &
+    #                                (data['longitude'] >= valid_longitude_range[0]) &
+    #                                (data['longitude'] <= valid_longitude_range[1]))].tolist()
+    #
+    # print(f"Invalid indices in {file}: {invalid_indices}")
+
+    # # Remove data points outside the valid range
     data = data[(data['latitude'] >= valid_latitude_range[0]) &
                 (data['latitude'] <= valid_latitude_range[1]) &
                 (data['longitude'] >= valid_longitude_range[0]) &

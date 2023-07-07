@@ -7,10 +7,10 @@ now = datetime.datetime.now()
 date_string = now.strftime("%y%m%d")
 
 
-win_file_path = r'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\part-00003.txt'
+win_file_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\part-00003.txt'
 file_path = os.path.normpath(win_file_path)
 
-win_save_path = r'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터'
+win_save_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터'
 save_path = os.path.join(os.path.normpath(win_save_path), date_string)
 
 # check if save_path exists
@@ -27,6 +27,6 @@ with open(file_path, "r") as f:
         words = line.split()
         for word_num, word in enumerate(words):
             # Open a new file for writing, using the line number in the filename
-            with open(os.path.join(save_path, f"{date_string}_{line_num}.txt"), "w") as wf:
+            with open(os.path.join(save_path, f"{date_string}_{line_num+1}.txt"), "w") as wf:
                 # Write the current word to the file
                 wf.write(word)

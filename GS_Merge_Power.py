@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
 mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
@@ -44,39 +44,36 @@ for file in file_lists:
             self.idle = idle  # IDLE Power
 
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
-    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 737, 100, 0.87)
-    kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 737, 100, 0.87)
+    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 870, 100, 0.9)
+    kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 870, 100, 0.9)
     EV = ioniq5
 
-    Power = []
-    P_a = []
-    P_b = []
-    P_c = []
-    P_d = []
-    P_e = []
+    F = []  # Force
+    E = []  # Energy
 
     for velocity in v:
-        P_a.append(EV.Ca * velocity / EV.eff / 1000)
-        P_b.append(EV.Cb * velocity * velocity / EV.eff / 1000)
-        P_c.append(EV.Cc * velocity * velocity * velocity / EV.eff / 1000)
+        F.append(EV.Ca + EV.Cb * velocity + EV.Cc * velocity * velocity)
 
     # Calculate power demand for acceleration and deceleration
-    for i in range(0, len(v)):
+    for i in range(len(a)):
         if a[i] >= -0.000001:
-            P_d.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) / EV.eff / 1000)  # BATTERY ENERGY USAGE
+            F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])  # BATTERY ENERGY USAGE
+            E.append(F[i] * v[i] / EV.eff)
         else:
-            P_d.append((((1 + inertia) * (EV.mass + EV.load) * a[i]) / EV.eff / 1000) + (
-                    (1 + inertia) * (EV.mass + EV.load) * abs(a[i]) / np.exp(0.04111 / abs(a[i])) / 1000))
+            F[i] += ((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load)  * abs(a[i]) / np.exp(0.04111 / abs(a[i]))))
+            E.append(F[i] * v[i] / EV.eff)
 
-        P_d[i] = P_d[i] * v[i]
         if v[i] <= 0.5:
-            P_e.append((EV.aux + EV.idle) / 1000)
+            E[i] += (EV.aux + EV.idle)
         else:
-            P_e.append(EV.aux / 1000)
-        Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i] + P_e[i]))
+            E[i] += EV.aux
 
+    E = [i / 1800000 for i in E]
     # Add the 'Power' column to the DataFrame
-    data['Power'] = Power
+    data['Energy'] = E
 
+    if 'Power' in data.columns:
+        del data['Power']
     # Overwrite the data to the same .csv file
     data.to_csv(os.path.join(folder_path, file), index=False)
+    print(f"{file} is done.")
