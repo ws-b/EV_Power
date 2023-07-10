@@ -1,10 +1,11 @@
 import csv
 import os
+from tqdm import tqdm
 
-win_file_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터'
+win_file_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터'
 folder_path = os.path.normpath(win_file_path)
 
-win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\processed'
+win_save_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\processed'
 save_path = os.path.normpath(win_save_path)
 
 
@@ -13,7 +14,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # 모든 파일에 대해
-for file in file_lists:
+for file in tqdm(file_lists):
     # '|'를 구분자로 사용해 입력 파일을 읽습니다.
     file_path = os.path.join(folder_path, file)
     with open(file_path, 'r') as infile:  # Open the file

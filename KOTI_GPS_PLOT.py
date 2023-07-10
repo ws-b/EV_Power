@@ -2,11 +2,12 @@ import os
 import pandas as pd
 import folium
 from pyproj import Transformer
+from tqdm import tqdm
 
-win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230706'
+win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230710'
 folder_path = os.path.normpath(win_folder_path)
 
-win_save_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230706\map'
+win_save_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230710\map'
 save_path = os.path.normpath(win_save_path)
 
 # check if save_path exists
@@ -19,8 +20,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # Open each CSV file
-#for file in file_lists[10:20]:
-    file = '40489.csv'
+for file in tqdm(file_lists[10:20]):
     file_path = os.path.join(folder_path, file)
 
     # Read the CSV file into a pandas DataFrame
@@ -28,7 +28,7 @@ file_lists.sort()
 
     # Set column names 'time', 'longitude', 'latitude', etc.
     data.columns = ['time', 'longitude', 'latitude', 'speed', 'acceleration', 'type', 'vLinkId', 'distFromLink',
-                    'distToLink', 'gisLength', 'gisSpeed', 'gpsLength', 'gpsSpeed']
+                    'distToLink', 'gisLength', 'gisSpeed', 'gpsLength', 'gpsSpeed', 'Energy']
 
     # Transform coordinates from epsg:5179 (UTM coordinates) to epsg:4326 (WGS 84 coordinates)
     transformer = Transformer.from_crs("epsg:5179", "epsg:4326")

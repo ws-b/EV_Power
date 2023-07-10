@@ -3,6 +3,7 @@ import matplotlib.dates as mdates
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from scipy import stats
 
 win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
@@ -15,7 +16,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # plot graphs for each file
-for file in file_lists[25:29]:
+for file in tqdm(file_lists[25:29]):
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)

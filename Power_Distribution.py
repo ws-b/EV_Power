@@ -2,6 +2,7 @@ import os
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230706'
 
@@ -14,7 +15,7 @@ file_lists.sort()
 all_distance_per_total_power = []
 over_50_files = []
 
-for file in file_lists:
+for file in tqdm(file_lists):
     # Create the file path
     file_path = os.path.join(folder_path, file)
     data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)

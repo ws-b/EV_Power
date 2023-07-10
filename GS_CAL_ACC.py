@@ -1,9 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\processed'
-win_save_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\processed'
+win_save_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc'
 
 folder_path = os.path.normpath(win_folder_path)
 save_path = os.path.normpath(win_save_path)
@@ -12,7 +13,7 @@ save_path = os.path.normpath(win_save_path)
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
-for file in file_lists:
+for file in tqdm(file_lists):
     file_path = os.path.join(folder_path, file)
 
     # Load CSV file into a pandas DataFrame

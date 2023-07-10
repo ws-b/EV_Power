@@ -4,8 +4,9 @@ import pandas as pd
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\ioniq5'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
 mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
@@ -18,7 +19,7 @@ save_path = r'C:\Users\WSONG\Desktop'
 # create a PdfPages object
 with PdfPages(os.path.join(save_path,'ioniq5_multiple_graphs.pdf')) as pdf_pages:
     # plot graphs for each file
-    for file in file_lists:
+    for file in tqdm(file_lists):
         # create file path
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)

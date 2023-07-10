@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\speed-acc'
-win_save_path = r'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\trip_by_trip'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc'
+win_save_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip'
 
 folder_path = os.path.normpath(win_folder_path)
 save_path = os.path.normpath(win_save_path)
@@ -53,9 +53,11 @@ for file in file_lists:
                 # Save to file
                 trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)
                 trip_counter += 1
+                print(f"{file[:-4]}-trip-{trip_counter} is done.")
 
         # for the last trip
         trip = data.loc[cut[-1]:, :]
         duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
         if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
             trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)
+            print(f"{file[:-4]}-trip-{trip_counter} is done.")

@@ -1,8 +1,9 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
-win_folder_path = r'G:\공유 드라이브\Battery Software Lab\Data\한국에너지공과대학교_샘플데이터\trip_by_trip'
+win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip'
 mac_folder_path = ''
 folder_path = os.path.normpath(win_folder_path)
 
@@ -22,7 +23,7 @@ fig2, ax2 = plt.subplots(figsize=(18, 6))  # for pack_volt
 fig3, ax3 = plt.subplots(figsize=(18, 6))  # for cell_volt_list
 
 # loop over all the files
-for file in file_lists[10:80]:
+for file in tqdm(file_lists[10:80]):
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)

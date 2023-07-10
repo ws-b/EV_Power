@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
 mac_folder_path = ''
@@ -19,7 +20,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # Iterate over each file
-for file in file_lists:
+for file in tqdm(file_lists):
     file_path = os.path.join(folder_path, file)
 
     # Read the data from the file into a pandas DataFrame
@@ -76,4 +77,4 @@ for file in file_lists:
         del data['Power']
     # Overwrite the data to the same .csv file
     data.to_csv(os.path.join(folder_path, file), index=False)
-    print(f"{file} is done.")
+print('Done')
