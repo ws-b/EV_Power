@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
@@ -13,7 +14,7 @@ folder_path = os.path.normpath(win_folder_path)
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
-for file in file_lists[20:21]:
+for file in tqdm(file_lists[20:21]):
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
 
