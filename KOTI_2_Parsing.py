@@ -1,6 +1,7 @@
 import os
 import csv
 import datetime
+from tqdm import tqdm
 
 # Get the current date and time
 now = datetime.datetime.now()
@@ -31,7 +32,7 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 # Open each TXT file
-for file in file_lists:
+for file in tqdm(file_lists):
     data = open(os.path.join(folder_path, file), "r")
 
     # Read only the first line
@@ -71,12 +72,19 @@ for file in file_lists:
     userID = items[0]
     m = 1
 
+    # Set the column headers for the CSV file
+    headers = ["time", "longitude", "latitude", "speed", "acceleration", "type", "vLinkId", "distFromLink",
+               "distToLink", "gisLength", "gisSpeed", "gpsLength", "gpsSpeed"]
+
     # Open a CSV file for writing depending on the trip number
     if len(cut) == 2:
         globals()[f"{userID}"] = gps[cut[0]:cut[1]]  # Parsing Trip with i series
         with open(os.path.join(save_path, f"{userID}.csv"), mode='w', newline='') as file:
             # Create a CSV writer object
             writer = csv.writer(file)
+
+            # Write the header row to the CSV file
+            writer.writerow(headers)
 
             # Write each row of the list to the CSV file
             for row in globals()[f"{userID}"]:
@@ -92,6 +100,9 @@ for file in file_lists:
             with open(os.path.join(save_path, f"{userID}_{i}.csv"), mode='w', newline='') as file:
                 # Create a CSV writer object
                 writer = csv.writer(file)
+
+                # Write the header row to the CSV file
+                writer.writerow(headers)
 
                 # Write each row of the list to the CSV file
                 for row in globals()[f"{userID}_{i}"]:
