@@ -20,11 +20,7 @@ for file in tqdm(file_lists):
     file_path = os.path.join(folder_path, file)
 
     # Read the CSV file into a pandas DataFrame
-    data = pd.read_csv(file_path, header=None)
-
-    # Set column names 'time', 'longitude', 'latitude', etc.
-    data.columns = ['time', 'longitude', 'latitude', 'speed', 'acceleration', 'type', 'vLinkId', 'distFromLink',
-                    'distToLink', 'gisLength', 'gisSpeed', 'gpsLength', 'gpsSpeed','Energy']
+    data = pd.read_csv(file_path)
 
     # Transform coordinates from epsg:5179 (UTM coordinates) to epsg:4326 (WGS 84 coordinates)
     transformer = Transformer.from_crs("epsg:5179", "epsg:4326")
