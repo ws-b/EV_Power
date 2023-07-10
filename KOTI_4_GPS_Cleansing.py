@@ -36,7 +36,7 @@ for file in tqdm(file_lists):
                      (data['longitude'] >= valid_longitude_range[0]) &
                      (data['longitude'] <= valid_longitude_range[1]))
 
-    print(f"Invalid indices in {file}: {invalid_mask[invalid_mask].index.tolist()}")
+    #print(f"Invalid indices in {file}: {invalid_mask[invalid_mask].index.tolist()}")
 
     # If there are any invalid data points, save them in a log file
     if invalid_mask.any():
@@ -49,3 +49,5 @@ for file in tqdm(file_lists):
 
     # Overwrite the original CSV file with the valid data
     valid_data.to_csv(file_path, index=False)
+
+print('Done!')
