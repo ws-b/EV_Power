@@ -1,82 +1,82 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+import pandas as pd
+from datetime import datetime
 
-win_folder_path = 'G:\공유 드라이브\Battery Software Lab\Data\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터 속도-가속도 처리'
-mac_folder_path = ''
+win_folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\경로데이터 샘플 및 데이터 정의서\포인트 경로 데이터_후처리\230710'
 
 folder_path = os.path.normpath(win_folder_path)
 
-# get a list of all files in the folder with the .csv extension
+# Get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
-# Choose a file
-file = file_lists[35]
+# Iterate over each file
+for file in tqdm(file_lists[400:410]):
+    file_path = os.path.join(folder_path, file)
 
-# Create the file path
-file_path = os.path.join(folder_path, file)
+    # Read the data from the file into a pandas DataFrame
+    data = pd.read_csv(file_path)
 
-# Load data from the CSV file
-data = np.loadtxt(file_path, delimiter=',', dtype=np.float64)
+    # Set parameters for the vehicle model
+    inertia = 0.05 # rotational inertia of the wheels
+    g = 9.18  # m/s**2
+    t = data['time'].tolist()
+    v = data['speed'].tolist()
+    a = data['acceleration'].tolist()
 
-# Set parameters for the vehicle model
-inertia = 0.05
-g = 9.18  # m/s**2
-t = data[:, 0].tolist()
-t = [int(x) for x in t]
-v = data[:, 3].tolist()
-a = data[:, 4].tolist()
+    class Vehicle:
+        def __init__(self, mass, load, Ca, Cb, Cc, aux, idle, eff):
+            self.mass = mass  # kg # Mass of vehicle
+            self.load = load  # kg # Load of vehicle
+            self.Ca = Ca * 4.44822  # CONVERT lbf to N # Air resistance coefficient
+            self.Cb = Cb * 4.44822 * 2.237  # lbf/mph -> N/mps # Rolling resistance coefficient
+            self.Cc = Cc * 4.44822 * (2.237 ** 2)  # lbf/mph**2 -> N/mps**2 # Gradient resistance coefficient
+            self.eff = eff  # Efficiency
+            self.aux = aux  # Auxiliary Power, Not considering Heating and Cooling
+            self.idle = idle  # IDLE Power
 
-class Vehicle:
-    def __init__(self, mass, load, Ca, Cb, Cc, aux, idle, eff):
-        self.mass = mass  # kg # Mass of the vehicle
-        self.load = load  # kg # Load of the vehicle
-        self.Ca = Ca * 4.44822  # CONVERT lbf to N # Air resistance coefficient
-        self.Cb = Cb * 4.44822 * 2.237  # lbf/mph -> N/mps # Rolling resistance coefficient
-        self.Cc = Cc * 4.44822 * (2.237 ** 2)  # lbf/mph**2 -> N/mps**2 # Gradient resistance coefficient
-        self.eff = eff  # Efficiency
-        self.aux = aux  # Auxiliary Power, Not considering Heating and Cooling
-        self.idle = idle  # IDLE Power
+    # Calculate power demand for air resistance, rolling resistance, and gradient resistance
+    ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 870, 100, 0.9)
+    kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 870, 100, 0.9)
+    EV = ioniq5
 
-# Calculate power demand for air resistance, rolling resistance, and gradient resistance
-model3 = Vehicle(1930, 0, 38.510, -0.08110, 0.016100, 737, 100, 0.87)
+    F = []  # Force
+    E = []  # Energy
 
-Power = []
-P_a = []
-P_b = []
-P_c = []
-P_d = []
-P_e = []
+    for velocity in v:
+        F.append(EV.Ca + EV.Cb * velocity + EV.Cc * velocity * velocity)
 
-for velocity in v:
-    P_a.append(model3.Ca * velocity / model3.eff / 1000)
-    P_b.append(model3.Cb * velocity * velocity / model3.eff / 1000)
-    P_c.append(model3.Cc * velocity * velocity * velocity / model3.eff / 1000)
+    # Calculate power demand for acceleration and deceleration
+    for i in range(len(a)):
+        if a[i] >= -0.000001:
+            F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])  # BATTERY ENERGY USAGE
+            E.append(F[i] * v[i] / EV.eff)
+        else:
+            F[i] += ((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load)  * abs(a[i]) / np.exp(0.04111 / abs(a[i]))))
+            E.append(F[i] * v[i] / EV.eff)
 
-# Calculate power demand for acceleration and deceleration
-for i in range(0, len(v)):
-    if a[i] >= 0:
-        P_d.append(((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000)  # BATTERY ENERGY USAGE
-    else:
-        P_d.append((((1 + inertia) * (model3.mass + model3.load) * a[i]) / model3.eff / 1000) + ((1 + inertia) * (model3.mass + model3.load) * abs(a[i]) / np.exp(0.04111 / abs(a[i])) / 1000))
+        if v[i] <= 0.5:
+            E[i] += (EV.aux + EV.idle)
+        else:
+            E[i] += EV.aux
 
-    P_d[i] = P_d[i] * v[i]
-    if v[i] <= 0.5:
-        P_e.append((model3.aux + model3.idle) / 1000)
-    else:
-        P_e.append(model3.aux / 1000)
-    Power.append((P_a[i] + P_b[i] + P_c[i] + P_d[i] + P_e[i]))
+    E = [i / 3600 for i in E]
+    # Add the 'Power' column to the DataFrame
+    data['Energy'] = E
 
-# Plotting
-plt.figure(figsize=(10, 6))
+    # Get the earliest time point
+    earliest_time = datetime.strptime(t[0], '%Y-%m-%d %H:%M:%S')
 
-# Convert seconds to minutes
-t_minutes = [i / 60 for i in t]
+    # Convert time to minutes starting from 0
+    time_minutes = [(datetime.strptime(t_i, '%Y-%m-%d %H:%M:%S') - earliest_time).total_seconds() / 60 for t_i in t]
 
-plt.stackplot(t_minutes, P_a, P_b, P_c, P_d, P_e, labels=['P_a', 'P_b', 'P_c', 'P_d', 'P_e'])
-plt.legend(loc='upper left')
-plt.title('Stacked Plot of Power')
-plt.xlabel('Time (minutes)')
-plt.ylabel('Power')
-plt.show()
+    # Plot Energy against time
+    plt.plot(time_minutes, E)
+    plt.xlabel('Time (minutes)')
+    plt.ylabel('Energy(Wh)')
+    plt.title('Energy vs. Time')
+    plt.grid(True)
+    plt.show()
