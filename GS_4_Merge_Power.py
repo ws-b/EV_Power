@@ -75,5 +75,5 @@ for file in tqdm(file_lists):
 
     # Overwrite the data to the same .csv file
     data.to_csv(os.path.join(folder_path, file), index=False)
-    
+
 print('Done')
