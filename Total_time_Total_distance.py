@@ -51,7 +51,11 @@ plt.ylabel('Number of Trips')
 plt.title('Total Distance Distribution')
 plt.xlim(0, 100)
 plt.grid(False)
+plt.annotate(f'Sample size: {len(all_total_distance_km)}', xy=(0.7, 0.9), xycoords='axes fraction')
 plt.show()
+
+# Convert total time to minutes
+all_total_time_min = [i / 60 for i in all_total_time]
 
 # Histogram of total time
 plt.figure()
@@ -61,10 +65,9 @@ plt.ylabel('Number of Trips')
 plt.title('Total Time Distribution')
 plt.xlim(0, 8000 / 60)  # adjust the limit to minutes
 plt.grid(False)
+plt.annotate(f'Sample size: {len(all_total_time_min)}', xy=(0.7, 0.9), xycoords='axes fraction')
 plt.show()
 
-# Convert total time to minutes
-all_total_time_min = [i / 60 for i in all_total_time]
 
 # Create a scatter plot
 plt.figure()
@@ -73,4 +76,5 @@ plt.xlabel('Total Time (min)')
 plt.ylabel('Total Distance (km)')
 plt.title('Total Time vs Total Distance')
 plt.grid(True)
+plt.annotate(f'Sample size: {len(all_total_time_min)}', xy=(0.7, 0.9), xycoords='axes fraction')
 plt.show()
