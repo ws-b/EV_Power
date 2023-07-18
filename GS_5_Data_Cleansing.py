@@ -33,14 +33,14 @@ for file in tqdm(file_lists):
 
     # convert Power data to kWh and perform cumulative calculation
     Energy_kWh = data['Energy']  # convert kW to kWh considering the 2-second time interval
-    Energy_kWh_cumulative = Energy_kWh.cumsum()
+    Energy_kWh_cumulative = Energy_kWh.cumsum().tolist()
 
     # calculate total distance considering the sampling interval (2 seconds)
     total_distance = np.sum(v * 2)
 
-    # only plot the graph if the time range is more than 5 minutes
+    # move file if the time range is more than 5 minutes and total distance is less than 1000 and Power_kWh_cumulative is less than 0
     time_range = t.iloc[-1] - t.iloc[0]
-    if time_range.total_seconds() < 300  or total_distance < 1000:    # 5 minutes = 300 seconds
+    if time_range.total_seconds() < 300  or total_distance < 1000 or Energy_kWh_cumulative[-1] < 0:    # 5 minutes = 300 seconds
         os.replace(file_path, os.path.join(moved_path, file))
 
 print("Done!")
