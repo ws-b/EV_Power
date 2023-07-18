@@ -6,7 +6,7 @@ from scipy.stats import zscore
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\Ioniq5'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\kona_ev'
 
 folder_path = os.path.normpath(win_folder_path)
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -31,7 +31,8 @@ def model_energy(params, data):
     Ca, Cb, Cc = params
     v = data['emobility_spd_m_per_s'].tolist()
     a = data['acceleration'].tolist()
-    EV = Vehicle(2268, 0, Ca, Cb, Cc, 870, 100, 0.9)
+    #EV = Vehicle(2268, 0, Ca, Cb, Cc, 0, 0, 1)
+    EV = Vehicle(1814, 0, Ca, Cb, Cc, 0, 0, 1)
     inertia = 0.05
     g = 9.18
     F = []
@@ -68,7 +69,8 @@ for file in tqdm(training_files):
     CHARGE = data['trip_chrg_pw'].tolist()
     DISCHARGE = data['trip_dischrg_pw'].tolist()
     actual_energy = np.array(DISCHARGE) - np.array(CHARGE)
-    initial_guess = [34.342, 0.21928, 0.022718]
+    #initial_guess = [34.342, 0.21928, 0.022718]
+    initial_guess = [24.859, -0.20036, 0.023656]
     bounds = [(-200, 200), (-1, 1), (-0.1, 0.1)]
     result = minimize(objective, initial_guess, args=(data, actual_energy), bounds = bounds)
     optimized_params.append(result.x)
@@ -100,8 +102,8 @@ for file in tqdm(testing_files[:10]):  # Select first 10 files
     predicted_energy_cumulative = np.cumsum(predicted_energy)  # Taking cumulative sum of predicted energy
 
     plt.figure(figsize=(10,6))
-    plt.plot(t, actual_energy, label='Actual Energy')  # Plotting actual energy directly
-    plt.plot(t, predicted_energy_cumulative, label='Predicted Energy')  # Plotting cumulative predicted energy
+    plt.plot(t, actual_energy, label='Actual Energy', color='red')  # Plotting actual energy directly
+    plt.plot(t, predicted_energy_cumulative, label='Predicted Energy', color='blue')  # Plotting cumulative predicted energy
 
     # Add filename to the left of the graph
     plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12, verticalalignment='top',
@@ -113,7 +115,7 @@ for file in tqdm(testing_files[:10]):  # Select first 10 files
     plt.show()
 
 # Plotting the optimized parameters
-fig, axs = plt.subplots(3, 1, figsize=(10,15))
+fig, axs = plt.subplots(3, 1, figsize=(8, 8))
 
 # Plot Ca
 axs[0].plot(df_params.index, df_params['Ca'], label='Ca', marker='o', color='b')
