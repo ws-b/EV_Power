@@ -59,13 +59,14 @@ for file in tqdm(file_lists):
 
     # Calculate power demand for acceleration and deceleration
     for i in range(len(a)):
-        if a[i] >= -0.000001:
-            F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])  # BATTERY ENERGY USAGE
-            Power.append(F[i] * v[i] / EV.eff)
-        else:
-            F[i] += ((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load)  * abs(a[i]) / np.exp(0.04111 / abs(a[i]))))
-            Power.append(F[i] * v[i] / EV.eff)
-
+        # if a[i] >= -0.000001:
+        #     F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])  # BATTERY ENERGY USAGE
+        #     Power.append(F[i] * v[i] / EV.eff)
+        # else:
+        #     F[i] += ((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load)  * abs(a[i]) / np.exp(0.04111 / abs(a[i]))))
+        #     Power.append(F[i] * v[i] / EV.eff)
+        F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])  # BATTERY ENERGY USAGE
+        Power.append(F[i] * v[i] / EV.eff)
         if v[i] <= 0.5:
             Power[i] += (EV.aux + EV.idle)
         else:
