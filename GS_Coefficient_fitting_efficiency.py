@@ -62,18 +62,26 @@ def predict_and_plot(file, a, b):
 
     # Convert the 'time' column to total minutes
     data['time'] = pd.to_datetime(data['time'])
-    data['time_in_minutes'] = data['time'].dt.hour * 60 + data['time'].dt.minute + data['time'].dt.second / 60
+    data['time'] = data['time'] - data['time'].iloc[0]
+    data['time_in_minutes'] = data['time'].dt.total_seconds() / 60
     time_in_minutes = data['time_in_minutes'].values
+
     # Plot
     plt.figure(figsize=(12, 6))
-    plt.plot(time_in_minutes, data['actual_usage'].values, label='Actual Usage')
-    plt.plot(time_in_minutes, y_pred, label='Predicted Usage')
+    plt.plot(time_in_minutes, data['actual_usage'].values, label='Actual Usage', color='red')
+    plt.plot(time_in_minutes, data['Energy'].values, label='Energy Before Fitting', color='blue')
+    plt.plot(time_in_minutes, y_pred, label='Predicted Usage', color='green')
     plt.xlabel('Time (minutes)')
-    plt.legend()
+    plt.legend(loc='upper left')
+
+    # Display the file name at the top right of the plot
+    plt.annotate(f'File: {file}', xy=(1, 1), xycoords='axes fraction', fontsize=12, ha='right', va='top')
+
     plt.show()
 
+
 # Update: Select a random subset of 10 test files
-random_test_files = np.random.choice(test_files, 10)
+random_test_files = np.random.choice(test_files, 5)
 
 # Predict and plot for each file in the test set
 for file in tqdm(random_test_files, desc="Processing test files"):
