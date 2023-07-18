@@ -3,9 +3,14 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\porter_ev'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
+
 
 folder_path = os.path.normpath(win_folder_path)
+moved_path = os.path.join(folder_path, 'moved')
+
+if not os.path.exists(moved_path):
+    os.makedirs(moved_path)
 
 # get a list of all .csv files in the folder
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
@@ -36,5 +41,6 @@ for file in tqdm(file_lists):
     # only plot the graph if the time range is more than 5 minutes
     time_range = t.iloc[-1] - t.iloc[0]
     if time_range.total_seconds() < 300 or Energy_kWh_cumulative.iloc[-1] < 1 or net_charge[-1] < 1 or total_distance < 1000:    # 5 minutes = 300 seconds
-        os.remove(file_path)  # delete the file
+        os.replace(file_path, os.path.join(moved_path, file))
+
 print("Done!")

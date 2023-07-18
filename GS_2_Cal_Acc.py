@@ -39,7 +39,7 @@ for file in tqdm(file_lists):
     df['acceleration'] = df['acceleration'].replace(np.nan, 0)
 
     # merge selected columns into a single DataFrame
-    data_save = df[['time', 'emobility_spd_m_per_s', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh','cell_volt_list', 'pack_current', 'pack_volt' ]].copy()
+    data_save = df[['time', 'emobility_spd_m_per_s', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh','cell_volt_list', 'pack_current', 'pack_volt','cumul_pw_chrgd', 'cumul_pw_dischrgd' ]].copy()
 
     # save as a CSV file
     data_save.to_csv(os.path.join(save_path,f"{df['device_no'].iloc[0].replace(' ', '')}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"), index=False)

@@ -3,8 +3,9 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+from tqdm import tqdm
 
-win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\kona_ev'
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
 mac_folder_path = ''
 
 folder_path = os.path.normpath(win_folder_path)
@@ -16,7 +17,7 @@ file_lists.sort()
 all_distance_per_total_energy = []
 over_30_files = []
 
-for file in file_lists:
+for file in tqdm(file_lists):
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
@@ -41,12 +42,8 @@ for file in file_lists:
     # collect all distance_per_total_Energy values for all files
     all_distance_per_total_energy.append(distance_per_total_energy_km_kWh)
 
-    # if distance_per_total_Energy_km_kWh is over 30, add the file name to over_30_files
-    if distance_per_total_energy_km_kWh >= 30:
-        over_30_files.append(file)
-
 # plot histogram for all files
-hist_data = sns.histplot(all_distance_per_total_energy, bins='auto', color='gray', kde=False)
+hist_data = sns.histplot(all_distance_per_total_energy, bins=25, color='gray', kde=False)
 
 # plot vertical line for mean value
 mean_value = np.mean(all_distance_per_total_energy)
@@ -68,8 +65,3 @@ plt.ylabel('Number of trips')
 plt.title('Total Distance / Total Energy Distribution')
 plt.grid(False)
 plt.show()
-
-# print files with a Total Distance / Total Energy ratio greater than 50
-print("Files with a ratio of Total Distance / Total Energy greater than 30:")
-for over_30_file in over_30_files:
-    print(over_30_file)

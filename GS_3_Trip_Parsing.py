@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from tqdm import tqdm
 
 win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc'
 win_save_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip'
@@ -11,7 +12,7 @@ save_path = os.path.normpath(win_save_path)
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
-for file in file_lists:
+for file in tqdm(file_lists):
     file_path = os.path.join(folder_path, file)
 
     # Load CSV file into a pandas DataFrame
@@ -39,6 +40,11 @@ for file in file_lists:
         if data.loc[i + 1, 'trip_dischrg_pw'] - data.loc[i, 'trip_dischrg_pw'] != 0 and data.loc[i + 1, 'trip_chrg_pw'] - data.loc[i, 'trip_chrg_pw'] != 0  and data.loc[i+1, 'trip_dischrg_pw'] == 0 and data.loc[i+1, 'trip_chrg_pw'] == 0:
             cut.append(i + 1)
 
+    # Parse Trip by Trip Discharge difference
+    for i in range(len(data) - 1):
+        if abs(data.loc[i + 1, 'trip_dischrg_pw'] - data.loc[i, 'trip_dischrg_pw']) > 0.5:
+            cut.append(i + 1)
+
     cut = list(set(cut))
     cut.sort()
 
@@ -53,11 +59,9 @@ for file in file_lists:
                 # Save to file
                 trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)
                 trip_counter += 1
-                print(f"{file[:-4]}-trip-{trip_counter} is done.")
 
         # for the last trip
         trip = data.loc[cut[-1]:, :]
         duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
         if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
             trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)
-            print(f"{file[:-4]}-trip-{trip_counter} is done.")

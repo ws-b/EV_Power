@@ -45,6 +45,10 @@ ax.set_xlabel('Cumulative Energy (kWh)')  # changed
 ax.set_ylabel('Net Charge (Discharge - Charge) (kWh)')  # changed
 ax.scatter(final_energy, final_net_charge, color='tab:blue')  # swapped the x and y variables
 
+# Add trendline
+slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_net_charge)
+ax.plot(np.array(final_energy), intercept + slope*np.array(final_energy), 'b', label='fitted line')  # 'b' for blue color
+
 # Create y=x line
 lims = [
     np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
@@ -55,5 +59,5 @@ ax.set_aspect('equal')
 ax.set_xlim(lims)
 ax.set_ylim(lims)
 
-plt.title('Net Charge vs. Cumulative Energy over Time')
+plt.title('Net Charge vs. Cumulative Energy over Time (only vehicle energy)')
 plt.show()
