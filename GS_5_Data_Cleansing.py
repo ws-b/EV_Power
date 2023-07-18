@@ -40,7 +40,7 @@ for file in tqdm(file_lists):
 
     # only plot the graph if the time range is more than 5 minutes
     time_range = t.iloc[-1] - t.iloc[0]
-    if time_range.total_seconds() < 300 or Energy_kWh_cumulative.iloc[-1] < 1 or net_charge[-1] < 1 or total_distance < 1000:    # 5 minutes = 300 seconds
+    if time_range.total_seconds() < 300  or total_distance < 1000:    # 5 minutes = 300 seconds
         os.replace(file_path, os.path.join(moved_path, file))
 
 print("Done!")
