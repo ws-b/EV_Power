@@ -1,131 +1,80 @@
 import os
-import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
-from scipy.stats import zscore
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\Ioniq5'
-
+# Define the path to the data
+win_folder_path = 'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\ioniq5'
 folder_path = os.path.normpath(win_folder_path)
+
+# Get a list of all files in the folder with the .csv extension
 file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith('.csv')]
 file_lists.sort()
 
-# Split file lists into training and testing
-np.random.shuffle(file_lists)  # Randomize file order
-training_files = file_lists[:len(file_lists) // 2]
-testing_files = file_lists[len(file_lists) // 2:]
-class Vehicle:
-    def __init__(self, mass, load, Ca, Cb, Cc, aux, idle, a, b, E):
-        self.mass = mass
-        self.load = load
-        self.Ca = Ca * 4.44822
-        self.Cb = Cb * 4.44822 * 2.237
-        self.Cc = Cc * 4.44822 * (2.237 ** 2)
-        self.eff = a * E + b * E**2
-        self.aux = aux
-        self.idle = idle
+# Split the files into training and test sets
+train_files, test_files = train_test_split(file_lists, test_size=0.5, random_state=42)
 
-def model_energy(params, data, E):  # Add 'E' as an argument
-    a, b = params
-    v = data['emobility_spd_m_per_s'].tolist()
-    a = data['acceleration'].tolist()
-    EV = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 870, 100, a, b, E)
-    inertia = 0.05
-    g = 9.18
-    F = []
-    E = []
-    for velocity in v:
-        F.append(EV.Ca + EV.Cb * velocity + EV.Cc * velocity * velocity)
-    for i in range(len(a)):
-        if a[i] >= -0.000001:
-            F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])
-            E.append(F[i] * v[i])
-        else:
-            F[i] += ((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load) * abs(a[i]) / np.exp(0.04111 / abs(a[i]))))
-            E.append(F[i] * v[i])
-        if v[i] <= 0.5:
-            E[i] += (EV.aux + EV.idle)
-        else:
-            E[i] += EV.aux
-    E = [i / 1800000 for i in E]
-    return E * EV.eff
+# Function to process each file and return a and b
+def process_file(file):
+    # Read the data from the file into a pandas DataFrame
+    data = pd.read_csv(os.path.join(folder_path, file))
 
+    # Update: Get the actual usage from the 'Energy_VI' column
+    data['actual_usage'] = data['Energy_VI']
 
-def objective(params, data, actual_energy):
-    predicted_energy = model_energy(params, data, E)  # Pass 'E' here
-    # Take cumulative sum of predicted energy
-    predicted_energy_cumulative = np.cumsum(predicted_energy)
-    # Compute the squared error of the cumulative energies
-    return np.sum((predicted_energy_cumulative - actual_energy) ** 2)
+    # Calculate the energy with speed considered
+    X = (data['Energy'] * data['emobility_spd_m_per_s']).values.reshape(-1, 1)
+    y = data['actual_usage'].values
 
-optimized_params = []
-for file in tqdm(training_files):
-    file_path = os.path.join(folder_path, file)
-    data = pd.read_csv(file_path)
-    t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-    CHARGE = data['trip_chrg_pw'].tolist()
-    DISCHARGE = data['trip_dischrg_pw'].tolist()
-    actual_energy = np.array(DISCHARGE) - np.array(CHARGE)
-    initial_guess = [1, 1]
-    bounds = [(-1, 1), (-1, 1)]
-    result = minimize(objective, initial_guess, args=(data, actual_energy), bounds = bounds)
-    optimized_params.append(result.x)
+    # Fit the data using Linear Regression
+    model = LinearRegression()
+    model.fit(X, y)
 
-# Compute average parameters
-optimized_params_array = np.array(optimized_params)
-z_scores = zscore(optimized_params_array)
-optimized_params_array = optimized_params_array[(np.abs(z_scores) < 2).all(axis=1)]  # Remove outliers
-average_params = np.mean(optimized_params_array, axis=0)
+    return model.intercept_, model.coef_[0]
 
-# Create a DataFrame from the optimized parameters
-df_params = pd.DataFrame(optimized_params_array, columns=['a', 'b'])
+# Calculate a and b for each file in the training set and get their averages
+a_values = []
+b_values = []
+for file in tqdm(train_files, desc="Processing training files"):
+    a, b = process_file(file)
+    a_values.append(a)
+    b_values.append(b)
 
-# Predict energy on testing data
-for file in tqdm(testing_files[:10]):  # Select first 10 files
-    file_path = os.path.join(folder_path, file)
-    data = pd.read_csv(file_path)
-    t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+average_a = np.mean(a_values)
+average_b = np.mean(b_values)
 
-    # Convert time to minutes
-    t = (t - t.min()).dt.total_seconds() / 60
+# Function to predict and plot
+def predict_and_plot(file, a, b):
+    # Read the data from the file into a pandas DataFrame
+    data = pd.read_csv(os.path.join(folder_path, file))
 
-    CHARGE = data['trip_chrg_pw'].tolist()
-    DISCHARGE = data['trip_dischrg_pw'].tolist()
+    # Update: Get the actual usage from the 'Energy_VI' column
+    data['actual_usage'] = data['Energy_VI']
 
-    # Convert energy to kWh
-    actual_energy = (np.array(DISCHARGE) - np.array(CHARGE))
-    predicted_energy = np.array(model_energy(average_params, data))
-    predicted_energy_cumulative = np.cumsum(predicted_energy)  # Taking cumulative sum of predicted energy
+    # Calculate the energy with speed considered
+    X = (data['Energy'] * data['emobility_spd_m_per_s']).values.reshape(-1, 1)
 
-    plt.figure(figsize=(10,6))
-    plt.plot(t, actual_energy, label='Actual Energy')  # Plotting actual energy directly
-    plt.plot(t, predicted_energy_cumulative, label='Predicted Energy')  # Plotting cumulative predicted energy
+    # Predict using a and b
+    y_pred = a + b * X
 
-    # Add filename to the left of the graph
-    plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12, verticalalignment='top',
-             horizontalalignment='left')
-
+    # Convert the 'time' column to total minutes
+    data['time'] = pd.to_datetime(data['time'])
+    data['time_in_minutes'] = data['time'].dt.hour * 60 + data['time'].dt.minute + data['time'].dt.second / 60
+    time_in_minutes = data['time_in_minutes'].values
+    # Plot
+    plt.figure(figsize=(12, 6))
+    plt.plot(time_in_minutes, data['actual_usage'].values, label='Actual Usage')
+    plt.plot(time_in_minutes, y_pred, label='Predicted Usage')
     plt.xlabel('Time (minutes)')
-    plt.ylabel('Cumulative Energy (kWh)')
-    plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))  # Moving legend slightly down
+    plt.legend()
     plt.show()
 
-# Plotting the optimized parameters
-fig, axs = plt.subplots(3, 1, figsize=(10,15))
+# Update: Select a random subset of 10 test files
+random_test_files = np.random.choice(test_files, 10)
 
-# Plot a
-axs[0].plot(df_params.index, df_params['a'], label='a', marker='o', color='b')
-axs[0].set_ylabel('a')
-axs[0].legend()
-
-# Plot b
-axs[1].plot(df_params.index, df_params['b'], label='b', marker='o', color='r')
-axs[1].set_ylabel('b')
-
-axs[1].set_xlabel('Iteration')
-axs[1].legend()
-
-plt.suptitle('Estimated Parameters over Iterations')
-plt.show()
+# Predict and plot for each file in the test set
+for file in tqdm(random_test_files, desc="Processing test files"):
+    predict_and_plot(file, average_a, average_b)
