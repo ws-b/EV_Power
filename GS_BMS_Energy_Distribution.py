@@ -65,13 +65,3 @@ plt.ylabel('Number of trips')
 plt.title('Total Distance / Net Discharge Distribution')
 plt.grid(False)
 plt.show()
-
-# # generate a list of files where Total Distance / Net Discharge depending on value
-# low_distance_energy_files = [file for file, value in zip(file_lists, all_distance_per_total_energy) if value <= 1]
-# high_distance_energy_files = [file for file, value in zip(file_lists, all_distance_per_total_energy) if value >= 15]
-# # output
-# for file in low_distance_energy_files:
-#     print(file)
-#
-# for file in high_distance_energy_files:
-#     print(file)
