@@ -37,13 +37,13 @@ for file in tqdm(file_lists):
     total_time = np.sum(t.diff().dt.total_seconds())
 
     # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-    distance_per_total_energy_km_kWh = (total_distance / 1000) / ((total_energy) * (total_time / 3600)) if total_energy != 0 else 0
+    distance_per_total_energy_km_kWh = (total_distance / 1000) / (total_energy) if total_energy != 0 else 0
 
     # collect all distance_per_total_Energy values for all files
     all_distance_per_total_energy.append(distance_per_total_energy_km_kWh)
 
 # plot histogram for all files
-hist_data = sns.histplot(all_distance_per_total_energy, bins=25, color='gray', kde=False)
+hist_data = sns.histplot(all_distance_per_total_energy, bins='auto', color='gray', kde=False)
 
 # plot vertical line for mean value
 mean_value = np.mean(all_distance_per_total_energy)
