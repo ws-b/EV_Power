@@ -18,8 +18,12 @@ file_lists.sort()
 # Select a random subset of 10 test files
 random_test_files = np.random.choice(file_lists, 10)
 
+# Select a random subset of 10 test files
+random_test_files = np.random.choice(file_lists, 10)
+
 # plot graphs for each file
-for file in tqdm(random_test_files):
+#for file in tqdm(random_test_files):
+for file in tqdm(file_lists[25:30]):
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
@@ -29,21 +33,18 @@ for file in tqdm(random_test_files):
     t_diff = (t - t.iloc[0]).dt.total_seconds() / 60  # convert time difference to minutes
     Energy_VI = data['Energy_VI'].tolist()
 
-    # convert Power data to kWh and perform cumulative calculation
+    # convert Power data to kWh
     Power_kWh = data['Energy']  # convert kW to kWh considering the 2-second time interval
-    Power_kWh_cumulative = Power_kWh.cumsum()
-    Energy_VI_cumulative = np.cumsum(Energy_VI)
 
-    # plot the graph
+    # calculate the difference between the energies
+    energy_diff = Power_kWh - Energy_VI
+
+    # plot the comparison graph
     plt.figure(figsize=(10, 6))  # set the size of the graph
-
     plt.xlabel('Time (minutes)')
-    plt.ylabel('Cumulative BMS Energy and Model Energy (kWh)')
-    plt.plot(t_diff, Power_kWh_cumulative, label='Cumulative Model Energy (kWh)', color='tab:blue')
-    plt.plot(t_diff, Energy_VI_cumulative, label='Cumulative BMS Energy (kWh)', color='tab:red')
-
-    # format the ticks
-    plt.gca().xaxis.set_major_locator(plt.MaxNLocator(5))  # set x-axis ticks to a maximum of 5
+    plt.ylabel('BMS Energy and Model Energy (kWh)')
+    plt.plot(t_diff, Power_kWh, label='Model Energy (kWh)', color='tab:blue')
+    plt.plot(t_diff, Energy_VI, label='BMS Energy (kWh)', color='tab:red')
 
     # add date and file name
     date = t.iloc[0].strftime('%Y-%m-%d')
@@ -52,14 +53,27 @@ for file in tqdm(random_test_files):
     plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
              verticalalignment='top', horizontalalignment='left', color='black')
 
-    # add date and file name
-    date = t.iloc[0].strftime('%Y-%m-%d')
-    plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-             verticalalignment='top', horizontalalignment='right', color='black')
-    plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
-             verticalalignment='top', horizontalalignment='left', color='black')
 
     plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))  # Moving legend slightly down
     plt.title('Model Energy vs. BMS Energy')
     plt.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
+
+    # # plot the difference graph
+    # plt.figure(figsize=(10, 6))  # set the size of the graph
+    # plt.xlabel('Time (minutes)')
+    # plt.ylabel('Difference between BMS Energy and Model Energy (kWh)')
+    # plt.plot(t_diff, energy_diff, label='Difference (kWh)', color='tab:blue')
+    #
+    # # add date and file name
+    # date = t.iloc[0].strftime('%Y-%m-%d')
+    # plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+    #          verticalalignment='top', horizontalalignment='right', color='black')
+    # plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
+    #          verticalalignment='top', horizontalalignment='left', color='black')
+    #
+    #
+    # plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))  # Moving legend slightly down
+    # plt.title('Difference between Model Energy and BMS Energy')
+    # plt.tight_layout()  # otherwise the right y-label is slightly clipped
+    # plt.show()
