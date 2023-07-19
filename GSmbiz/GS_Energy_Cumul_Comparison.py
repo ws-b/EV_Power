@@ -62,7 +62,8 @@ for file in tqdm(file_lists[25:29]):
 random_test_files = np.random.choice(file_lists, 5)
 
 # plot graphs for each file
-for file in tqdm(random_test_files):
+#for file in tqdm(random_test_files):
+for file in tqdm(file_lists[25:30]):
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
