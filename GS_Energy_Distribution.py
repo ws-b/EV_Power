@@ -15,7 +15,6 @@ file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(
 file_lists.sort()
 
 all_distance_per_total_energy = []
-over_30_files = []
 
 for file in tqdm(file_lists):
     # create file path
