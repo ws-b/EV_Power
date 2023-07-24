@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime
 from tqdm import tqdm
 from GS_preprocessing_1 import get_file_list
+from GS_Cal_Power import Vehicle, process_files_energy
 
 
 def main():
