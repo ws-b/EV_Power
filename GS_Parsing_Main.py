@@ -4,7 +4,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from tqdm import tqdm
-
+from GS_preprocessing_1 import get_file_list, parse_spacebar
+from GS_preprocessing_2 import parse_spacebar
+from GS_preprocessing_3 import process_files_combined
 
 def pre_process():
     while True:
