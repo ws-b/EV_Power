@@ -1,3 +1,7 @@
+import os
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
 def process_files_combined(file_lists, folder_path, save_path):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
