@@ -4,45 +4,34 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from tqdm import tqdm
-from GS_preprocessing_1 import get_file_list
 
 
-def main():
+def pre_process():
     while True:
-        print("1: Calculate Energy(kWh) using Model")
-        print("2: Data Filtering")
-        print("3: Plotting Energy(kWh)")
+        print("1: Initial GS Data Parsing")
+        print("2: Calculating Speed(m/s), Acceleration(m/s^2)")
+        print("3: Trip by Trip Parsing")
         choice = int(input("Enter number you want to run: "))
 
         if choice == 1:
             folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터')
-            file_list = get_file_list(folder_path)
-            while True:
-                print("1: Ioniq5")
-                print("2: Kona_EV")
-                print("3: Porter_EV")
-                car = int(input("Select Car you want to calculate: "))
-                if car == 1:
-                    EV = ioniq5
-                elif car == 2:
-                    EV = kona_EV
-                elif car == 3:
-                    EV = porter_EV
-                else:
-                    print("Invalid choice. Please try again.")
-                    continue
-
-                folder_path = os.path.join(folder_path, EV)
-                process_files_energy(file_list, folder_path, EV)
-                break
+            save_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\processed')
+            file_lists = get_file_list(folder_path)
+            parse_spacebar(file_lists, folder_path, save_path)
             break
 
         elif choice == 2:
-
+            folder_path = os.path.normpath('D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\processed')
+            save_path = os.path.normpath('D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc')
+            file_list = get_file_list(folder_path)
+            process_files_combined(file_list, folder_path, save_path)
             break
 
         elif choice == 3:
-
+            folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\speed-acc')
+            save_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\trip_by_trip')
+            file_list = get_file_list(folder_path)
+            process_files_trip_by_trip(file_list, folder_path, save_path)
             break
 
         elif choice == 4:
@@ -54,4 +43,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    pre_process()
+
