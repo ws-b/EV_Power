@@ -1,7 +1,7 @@
 import os
 from GS_preprocessing_1 import get_file_list
-from GS_Cal_Power import Vehicle, process_files_energy,select_vehicle
-
+from GS_Cal_Power import Vehicle, process_files_energy, select_vehicle
+from GS_plot_line import plot_energy_comparison
 
 def main():
     while True:
@@ -11,17 +11,20 @@ def main():
         car = int(input("Select Car you want to calculate: "))
 
         if car == 1:
-            EV = ioniq5
+            EV = select_vehicle(car)
+            vehicle_name = 'ioniq5'
         elif car == 2:
-            EV = kona_EV
+            EV = select_vehicle(car)
+            vehicle_name = 'kona_ev'
         elif car == 3:
-            EV = porter_EV
+            EV = select_vehicle(car)
+            vehicle_name = 'porter_ev'
         else:
             print("Invalid choice. Please try again.")
             continue
 
         folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터')
-        folder_path = os.path.join(folder_path, EV)
+        folder_path = os.path.join(folder_path, vehicle_name)
         file_list = get_file_list(folder_path)
 
         while True:
@@ -35,7 +38,7 @@ def main():
                 process_files_energy(file_list, folder_path, EV)
                 break
             elif choice == 2:
-
+                plot_energy_comparison(file_list, folder_path)
                 break
             elif choice == 3:
 
@@ -45,7 +48,6 @@ def main():
                 return
             else:
                 print("Invalid choice. Please try again.")
-
 
 if __name__ == "__main__":
     main()
