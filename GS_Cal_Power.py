@@ -1,3 +1,8 @@
+import os
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
 class Vehicle:
     def __init__(self, mass, load, Ca, Cb, Cc, aux, hvac, idle, eff):
         self.mass = mass  # kg # Mass of vehicle
@@ -9,6 +14,17 @@ class Vehicle:
         self.aux = aux  # Auxiliary Power, Not considering Heating and Cooling
         self.hvac = hvac
         self.idle = idle  # IDLE Power
+
+def select_vehicle(car):
+    if car == 1:
+        return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9) # parameters for Ioniq5
+    elif car == 2:
+        return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV
+    elif car == 3:
+        return Vehicle(0, 0, 0, 0, 0, 0, 0, 0, 0) # parameters for Porter_EV
+    else:
+        print("Invalid choice. Please try again.")
+        return None
 
 def process_files_energy(file_lists, folder_path, EV):
     # Iterate over each file
@@ -22,14 +38,10 @@ def process_files_energy(file_lists, folder_path, EV):
         inertia = 0.05 # rotational inertia of the wheels
         g = 9.18  # m/s**2
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        v = data['emobility_spd_m_per_s'].tolist()
+        v = data['speed'].tolist()
         a = data['acceleration'].tolist()
         int_temp = data['int_temp'].tolist()
 
-        # Calculate power demand for air resistance, rolling resistance, and gradient resistance
-        ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9)
-        kona_ev = Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9)
-        EV = ioniq5
 
         F = []  # Force
         Power = []  # Power
@@ -67,8 +79,3 @@ def process_files_energy(file_lists, folder_path, EV):
         data.to_csv(os.path.join(folder_path, file), index=False)
 
     print('Done')
-
-def main():
-    folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\ioniq5')
-    file_list = get_file_list(folder_path)
-    process_files_energy(file_list, folder_path)
