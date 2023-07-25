@@ -23,7 +23,7 @@ random_test_files = np.random.choice(file_lists, 10)
 
 # plot graphs for each file
 #for file in tqdm(random_test_files):
-for file in tqdm(file_lists[25:30]):
+for file in tqdm(file_lists):
     # create file path
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
@@ -58,22 +58,3 @@ for file in tqdm(file_lists[25:30]):
     plt.title('Model Energy vs. BMS Energy')
     plt.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
-
-    # # plot the difference graph
-    # plt.figure(figsize=(10, 6))  # set the size of the graph
-    # plt.xlabel('Time (minutes)')
-    # plt.ylabel('Difference between BMS Energy and Model Energy (kWh)')
-    # plt.plot(t_diff, energy_diff, label='Difference (kWh)', color='tab:blue')
-    #
-    # # add date and file name
-    # date = t.iloc[0].strftime('%Y-%m-%d')
-    # plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-    #          verticalalignment='top', horizontalalignment='right', color='black')
-    # plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
-    #          verticalalignment='top', horizontalalignment='left', color='black')
-    #
-    #
-    # plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))  # Moving legend slightly down
-    # plt.title('Difference between Model Energy and BMS Energy')
-    # plt.tight_layout()  # otherwise the right y-label is slightly clipped
-    # plt.show()
