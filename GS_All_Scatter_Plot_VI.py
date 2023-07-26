@@ -1,9 +1,7 @@
 import os
-import matplotlib.dates as mdates
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import stats
 from tqdm import tqdm
 from scipy.stats import linregress
 
@@ -19,6 +17,7 @@ file_lists.sort()
 final_energy_data = []
 final_energy = []
 
+
 for file in tqdm(file_lists):
     # create file path
     file_path = os.path.join(folder_path, file)
@@ -26,7 +25,7 @@ for file in tqdm(file_lists):
 
     # extract time, energy, CHARGE, DISCHARGE
     t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-    power = data['IV'].tolist()
+    power = data['Power_IV'].tolist()
 
     # calculate time differences in seconds
     time_diff = t.diff().dt.total_seconds().fillna(0)
@@ -45,8 +44,8 @@ for file in tqdm(file_lists):
 fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
 ax.set_xlabel('Cumulative Energy (kWh)')  # changed
-ax.set_ylabel('Energy(data)(kWh)')  # changed
-ax.scatter(final_energy, final_energy_data, color='tab:blue')  # swapped the x and y variables
+ax.set_ylabel('BMS Energy (kWh)')  # changed
+ax.scatter(final_energy, final_energy_data, color='tab:blue')  # swapped athe x and y variables
 
 # Add trendline
 slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
@@ -62,5 +61,5 @@ ax.set_aspect('equal')
 ax.set_xlim(lims)
 ax.set_ylim(lims)
 
-plt.title('Voltage*Current vs. Model(vehicle energy only) Energy over Time')
+plt.title('BMS Energy(V*I) vs. Model Energy over Time')
 plt.show()
