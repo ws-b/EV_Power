@@ -2,6 +2,8 @@ import os
 from GS_preprocessing_1 import get_file_list
 from GS_Cal_Power import Vehicle, process_files_energy, select_vehicle
 from GS_plot_line import plot_energy_comparison
+from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
+from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
 
 def main():
     while True:
@@ -29,21 +31,69 @@ def main():
 
         while True:
             print("1: Calculate Energy(kWh) using Model")
-            print("2: Plotting BMS_Energy(kWh), Model_Energy(kWh)")
+            print("2: Plotting Energy Graph(Scatter, Line")
             print("3: Plotting Energy Distribution")
-            print("4: Quitting the program.")
+            print("4: Plotting All Graph")
+            print("5: Quitting the program.")
             choice = int(input("Enter number you want to run: "))
 
             if choice == 1:
                 process_files_energy(file_list, folder_path, EV)
                 break
             elif choice == 2:
-                plot_energy_comparison(file_list, folder_path)
+                while True:
+                    print("1: Plotting All trip's Energy Graph(Scatter)")
+                    print("2: Plotting each trip's Energy Graph(Scatter)")
+                    print("3: Plotting each trip's Energy Comparison Graph(Line)")
+                    print("4: Plotting All graph")
+                    print("5: Quitting the program.")
+                    plot = int(input("Enter number you want to run: "))
+                    if plot == 1:
+                        plot_scatter_all_trip(file_list, folder_path)
+                        break
+                    elif plot == 2:
+                        plot_scatter_tbt(file_list, folder_path)
+                        break
+                    elif plot == 3:
+                        plot_energy_comparison(file_list, folder_path)
+                        break
+                    elif plot == 4:
+                        plot_scatter_all_trip(file_list, folder_path)
+                        plot_energy_comparison(file_list, folder_path)
+                        break
+                    elif plot == 5:
+                        print("Quitting the program.")
+                        return
                 break
             elif choice == 3:
-
+                while True:
+                    print("1: Plotting Model's Energy Distribution")
+                    print("2: Plotting BMS's Energy Distribution")
+                    print("3: Plotting All graph")
+                    print("4: Quitting the program.")
+                    plot = int(input("Enter number you want to run: "))
+                    if plot == 1:
+                        plot_model_energy_dis(file_list, folder_path)
+                        break
+                    elif plot == 2:
+                        plot_bms_energy_dis(file_list, folder_path)
+                        break
+                    elif plot == 3:
+                        plot_model_energy_dis(file_lists, folder_path)
+                        plot_bms_energy_dis(file_lists, folder_path)
+                        break
+                    elif plot == 4:
+                        print("Quitting the program.")
+                        return
                 break
             elif choice == 4:
+                plot_scatter_all_trip(file_list, folder_path)
+                plot_scatter_tbt(file_list, folder_path)
+                plot_energy_comparison(file_list, folder_path)
+                plot_model_energy_dis(file_list, folder_path)
+                plot_bms_energy_dis(file_list, folder_path)
+                break
+            elif choice == 5:
                 print("Quitting the program.")
                 return
             else:
