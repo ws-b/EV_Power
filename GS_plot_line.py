@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 def plot_energy_comparison(file_lists, folder_path):
     # Plot graphs for each file
-    for file in tqdm(file_lists[20:25]):
+    for file in tqdm(file_lists[30:35]):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
@@ -20,7 +20,6 @@ def plot_energy_comparison(file_lists, folder_path):
         data_energy = bms_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
 
-        # convert Energy data to kWh and perform cumulative calculation
         model_power = data['Power']
         model_power = np.array(model_power)
         model_energy = model_power * t_diff / 3600 / 1000
@@ -40,7 +39,7 @@ def plot_energy_comparison(file_lists, folder_path):
         plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='left', color='black')
 
-        plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))  # Moving legend slightly down
+        plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
         plt.title('Model Energy vs. BMS Energy')
-        plt.tight_layout()  # Otherwise the right y-label is slightly clipped
+        plt.tight_layout()
         plt.show()
