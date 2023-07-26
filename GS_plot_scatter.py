@@ -14,23 +14,21 @@ def plot_scatter_all_trip(file_lists, folder_path):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
-        # extract time, Energy, CHARGE, DISCHARGE
-        bms_power = data['Power_IV']
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
+
+        bms_power = data['Power_IV']
         bms_power = np.array(bms_power)
         data_energy = bms_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
+        final_energy_data.append(data_energy_cumulative[-1])
 
-        # convert Energy data to kWh and perform cumulative calculation
         model_power = data['Power']
         model_power = np.array(model_power)
         model_energy = model_power * t_diff / 3600 / 1000
         model_energy_cumulative = model_energy.cumsum()
-
-        final_energy_data.append(data_energy_cumulative.iloc[-1])
-        final_energy.append(model_energy_cumulative.iloc[-1])
+        final_energy.append(model_energy_cumulative[-1])
 
     # plot the graph
     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
@@ -61,16 +59,15 @@ def plot_scatter_tbt(file_lists, folder_path):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
-        # extract time, Energy, CHARGE, DISCHARGE
-        bms_power = data['Power_IV']
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
+
+        bms_power = data['Power_IV']
         bms_power = np.array(bms_power)
         data_energy = bms_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
 
-        # convert Energy data to kWh and perform cumulative calculation
         model_power = data['Power']
         model_power = np.array(model_power)
         model_energy = model_power * t_diff / 3600 / 1000
