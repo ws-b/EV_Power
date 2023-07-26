@@ -42,23 +42,33 @@ def process_files_energy(file_lists, folder_path, EV):
         a = data['acceleration'].tolist()
         int_temp = data['int_temp'].tolist()
 
-        F = []  # Force
-        Power = []  # Power
+        A = []
+        B = []
+        C = []
+        D = []
+        E = []
 
         for velocity in v:
-            F.append(EV.Ca + EV.Cb * velocity + EV.Cc * velocity * velocity)
+            A.append(EV.Ca * velocity / EV.eff)
+            B.append(EV.Cb * velocity * velocity / EV.eff)
+            C.append(EV.Cc * velocity * velocity * velocity / EV.eff)
 
         # Calculate power demand for acceleration and deceleration
         for i in range(len(a)):
-            F[i] += ((1 + inertia) * (EV.mass + EV.load) * a[i])  # BATTERY ENERGY USAGE
-            Power.append(F[i] * v[i] / EV.eff)
+            D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
+            E_hvac = abs(22 - int_temp[i]) * EV.hvac  # 22'c is the set temperature
             if v[i] <= 0.5:
-                Power[i] += (EV.aux + EV.idle)
+                E.append(EV.aux + EV.idle + E_hvac)
             else:
-                Power[i] += EV.aux
-            E_hvac = abs(22 - int_temp[i]) * EV.hvac # 22'c is the set temperature
-            Power[i] += E_hvac
+                E.append(EV.aux + E_hvac)
+        Power_list = [A, B, C, D, E]
+        Power = np.sum(Power_list, axis=0)
 
+        data['A'] = A
+        data['B'] = B
+        data['C'] = C
+        data['D'] = D
+        data['E'] = E
         data['Power'] = Power
 
         # Overwrite the data to the same .csv file
