@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -10,11 +11,12 @@ def plot_energy_comparison(file_lists, folder_path):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
-        bms_power = data['Power_IV']
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+        bms_power = data['Power_IV']
         bms_power = np.array(bms_power)
         data_energy = bms_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
