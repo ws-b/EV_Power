@@ -1,6 +1,6 @@
 import os
 from GS_preprocessing_1 import get_file_list
-from GS_Cal_Power import Vehicle, process_files_energy, select_vehicle
+from GS_Merge_Power import process_files_energy, select_vehicle
 from GS_filtering_data import move_files
 from GS_plot_line import plot_energy_comparison
 from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
@@ -53,26 +53,30 @@ def main():
             break
         elif choice == 3:
             while True:
-                print("1: Plotting All trip's Energy Graph(Scatter)")
-                print("2: Plotting each trip's Energy Graph(Scatter)")
-                print("3: Plotting each trip's Energy Comparison Graph(Line)")
-                print("4: Plotting All graph")
-                print("5: Quitting the program.")
+                print("1: Plotting Power Plot Term by Term")
+                print("2: Plotting All trip's Energy Graph(Scatter)")
+                print("3: Plotting each trip's Energy Graph(Scatter)")
+                print("4: Plotting each trip's Energy Comparison Graph(Line)")
+                print("5: Plotting All graph")
+                print("6: Quitting the program.")
                 plot = int(input("Enter number you want to run: "))
                 if plot == 1:
-                    plot_scatter_all_trip(file_list, folder_path)
+
                     break
                 elif plot == 2:
-                    plot_scatter_tbt(file_list, folder_path)
+                    plot_scatter_all_trip(file_list, folder_path)
                     break
                 elif plot == 3:
-                    plot_energy_comparison(file_list, folder_path)
+                    plot_scatter_tbt(file_list, folder_path)
                     break
                 elif plot == 4:
-                    plot_scatter_all_trip(file_list, folder_path)
                     plot_energy_comparison(file_list, folder_path)
                     break
                 elif plot == 5:
+                    plot_scatter_all_trip(file_list, folder_path)
+                    plot_energy_comparison(file_list, folder_path)
+                    break
+                elif plot == 6:
                     print("Quitting the program.")
                     return
             break
