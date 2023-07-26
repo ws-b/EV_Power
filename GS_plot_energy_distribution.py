@@ -9,7 +9,6 @@ def plot_model_energy_dis(file_lists, folder_path):
     all_distance_per_total_energy = []
 
     for file in tqdm(file_lists):
-        # create file path
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
