@@ -15,8 +15,8 @@ def plot_model_energy_dis(file_lists, folder_path):
 
         # extract time, speed, Energy
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        v = data['emobility_spd_m_per_s']
-        Energy = data['Energy']
+        v = data['speed']
+        Power = data['Power']
 
         # calculate total distance considering the sampling interval (2 seconds)
         total_distance = np.sum(v * 2)
@@ -47,7 +47,6 @@ def plot_model_energy_dis(file_lists, folder_path):
     total_samples = len(all_distance_per_total_energy)
     plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
              verticalalignment='top', transform=plt.gca().transAxes)
-
 
     # set x-axis range (from 0 to 25)
     plt.xlim(0, 25)
