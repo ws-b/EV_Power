@@ -33,25 +33,22 @@ def main():
     file_list = get_file_list(folder_path)
 
     while True:
-        print("1: Calculate Power(W) using Model")
-        print("2: Filtering Data")
-        print("3: Plotting Energy Graph(Scatter, Line)")
-        print("4: Plotting Energy Distribution")
-        print("5: Plotting All Graph")
-        print("6: Quitting the program.")
+        print("1: Calculate Power(W) using Model & Filtering Data")
+        print("2: Plotting Energy Graph(Scatter, Line)")
+        print("3: Plotting Energy Distribution")
+        print("4: Plotting All Graph")
+        print("5: Quitting the program.")
         choice = int(input("Enter number you want to run: "))
 
         if choice == 1:
             process_files_energy(file_list, folder_path, EV)
-            break
-        elif choice == 2:
             moved_path = os.path.join(folder_path, 'moved')
             if not os.path.exists(moved_path):
                 os.makedirs(moved_path)
             file_list = get_file_list(folder_path)
             move_files(file_list, folder_path, moved_path)
             break
-        elif choice == 3:
+        elif choice == 2:
             while True:
                 print("1: Plotting Power Plot Term by Term")
                 print("2: Plotting All trip's Energy Graph(Scatter)")
@@ -80,7 +77,7 @@ def main():
                     print("Quitting the program.")
                     return
             break
-        elif choice == 4:
+        elif choice == 3:
             while True:
                 print("1: Plotting Model's Energy Distribution")
                 print("2: Plotting BMS's Energy Distribution")
@@ -101,14 +98,14 @@ def main():
                     print("Quitting the program.")
                     return
             break
-        elif choice == 5:
+        elif choice == 4:
             plot_scatter_all_trip(file_list, folder_path)
             plot_scatter_tbt(file_list, folder_path)
             plot_energy_comparison(file_list, folder_path)
             plot_model_energy_dis(file_list, folder_path)
             plot_bms_energy_dis(file_list, folder_path)
             break
-        elif choice == 6:
+        elif choice == 5:
             print("Quitting the program.")
             return
         else:
