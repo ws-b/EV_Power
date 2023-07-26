@@ -53,7 +53,6 @@ def process_files_energy(file_lists, folder_path, EV):
             B.append(EV.Cb * velocity * velocity / EV.eff)
             C.append(EV.Cc * velocity * velocity * velocity / EV.eff)
 
-        # Calculate power demand for acceleration and deceleration
         for i in range(len(a)):
             D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
             E_hvac = abs(22 - int_temp[i]) * EV.hvac  # 22'c is the set temperature
@@ -71,7 +70,6 @@ def process_files_energy(file_lists, folder_path, EV):
         data['E'] = E
         data['Power'] = Power
 
-        # Overwrite the data to the same .csv file
         data.to_csv(os.path.join(folder_path, file), index=False)
 
     print('Done')
