@@ -32,9 +32,9 @@ def plot_scatter_all_trip(file_lists, folder_path):
     # plot the graph
     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
-    ax.set_xlabel('Cumulative Energy (kWh)')  # changed
-    ax.set_ylabel('BMS Energy (kWh)')  # changed
-    ax.scatter(final_energy, final_energy_data, color='tab:blue')  # swapped athe x and y variables
+    ax.set_xlabel('Cumulative Energy (kWh)')
+    ax.set_ylabel('BMS Energy (kWh)')
+    ax.scatter(final_energy, final_energy_data, color='tab:blue')
 
     # Add trendline
     slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
@@ -54,7 +54,7 @@ def plot_scatter_all_trip(file_lists, folder_path):
     plt.show()
 
 def plot_scatter_tbt(file_lists, folder_path):
-    for file in tqdm(file_lists[20:25]):
+    for file in tqdm(file_lists[30:35]):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
