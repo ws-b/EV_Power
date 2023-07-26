@@ -35,7 +35,7 @@ def main():
     while True:
         print("1: Calculate Power(W) using Model")
         print("2: Filtering Data")
-        print("3: Plotting Energy Graph(Scatter, Line")
+        print("3: Plotting Energy Graph(Scatter, Line)")
         print("4: Plotting Energy Distribution")
         print("5: Plotting All Graph")
         print("6: Quitting the program.")
