@@ -54,7 +54,7 @@ def plot_scatter_all_trip(file_lists, folder_path):
     plt.show()
 
 def plot_scatter_tbt(file_lists, folder_path):
-    for file in tqdm(file_lists[30:35]):
+    for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 

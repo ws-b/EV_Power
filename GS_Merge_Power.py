@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 class Vehicle:
-    def __init__(self, mass, load, Ca, Cb, Cc, aux, hvac, idle, eff):
+    def __init__(self, mass, load, Ca, Cb, Cc, aux, hvac, idle, eff, re_brake=1):
         self.mass = mass  # kg # Mass of vehicle
         self.load = load  # kg # Load of vehicle
         self.Ca = Ca * 4.44822  # CONVERT lbf to N # Air resistance coefficient
@@ -14,6 +14,7 @@ class Vehicle:
         self.aux = aux  # Auxiliary Power, Not considering Heating and Cooling
         self.hvac = hvac
         self.idle = idle  # IDLE Power
+        self.re_brake = re_brake
 
 def select_vehicle(car):
     if car == 1:
@@ -54,7 +55,16 @@ def process_files_energy(file_lists, folder_path, EV):
             C.append(EV.Cc * velocity * velocity * velocity / EV.eff)
 
         for i in range(len(a)):
-            D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
+            if EV.re_brake == 1:
+                if a[i] >= 0:
+                    D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
+                else:
+                    D.append(((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load)  * abs(a[i]) / np.exp(0.04111 / abs(a[i])))/EV.eff))
+            else:
+                if a[i] >= 0:
+                    D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
+                else:
+                    D.append(0)
             E_hvac = abs(22 - int_temp[i]) * EV.hvac  # 22'c is the set temperature
             if v[i] <= 0.5:
                 E.append(EV.aux + EV.idle + E_hvac)

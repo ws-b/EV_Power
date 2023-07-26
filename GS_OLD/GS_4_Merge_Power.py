@@ -34,7 +34,7 @@ for file in tqdm(file_lists):
     int_temp = data['int_temp'].tolist()
 
     class Vehicle:
-        def __init__(self, mass, load, Ca, Cb, Cc, aux, hvac, idle, eff):
+        def __init__(self, mass, load, Ca, Cb, Cc, aux, hvac, idle, eff, regen=1):
             self.mass = mass  # kg # Mass of vehicle
             self.load = load  # kg # Load of vehicle
             self.Ca = Ca * 4.44822  # CONVERT lbf to N # Air resistance coefficient
@@ -44,6 +44,7 @@ for file in tqdm(file_lists):
             self.aux = aux  # Auxiliary Power, Not considering Heating and Cooling
             self.hvac = hvac
             self.idle = idle  # IDLE Power
+            self.regen = regen
 
     # Calculate power demand for air resistance, rolling resistance, and gradient resistance
     ioniq5 = Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9)
