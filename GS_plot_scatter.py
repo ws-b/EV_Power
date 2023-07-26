@@ -14,22 +14,23 @@ def plot_scatter_all_trip(file_lists, folder_path):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
-        # extract time, energy, CHARGE, DISCHARGE
+        # extract time, Energy, CHARGE, DISCHARGE
+        bms_power = data['Power_IV']
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        power = data['Power_IV'].tolist()
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
 
-        # calculate time differences in seconds
-        time_diff = t.diff().dt.total_seconds().fillna(0)
+        # convert Energy data to kWh and perform cumulative calculation
+        model_power = data['Power']
+        model_power = np.array(model_power)
+        model_energy = model_power * t_diff / 3600 / 1000
+        model_energy_cumulative = model_energy.cumsum()
 
-        # calculate difference between CHARGE and DISCHARGE
-        energy_data = power * time_diff / 3600 / 1000
-        energy_data_cumulative = energy_data.cumsum()
-
-        # convert energy data to kWh and perform cumulative calculation
-        energy_kWh = data['Energy']
-        energy_kWh_cumulative = energy_kWh.cumsum()
-        final_energy_data.append(energy_data_cumulative.iloc[-1])
-        final_energy.append(energy_kWh_cumulative.iloc[-1])
+        final_energy_data.append(data_energy_cumulative.iloc[-1])
+        final_energy.append(model_energy_cumulative.iloc[-1])
 
     # plot the graph
     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
@@ -56,28 +57,31 @@ def plot_scatter_all_trip(file_lists, folder_path):
     plt.show()
 
 def plot_scatter_tbt(file_lists, folder_path):
-    for file in file_lists:
+    for file in tqdm(file_lists[20:25]):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
         # extract time, Energy, CHARGE, DISCHARGE
+        bms_power = data['Power_IV']
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        CHARGE = data['trip_chrg_pw'].tolist()
-        DISCHARGE = data['trip_dischrg_pw'].tolist()
-
-        # calculate difference between CHARGE and DISCHARGE
-        net_charge = np.array(DISCHARGE) - np.array(CHARGE)
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
 
         # convert Energy data to kWh and perform cumulative calculation
-        Energy_kWh = data['Energy']
-        Energy_kWh_cumulative = Energy_kWh.cumsum()
+        model_power = data['Power']
+        model_power = np.array(model_power)
+        model_energy = model_power * t_diff / 3600 / 1000
+        model_energy_cumulative = model_energy.cumsum()
 
         # plot the graph
         fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
-        ax.set_xlabel('Cumulative Energy (kWh)')  # changed
-        ax.set_ylabel('Net Charge (Discharge - Charge) (kWh)')  # changed
-        ax.scatter(Energy_kWh_cumulative, net_charge, color='tab:blue')  # swapped the x and y variables
+        ax.set_xlabel('Cumulative Energy (kWh)')
+        ax.set_ylabel('BMS Energy (kWh)')
+        ax.scatter(model_energy_cumulative, data_energy_cumulative, color='tab:blue')
 
         # Create y=x line
         lims = [
