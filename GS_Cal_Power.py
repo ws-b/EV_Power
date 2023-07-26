@@ -42,7 +42,6 @@ def process_files_energy(file_lists, folder_path, EV):
         a = data['acceleration'].tolist()
         int_temp = data['int_temp'].tolist()
 
-
         F = []  # Force
         Power = []  # Power
 
@@ -60,19 +59,7 @@ def process_files_energy(file_lists, folder_path, EV):
             E_hvac = abs(22 - int_temp[i]) * EV.hvac # 22'c is the set temperature
             Power[i] += E_hvac
 
-        # Calculate time difference in seconds
-        t_diff = t.diff().dt.total_seconds()
-
-        # Convert lists to numpy arrays for vectorized operations
-        Power = np.array(Power)
-        t_diff = np.array(t_diff.fillna(0))
-
-        # Calculate energy by multiplying power with time difference
-        # Convert power from watts to kilowatts and time from seconds to hours
-        Energy = Power * t_diff / 3600 / 1000
-
-        # Convert the energy back to a list and add it to the DataFrame
-        data['Energy'] = Energy.tolist()
+        data['Power'] = Power
 
         # Overwrite the data to the same .csv file
         data.to_csv(os.path.join(folder_path, file), index=False)
