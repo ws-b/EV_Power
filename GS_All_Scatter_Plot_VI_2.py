@@ -24,7 +24,7 @@ for file in tqdm(file_lists):
 
     # extract time, energy, CHARGE, DISCHARGE
     t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-    power = data['IV'].tolist()
+    power = data['Power_IV'].tolist()
 
     # calculate time differences in seconds
     time_diff = t.diff().dt.total_seconds().fillna(0)
@@ -84,7 +84,7 @@ ax.set_aspect('equal')
 ax.set_xlim(lims)
 ax.set_ylim(lims)
 
-plt.title('Voltage*Current vs. Net Charge over Time')
+plt.title('Energy(Voltage x Current) vs. Net Charge over Time')
 plt.show()
 
 # find the files corresponding to the outliers
