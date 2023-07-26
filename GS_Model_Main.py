@@ -90,8 +90,8 @@ def main():
                     plot_bms_energy_dis(file_list, folder_path)
                     break
                 elif plot == 3:
-                    plot_model_energy_dis(file_lists, folder_path)
-                    plot_bms_energy_dis(file_lists, folder_path)
+                    plot_model_energy_dis(file_list, folder_path)
+                    plot_bms_energy_dis(file_list, folder_path)
                     break
                 elif plot == 4:
                     print("Quitting the program.")
