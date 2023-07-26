@@ -45,7 +45,6 @@ def process_files_energy(file_lists, folder_path, EV):
 
         F = []  # Force
         Power = []  # Power
-        Energy = []  # Energy
 
         for velocity in v:
             F.append(EV.Ca + EV.Cb * velocity + EV.Cc * velocity * velocity)
@@ -58,7 +57,7 @@ def process_files_energy(file_lists, folder_path, EV):
                 Power[i] += (EV.aux + EV.idle)
             else:
                 Power[i] += EV.aux
-            E_hvac = (22 - int_temp[i]) * EV.hvac # 22'c is the set temperature
+            E_hvac = abs(22 - int_temp[i]) * EV.hvac # 22'c is the set temperature
             Power[i] += E_hvac
 
         # Calculate time difference in seconds
