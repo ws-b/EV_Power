@@ -7,7 +7,6 @@ from tqdm import tqdm
 def plot_energy_comparison(file_lists, folder_path):
     # Plot graphs for each file
     for file in tqdm(file_lists[20:25]):
-        # Create file path
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
