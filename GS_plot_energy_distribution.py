@@ -18,16 +18,18 @@ def plot_model_energy_dis(file_lists, folder_path):
         t_diff = np.array(t_diff.fillna(0))
 
         v = data['speed']
+        v = np.array(v)
+
         model_power = data['Power']
         model_power = np.array(model_power)
         model_energy = model_power * t_diff / 3600 / 1000
         model_energy_cumulative = model_energy.cumsum()
 
-        # calculate total distance considering the sampling interval (2 seconds)
-        total_distance = np.sum(v * 2)
+        distance = v * t_diff
+        total_distance = distance.cumsum()
 
         # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-        distance_per_total_energy = (total_distance / 1000) / (model_energy_cumulative[-1]) if model_energy_cumulative[-1] != 0 else 0
+        distance_per_total_energy = (total_distance[-1] / 1000) / (model_energy_cumulative[-1]) if model_energy_cumulative[-1] != 0 else 0
 
         # collect all distance_per_total_Energy values for all files
         all_distance_per_total_energy.append(distance_per_total_energy)
@@ -58,7 +60,6 @@ def plot_bms_energy_dis(file_lists, folder_path):
     all_distance_per_total_energy = []
 
     for file in tqdm(file_lists):
-        # create file path
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
@@ -66,17 +67,19 @@ def plot_bms_energy_dis(file_lists, folder_path):
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
 
-        v = data['speed'].tolist()
+        v = data['speed']
+        v = np.array(v)
+
         bms_power = data['Power_IV']
         bms_power = np.array(bms_power)
         data_energy = bms_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
 
-        # calculate total distance considering the sampling interval (2 seconds)
-        total_distance = np.sum(v * 2)
+        distance = v * t_diff
+        total_distance = distance.cumsum()
 
         # calculate Total distance / net_discharge for each file (if net_discharge is 0, set the value to 0)
-        distance_per_total_energy = (total_distance / 1000) / data_energy_cumulative[-1] if data_energy_cumulative[-1] != 0 else 0
+        distance_per_total_energy = (total_distance[-1] / 1000) / data_energy_cumulative[-1] if data_energy_cumulative[-1] != 0 else 0
 
         # collect all distance_per_total_energy values for all files
         all_distance_per_total_energy.append(distance_per_total_energy)
