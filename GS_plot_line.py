@@ -5,25 +5,32 @@ from tqdm import tqdm
 
 def plot_energy_comparison(file_lists, folder_path):
     # Plot graphs for each file
-    for file in tqdm(file_lists):
+    for file in tqdm(file_lists[20:25]):
         # Create file path
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
-        # Extract time, Power, CHARGE, DISCHARGE
+        bms_power = data['Power_IV']
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
-        Energy_IV = data['Energy_IV'].tolist()
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
 
-        # Convert Power data to kWh
-        Power_kWh = data['Energy']  # Convert kW to kWh considering the 2-second time interval
+        # convert Energy data to kWh and perform cumulative calculation
+        model_power = data['Power']
+        model_power = np.array(model_power)
+        model_energy = model_power * t_diff / 3600 / 1000
+        model_energy_cumulative = model_energy.cumsum()
 
         # Plot the comparison graph
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
         plt.ylabel('BMS Energy and Model Energy (kWh)')
-        plt.plot(t_diff, Power_kWh, label='Model Energy (kWh)', color='tab:blue')
-        plt.plot(t_diff, Energy_IV, label='BMS Energy (kWh)', color='tab:red')
+        plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:blue')
+        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:red')
 
         # Add date and file name
         date = t.iloc[0].strftime('%Y-%m-%d')
