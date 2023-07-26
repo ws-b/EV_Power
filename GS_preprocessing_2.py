@@ -30,23 +30,10 @@ def process_files_combined(file_lists, folder_path, save_path):
         # merge selected columns into a single DataFrame
         df['Power_IV'] = df['pack_volt'] * df['pack_current']
 
-        # Calculate time difference in seconds
-        Power = df['Power_IV'].tolist()
-
-        # Convert lists to numpy arrays for vectorized operations
-        Power = np.array(Power)
-        t_diff = np.array(t_diff.fillna(0))
-
-        # Calculate energy by multiplying power with time difference
-        Energy = Power * t_diff / 3600 / 1000
-
-        # Convert the energy back to a list and add it to the DataFrame
-        df['Energy_IV'] = Energy.tolist()
-
         # merge selected columns into a single DataFrame
         data_save = df[['time', 'speed', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'pack_current', 'pack_volt',
-                        'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh', 'cell_volt_list', 'Power_IV',
-                        'Energy_IV']].copy()
+                        'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh', 'cell_volt_list', 'Power_IV'
+                        ]].copy()
 
         # save as a CSV file
         data_save.to_csv(os.path.join(save_path,
