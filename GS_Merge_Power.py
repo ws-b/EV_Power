@@ -59,7 +59,7 @@ def process_files_energy(file_lists, folder_path, EV):
                 if a[i] >= 0:
                     D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
                 else:
-                    D.append(((((1 + inertia) * (EV.mass + EV.load) * a[i])) + ((1 + inertia) * (EV.mass + EV.load)  * abs(a[i]) / np.exp(0.04111 / abs(a[i])))/EV.eff))
+                    D.append((((1 + inertia) * (EV.mass + EV.load)  * a[i] * v[i] / np.exp(0.02 / abs(a[i]))))*EV.eff)
             else:
                 if a[i] >= 0:
                     D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
