@@ -2,7 +2,7 @@ import os
 from GS_preprocessing_1 import get_file_list
 from GS_Merge_Power import process_files_energy, select_vehicle
 from GS_filtering_data import move_files
-from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_regen_brake_effect
+from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_regen_brake_effect, plot_power_comparison, plot_power_diff, plot_correlation
 from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
 
@@ -57,8 +57,12 @@ def main():
                 print("5: Plotting each trip's Energy Comparison Graph(Line)")
                 print("6: Plotting All graph")
                 print("7: Plotting Regen Brake Effect")
-                print("8: Plotting ")
-                print("9: Quitting the program.")
+                print("8: Plotting each trip's Power Comparison Graph(Line)")
+                print("9: Plotting each trip's Power Comparison Graph(Line)")
+                print("10: Plotting Correlation Graph")
+                print("11: Plotting ")
+                print("12: Plotting ")
+                print("15: Quitting the program.")
                 plot = int(input("Enter number you want to run: "))
                 if plot == 1:
                     plot_stacked_graph(file_lists, folder_path)
@@ -102,9 +106,15 @@ def main():
                     plot_regen_brake_effect(file_lists, folder_path)
                     break
                 elif plot == 8:
-
+                    plot_power_comparison(file_lists, folder_path)
                     break
                 elif plot == 9:
+                    plot_power_diff(file_lists, folder_path)
+                    break
+                elif plot == 10:
+                    plot_correlation(file_lists, folder_path)
+                    break
+                elif plot == 15:
                     print("Quitting the program.")
                     return
             break
