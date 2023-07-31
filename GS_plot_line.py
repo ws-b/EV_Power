@@ -20,7 +20,7 @@ def plot_stacked_graph(file_lists, folder_path):
 
         plt.figure(figsize=(12, 6))
 
-        plt.stackplot(t_min, A, B, C, D, E, labels=['A(First)', 'B(Second)', 'C(Third)', 'D(Accel)', 'E(AUX)'], colors=['#ff9999','#66b3ff','#99ff99','#ffcc99', '#c2c2f0'], edgecolor=None)
+        plt.stackplot(t_min, A, B, C, D, E, labels=['A (First)', 'B (Second)', 'C (Third)', 'D (Accel)', 'E (Aux,Idle)'], colors=['#ff9999','#66b3ff','#99ff99','#ffcc99', '#c2c2f0'], edgecolor=None)
         plt.title('Power Graph Term by Term')
         plt.xlabel('Time')
         plt.ylabel('Power (W)')
@@ -205,11 +205,11 @@ def plot_power_comparison(file_lists, folder_path):
 
         bms_power = data['Power_IV'] / 1000
         model_power = data['Power'] / 1000
-        A_power = data['A'] / 1000
-        B_power = data['B'] / 1000
-        C_power = data['C'] / 1000
-        D_power = data['D'] / 1000
-        E_power = data['E'] / 1000
+        # A_power = data['A'] / 1000
+        # B_power = data['B'] / 1000
+        # C_power = data['C'] / 1000
+        # D_power = data['D'] / 1000
+        # E_power = data['E'] / 1000
 
         # Plot the comparison graph
         plt.figure(figsize=(10, 6))  # Set the size of the graph
@@ -234,6 +234,74 @@ def plot_power_comparison(file_lists, folder_path):
         plt.title('Model Power vs. BMS Power')
         plt.tight_layout()
         plt.show()
+def plot_power_comparison_enlarge(file_lists, folder_path, threshold=0.5):
+    for file in tqdm(file_lists[31:35]):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+        bms_power = data['Power_IV'] / 1000
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600
+        data_energy_cumulative = data_energy.cumsum()
+
+        model_power = data['Power'] / 1000
+        model_power = np.array(model_power)
+        model_energy = model_power * t_diff / 3600
+        model_energy_cumulative = model_energy.cumsum()
+
+        # A_power = data['A'] / 1000
+        # B_power = data['B'] / 1000
+        # C_power = data['C'] / 1000
+        # D_power = data['D'] / 1000
+        # E_power = data['E'] / 1000
+
+        # Calculate the absolute difference between BMS and model energy cumulative
+        power_difference = np.abs(data_energy_cumulative - model_energy_cumulative)
+
+        # Find the first index where the difference exceeds the threshold
+        start_index = np.argmax(power_difference > threshold)
+        if start_index > 0:
+            start_time = t_min[start_index]
+            interval = 5  # 5 minutes interval
+            end_time = start_time + interval
+
+            while start_time < t_min.iloc[-1]:
+                # Plot the comparison graph
+                plt.figure(figsize=(10, 6))  # Set the size of the graph
+                plt.xlabel('Time (minutes)')
+                plt.ylabel('BMS Power and Model Power (kW)')
+                plt.plot(t_min, bms_power, label='BMS Power (kW)', color='tab:blue')
+                # plt.plot(t_min, model_power, label='model Power (kW)', color='tab:red')
+
+                # plt.plot(t_min, A_power, label='v Term (kW)', color='tab:orange')
+                # plt.plot(t_min, B_power, label='v^2 Term (kW)', color='tab:purple')
+                # plt.plot(t_min, C_power, label='v^3 Term (kW)', color='tab:pink')
+                # plt.plot(t_min, D_power, label='Acceleration Term (kW)', color='tab:green')
+                # plt.plot(t_min, E_power, label='Aux/Idle Term (kW)', color='tab:brown')
+
+                # Add date and file name
+                date = t.iloc[0].strftime('%Y-%m-%d')
+                plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                         verticalalignment='top', horizontalalignment='right', color='black')
+                plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
+                         verticalalignment='top', horizontalalignment='left', color='black')
+
+                # Set the x-axis limit to zoom in on the divergence for 5 minutes
+                plt.xlim(start_time, end_time)
+                plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+                plt.title('Model Power vs. BMS Power')
+                plt.tight_layout()
+                plt.show()
+
+                # Move to the next 5-minute window
+                start_time += interval
+                end_time += interval
+
 
 def plot_power_diff(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
