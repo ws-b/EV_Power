@@ -2,10 +2,10 @@ import os
 from GS_preprocessing_1 import get_file_list
 from GS_Merge_Power import process_files_energy, select_vehicle
 from GS_filtering_data import move_files
-from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_regen_brake_effect, plot_power_comparison, plot_power_diff, plot_correlation
+from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_regen_brake_effect, plot_power_comparison, plot_power_diff, plot_correlation, plot_power_comparison_enlarge
 from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
-
+from GS_Fitting import fitting_and_plotting
 def main():
     print("1: Ioniq5")
     print("2: Kona_EV")
@@ -37,7 +37,8 @@ def main():
         print("2: Plotting Energy Graph(Scatter, Line)")
         print("3: Plotting Energy Distribution")
         print("4: Plotting All Graph")
-        print("5: Quitting the program.")
+        print("5: Fitting Model")
+        print("6: Quitting the program.")
         choice = int(input("Enter number you want to run: "))
 
         if choice == 1:
@@ -58,8 +59,9 @@ def main():
                 print("6: Plotting All graph")
                 print("7: Plotting Regen Brake Effect")
                 print("8: Plotting each trip's Power Comparison Graph(Line)")
-                print("9: Plotting each trip's Power Comparison Graph(Line)")
-                print("10: Plotting Correlation Graph")
+                print("9: Plotting each trip's Power difference Graph(Line)")
+                print("10: Plotting each trip's Enlarged Power Comparison Graph(Line)")
+                print("13: Plotting Correlation Graph")
                 print("11: Plotting ")
                 print("12: Plotting ")
                 print("15: Quitting the program.")
@@ -112,11 +114,16 @@ def main():
                     plot_power_diff(file_lists, folder_path)
                     break
                 elif plot == 10:
+                    plot_power_comparison_enlarge(file_lists, folder_path)
+                    break
+                elif plot == 13:
                     plot_correlation(file_lists, folder_path)
                     break
                 elif plot == 15:
                     print("Quitting the program.")
                     return
+                else:
+                    print("Invalid choice. Please try again.")
             break
         elif choice == 3:
             while True:
@@ -147,6 +154,30 @@ def main():
             plot_bms_energy_dis(file_lists, folder_path)
             break
         elif choice == 5:
+            while True:
+                print("1: Fitting Model & Plotting Energy/Power Graph")
+                print("6: Quitting the program.")
+                choice = int(input("Enter number you want to run: "))
+
+                if choice == 1:
+                    fitting_and_plotting(file_lists, folder_path)
+                    break
+                elif choice == 2:
+                    break
+                elif choice == 3:
+                    break
+                elif choice == 4:
+                    break
+                elif choice == 5:
+                    break
+                elif choice == 6:
+                    print("Quitting the program.")
+                    return
+                else:
+                    print("Invalid choice. Please try again.")
+
+            break
+        elif choice == 6:
             print("Quitting the program.")
             return
         else:
