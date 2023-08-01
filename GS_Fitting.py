@@ -1,5 +1,5 @@
 import os
-import random
+import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
@@ -53,16 +53,21 @@ def fit_parameters(train_files, folder_path):
 
     a_avg = sum(a_values) / len(a_values)
     b_avg = sum(b_values) / len(b_values)
+
     return a_avg, b_avg
 
-def apply_fitting(test_files, folder_path, a_avg, b_avg):
+def apply_fitting(test_files, folder_path, fit, a_avg, b_avg):
     for file in tqdm(test_files):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
-        data['Power_fit'] = data['Power'] * linear_func(data['speed'], a_avg, b_avg)
+        if fit == 'speed':
+            data['Power_fit'] = data['Power'] * linear_func(data['speed'], a_avg, b_avg)
+        elif fit == 'temp':
+            data['Power_fit'] = data['Power'] * linear_func((data['int_temp']+273), a_avg, b_avg)
+        else:
+            print("Wrong fitting type")
         data.to_csv(os.path.join(folder_path, file), index=False)
-
-def fitting_and_plotting(file_lists, folder_path):
+def fitting(file_lists, folder_path, fit = 'speed'):
     # 훈련 및 테스트 데이터 분리
     train_files, test_files = split_data(file_lists)
 
@@ -70,7 +75,8 @@ def fitting_and_plotting(file_lists, folder_path):
     a_avg, b_avg = fit_parameters(train_files, folder_path)
 
     # 테스트 데이터에 대한 Power_fit 계산 및 저장
-    apply_fitting(file_lists, folder_path, a_avg, b_avg)
+    #apply_fitting_speed(file_lists, folder_path, a_avg, b_avg)
+    apply_fitting(file_lists, folder_path, fit, a_avg, b_avg)
 
     print("Done")
 
@@ -147,7 +153,7 @@ def plot_fit_energy_comparison(file_lists, folder_path):
         # Plot the comparison graph
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
-        plt.ylabel('BMS Energy and Model Energy (kWh)')
+        plt.ylabel('BMS Energy and Fit Model Energy (kWh)')
         plt.plot(t_min, model_energy_cumulative, label='Fit Model Energy (kWh)', color='tab:blue')
         plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:red')
 
@@ -159,7 +165,7 @@ def plot_fit_energy_comparison(file_lists, folder_path):
                  verticalalignment='top', horizontalalignment='left', color='black')
 
         plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-        plt.title('Model Energy vs. BMS Energy')
+        plt.title('Fit Model Energy vs. BMS Energy')
         plt.tight_layout()
         plt.show()
 
@@ -196,7 +202,7 @@ def plot_fit_power_comparison(file_lists, folder_path):
                  verticalalignment='top', horizontalalignment='left', color='black')
 
         plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-        plt.title('Model Power vs. BMS Power')
+        plt.title('Fit Model Power vs. BMS Power')
         plt.tight_layout()
         plt.show()
 def plot_fit_scatter_all_trip(file_lists, folder_path):
@@ -226,9 +232,14 @@ def plot_fit_scatter_all_trip(file_lists, folder_path):
     # plot the graph
     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
+    # Color map
+    colors = cm.rainbow(np.linspace(0, 1, len(final_energy)))
+
     ax.set_xlabel('Fit Model Energy (kWh)')
     ax.set_ylabel('BMS Energy (kWh)')
-    ax.scatter(final_energy, final_energy_data, color='tab:blue')
+
+    for i in range(len(final_energy)):
+        ax.scatter(final_energy[i], final_energy_data[i], color=colors[i])
 
     # Add trendline
     slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
