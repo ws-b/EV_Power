@@ -5,7 +5,7 @@ from GS_filtering_data import move_files
 from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_speed_power, plot_power_comparison, plot_power_diff, plot_correlation, plot_power_comparison_enlarge
 from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
-from GS_Fitting import fitting_and_plotting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
+from GS_Fitting import fitting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
 def main():
     print("1: Ioniq5")
     print("2: Kona_EV")
@@ -155,7 +155,7 @@ def main():
             break
         elif choice == 5:
             while True:
-                print("1: Fitting Model & Plotting Energy/Power Graph")
+                print("1: Fitting Model")
                 print("2: Plotting Energy Distribution")
                 print("3: Plotting Energy/Power Comparison Graph")
                 print("4: Plotting Scatter Graph")
@@ -163,7 +163,20 @@ def main():
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
-                    fitting_and_plotting(file_lists, folder_path)
+                    while True:
+                        print("1: Fitting Model with speed")
+                        print("2: Fitting Model with temperature")
+                        print("5: Quitting the program.")
+                        choice = int(input("Enter number you want to run: "))
+                        if choice == 1:
+                            fitting(file_lists, folder_path, 'speed')
+                        elif choice == 2:
+                            fitting(file_lists, folder_path, 'temp')
+                        elif choice == 5:
+                            print("Quitting the program.")
+                            return
+                        else:
+                            print("Invalid choice. Please try again.")
                     break
                 elif choice == 2:
                     plot_fit_model_energy_dis(file_lists, folder_path)
