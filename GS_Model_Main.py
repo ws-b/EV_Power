@@ -2,10 +2,10 @@ import os
 from GS_preprocessing_1 import get_file_list
 from GS_Merge_Power import process_files_energy, select_vehicle
 from GS_filtering_data import move_files
-from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_regen_brake_effect, plot_power_comparison, plot_power_diff, plot_correlation, plot_power_comparison_enlarge
+from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_speed_power, plot_power_comparison, plot_power_diff, plot_correlation, plot_power_comparison_enlarge
 from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
-from GS_Fitting import fitting_and_plotting
+from GS_Fitting import fitting_and_plotting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
 def main():
     print("1: Ioniq5")
     print("2: Kona_EV")
@@ -57,7 +57,7 @@ def main():
                 print("4: Plotting each trip's Energy Graph(Line)")
                 print("5: Plotting each trip's Energy Comparison Graph(Line)")
                 print("6: Plotting All graph")
-                print("7: Plotting Regen Brake Effect")
+                print("7: Plotting Speed & Power Graph(Line)")
                 print("8: Plotting each trip's Power Comparison Graph(Line)")
                 print("9: Plotting each trip's Power difference Graph(Line)")
                 print("10: Plotting each trip's Enlarged Power Comparison Graph(Line)")
@@ -105,7 +105,7 @@ def main():
                     plot_energy_comparison(file_lists, folder_path)
                     break
                 elif plot == 7:
-                    plot_regen_brake_effect(file_lists, folder_path)
+                    plot_speed_power(file_lists, folder_path)
                     break
                 elif plot == 8:
                     plot_power_comparison(file_lists, folder_path)
@@ -114,7 +114,7 @@ def main():
                     plot_power_diff(file_lists, folder_path)
                     break
                 elif plot == 10:
-                    plot_power_comparison_enlarge(file_lists, folder_path)
+                    plot_power_comparison_enlarge(file_lists, folder_path, 0, 10)
                     break
                 elif plot == 13:
                     plot_correlation(file_lists, folder_path)
@@ -156,6 +156,9 @@ def main():
         elif choice == 5:
             while True:
                 print("1: Fitting Model & Plotting Energy/Power Graph")
+                print("2: Plotting Energy Distribution")
+                print("3: Plotting Energy/Power Comparison Graph")
+                print("4: Plotting Scatter Graph")
                 print("6: Quitting the program.")
                 choice = int(input("Enter number you want to run: "))
 
@@ -163,10 +166,15 @@ def main():
                     fitting_and_plotting(file_lists, folder_path)
                     break
                 elif choice == 2:
+                    plot_fit_model_energy_dis(file_lists, folder_path)
                     break
                 elif choice == 3:
+                    plot_fit_energy_comparison(file_lists, folder_path)
+                    plot_fit_power_comparison(file_lists, folder_path)
                     break
                 elif choice == 4:
+                    plot_fit_scatter_all_trip(file_lists, folder_path)
+                    plot_fit_scatter_tbt(file_lists, folder_path)
                     break
                 elif choice == 5:
                     break
