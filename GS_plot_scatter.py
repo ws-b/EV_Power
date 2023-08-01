@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.stats import linregress
+import matplotlib.cm as cm
 
 def plot_scatter_all_trip(file_lists, folder_path):
     final_energy_data = []
@@ -32,9 +33,14 @@ def plot_scatter_all_trip(file_lists, folder_path):
     # plot the graph
     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
+    # Color map
+    colors = cm.rainbow(np.linspace(0, 1, len(final_energy)))
+
     ax.set_xlabel('Model Energy (kWh)')
     ax.set_ylabel('BMS Energy (kWh)')
-    ax.scatter(final_energy, final_energy_data, color='tab:blue')
+
+    for i in range(len(final_energy)):
+        ax.scatter(final_energy[i], final_energy_data[i], color=colors[i])
 
     # Add trendline
     slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
