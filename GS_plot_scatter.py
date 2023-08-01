@@ -32,7 +32,7 @@ def plot_scatter_all_trip(file_lists, folder_path):
     # plot the graph
     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
-    ax.set_xlabel('Cumulative Energy (kWh)')
+    ax.set_xlabel('Model Energy (kWh)')
     ax.set_ylabel('BMS Energy (kWh)')
     ax.scatter(final_energy, final_energy_data, color='tab:blue')
 
@@ -50,7 +50,7 @@ def plot_scatter_all_trip(file_lists, folder_path):
     ax.set_xlim(lims)
     ax.set_ylim(lims)
 
-    plt.title('BMS Energy(V*I) vs. Model Energy over Time')
+    plt.title("All trip's BMS Energy vs. Model Energy over Time")
     plt.show()
 
 def plot_scatter_tbt(file_lists, folder_path):
@@ -75,7 +75,7 @@ def plot_scatter_tbt(file_lists, folder_path):
         # plot the graph
         fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
-        ax.set_xlabel('Cumulative Energy (kWh)')
+        ax.set_xlabel('Model Energy (kWh)')
         ax.set_ylabel('BMS Energy (kWh)')
         ax.scatter(model_energy_cumulative, data_energy_cumulative, color='tab:blue')
 
@@ -96,5 +96,5 @@ def plot_scatter_tbt(file_lists, folder_path):
         plt.text(0, 1, 'File: ' + file, transform=ax.transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='left', color='black')
 
-        plt.title('Net Charge vs. Cumulative Energy')
+        plt.title('BMS Energy vs. Model Energy')
         plt.show()
