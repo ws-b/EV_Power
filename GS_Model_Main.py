@@ -3,7 +3,7 @@ from GS_preprocessing_1 import get_file_list
 from GS_Merge_Power import process_files_energy, select_vehicle
 from GS_filtering_data import move_files
 from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_speed_power, plot_power_comparison, plot_power_diff, plot_correlation, plot_power_comparison_enlarge
-from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt
+from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt, plot_temp_energy, plot_distance_energy
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
 from GS_Fitting import fitting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
 def main():
@@ -61,9 +61,10 @@ def main():
                 print("8: Plotting each trip's Power Comparison Graph(Line)")
                 print("9: Plotting each trip's Power difference Graph(Line)")
                 print("10: Plotting each trip's Enlarged Power Comparison Graph(Line)")
-                print("13: Plotting Correlation Graph")
-                print("11: Plotting ")
-                print("12: Plotting ")
+                print("11: Plotting Correlation Graph")
+                print("12: Plotting Temperature & Energy Graph(Scatter)")
+                print("13: Plotting Distance & Energy Graph(Scatter)")
+                print("14: Plotting ")
                 print("15: Quitting the program.")
                 plot = int(input("Enter number you want to run: "))
                 if plot == 1:
@@ -116,8 +117,14 @@ def main():
                 elif plot == 10:
                     plot_power_comparison_enlarge(file_lists, folder_path, 0, 10)
                     break
-                elif plot == 13:
+                elif plot == 11:
                     plot_correlation(file_lists, folder_path)
+                    break
+                elif plot == 12:
+                    plot_temp_energy(file_lists, folder_path)
+                    break
+                elif plot == 13:
+                    plot_distance_energy(file_lists, folder_path)
                     break
                 elif plot == 15:
                     print("Quitting the program.")
@@ -159,7 +166,11 @@ def main():
                 print("2: Plotting Energy Distribution")
                 print("3: Plotting Energy/Power Comparison Graph")
                 print("4: Plotting Scatter Graph")
-                print("6: Quitting the program.")
+                print("5: Plotting ")
+                print("6: Plotting ")
+                print("7: Plotting ")
+                print("8: Plotting ")
+                print("9: Quitting the program.")
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
@@ -192,6 +203,12 @@ def main():
                 elif choice == 5:
                     break
                 elif choice == 6:
+                    break
+                elif choice == 7:
+                    break
+                elif choice == 8:
+                    break
+                elif choice == 9:
                     print("Quitting the program.")
                     return
                 else:
