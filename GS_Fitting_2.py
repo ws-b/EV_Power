@@ -59,5 +59,5 @@ def fitting(file_lists, folder_path):
     # 훈련 데이터에서 a, b, c 파라미터 최적화
     a_avg, b_avg, c_avg = fit_parameters(train_files, folder_path)
     # 테스트 데이터에 대한 Power_fit 계산 및 저장
-    apply_fitting(test_files, folder_path, a_avg, b_avg, c_avg)
+    apply_fitting(file_lists, folder_path, a_avg, b_avg, c_avg)
     print("Done")
