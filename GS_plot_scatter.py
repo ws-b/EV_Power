@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.stats import linregress
 import matplotlib.cm as cm
+from scipy.optimize import curve_fit
 
 def plot_scatter_all_trip(file_lists, folder_path):
     final_energy_data = []
@@ -104,6 +105,8 @@ def plot_scatter_tbt(file_lists, folder_path):
 
         plt.title('BMS Energy vs. Model Energy')
         plt.show()
+def polynomial(x, a, b, c):
+    return a * x**2 + b * x + c
 def plot_temp_energy(file_lists, folder_path):
     all_distance_per_total_energy = []
     ext_temp_avg = []
@@ -233,9 +236,12 @@ def plot_temp_energy_wh_mile(file_lists, folder_path):
     # Scatter plot
     ax.scatter(ext_temp_avg_fahrenheit, all_wh_per_mile, c='b')  # Use Fahrenheit temperatures
 
-    # Add trendline
-    slope, intercept, _, _, _ = linregress(ext_temp_avg_fahrenheit, all_wh_per_mile)
-    ax.plot(ext_temp_avg_fahrenheit, intercept + slope * np.array(ext_temp_avg_fahrenheit), 'r')
-    plt.ylim(100,600)
+    # Polynomial curve fitting
+    params, _ = curve_fit(polynomial, ext_temp_avg_fahrenheit, all_wh_per_mile)
+    x_range = np.linspace(min(ext_temp_avg_fahrenheit), max(ext_temp_avg_fahrenheit), 1000)
+    y_range = polynomial(x_range, *params)
+    ax.plot(x_range, y_range, 'r')
+    plt.xlim(-20, 120)
+    plt.ylim(100, 600)
     plt.title("Average External Temperature vs. BMS Energy")
     plt.show()
