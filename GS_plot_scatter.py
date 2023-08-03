@@ -190,3 +190,52 @@ def plot_distance_energy(file_lists, folder_path):
     plt.ylim(3, 10)
     plt.title("Distance vs. BMS Energy")
     plt.show()
+
+def plot_temp_energy_wh_mile(file_lists, folder_path):
+    all_wh_per_mile = []
+    ext_temp_avg_fahrenheit = []  # Fahrenheit temperatures
+
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        # Get the average of the ext_temp column and convert to Fahrenheit
+        ext_temp_mean = data['ext_temp'].mean()
+        ext_temp_mean_fahrenheit = (9/5) * ext_temp_mean + 32
+        ext_temp_avg_fahrenheit.append(ext_temp_mean_fahrenheit)
+
+        v = data['speed']
+        v = np.array(v)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        bms_power = data['Power_IV']
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600
+        data_energy_cumulative = data_energy.cumsum()
+
+        distance = v * t_diff
+        total_distance = distance.cumsum()
+
+        distance_per_total_energy = (total_distance[-1] / 1000) / data_energy_cumulative[-1] if data_energy_cumulative[-1] != 0 else 0
+        # Convert to Wh/mile
+        wh_per_mile = 1 / (distance_per_total_energy * 0.621371)
+        all_wh_per_mile.append(wh_per_mile)
+
+    # plot the graph
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    ax.set_xlabel('Average External Temperature (°F)')  # Updated label
+    ax.set_ylabel('BMS Mileage (Wh/mile)')
+
+    # Scatter plot
+    ax.scatter(ext_temp_avg_fahrenheit, all_wh_per_mile, c='b')  # Use Fahrenheit temperatures
+
+    # Add trendline
+    slope, intercept, _, _, _ = linregress(ext_temp_avg_fahrenheit, all_wh_per_mile)
+    ax.plot(ext_temp_avg_fahrenheit, intercept + slope * np.array(ext_temp_avg_fahrenheit), 'r')
+    plt.ylim(100,600)
+    plt.title("Average External Temperature vs. BMS Energy")
+    plt.show()
