@@ -66,7 +66,10 @@ def main():
                 print("12: Plotting Temperature & Energy Graph(Scatter)")
                 print("13: Plotting Distance & Energy Graph(Scatter)")
                 print("14: Plotting Temperature & Energy Graph (Wh/mile) (Scatter) ")
-                print("15: Quitting the program.")
+                print("15: Plotting ")
+                print("16: Plotting ")
+                print("17: Plotting ")
+                print("18: Quitting the program.")
                 plot = int(input("Enter number you want to run: "))
                 if plot == 1:
                     plot_stacked_graph(file_lists, folder_path)
@@ -130,8 +133,13 @@ def main():
                 elif plot == 14:
                     plot_temp_energy_wh_mile(file_lists, folder_path)
                     break
-
                 elif plot == 15:
+                    break
+                elif plot == 16:
+                    break
+                elif plot == 17:
+                    break
+                elif plot == 18:
                     print("Quitting the program.")
                     return
                 else:
