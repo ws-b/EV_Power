@@ -184,11 +184,15 @@ def plot_distance_energy(file_lists, folder_path):
     # plot the graph
     fig, ax = plt.subplots(figsize=(8, 6))  # set the size of the graph
 
+    # Color map
+    colors = cm.rainbow(np.linspace(0, 1, len(all_distance_per_total_energy)))
+
     ax.set_xlabel('Distance (km)')
     ax.set_ylabel('BMS Mileage (km/kWh)')
 
     # Scatter plot
-    ax.scatter(all_distance, all_distance_per_total_energy, c='b')
+    for i in range(len(all_distance_per_total_energy)):
+        ax.scatter(all_distance[i], all_distance_per_total_energy[i], color=colors[i])
     plt.xlim(0, 100)
     plt.ylim(3, 10)
     plt.title("Distance vs. BMS Energy")
