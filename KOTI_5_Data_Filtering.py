@@ -26,7 +26,7 @@ for file in tqdm(file_lists):
 
     # only plot the graph if the time range is more than 5 minutes
     time_range = t.iloc[-1] - t.iloc[0]
-    if time_range.total_seconds() < 300 or total_distance < 1000 or Energy_kWh_cumulative.iloc[-1] < 1.0:    # 5 minutes = 300 seconds , 1000 m = 1 km
+    if time_range.total_seconds() < 300 or total_distance < 3000 or Energy_kWh_cumulative.iloc[-1] < 1.0:    # 5 minutes = 300 seconds , 1000 m = 1 km
         os.remove(file_path)  # delete the file
 
 print("Done!")
