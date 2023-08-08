@@ -53,34 +53,24 @@ def main():
         elif choice == 2:
             while True:
                 print("1: Plotting Power Plot Term by Term")
-                print("2: Plotting All trip's Energy Graph(Scatter)")
-                print("3: Plotting each trip's Energy Graph(Scatter)")
-                print("4: Plotting each trip's Energy Graph(Line)")
-                print("5: Plotting each trip's Energy Comparison Graph(Line)")
-                print("6: Plotting All graph")
-                print("7: Plotting Speed & Power Graph(Line)")
-                print("8: Plotting each trip's Power Comparison Graph(Line)")
-                print("9: Plotting each trip's Power difference Graph(Line)")
-                print("10: Plotting each trip's Enlarged Power Comparison Graph(Line)")
-                print("11: Plotting Correlation Graph")
-                print("12: Plotting Temperature & Energy Graph(Scatter)")
-                print("13: Plotting Distance & Energy Graph(Scatter)")
-                print("14: Plotting Temperature & Energy Graph (Wh/mile) (Scatter) ")
-                print("15: Plotting ")
-                print("16: Plotting ")
-                print("17: Plotting ")
+                print("2: Plotting each trip's Energy Graph(Line)")
+                print("3: Plotting each trip's Energy Comparison Graph(Line)")
+                print("4: Plotting Speed & Power Graph(Line)")
+                print("5: Plotting each trip's Power Comparison Graph(Line)")
+                print("6: Plotting each trip's Power difference Graph(Line)")
+                print("7: Plotting each trip's Enlarged Power Comparison Graph(Line)")
+                print("8: Plotting Correlation Graph")
+                print("9: Plotting All trip's Energy Graph(Scatter)")
+                print("10: Plotting each trip's Energy Graph(Scatter)")
+                print("11: Plotting Temperature & Energy Graph(Scatter)")
+                print("12: Plotting Distance & Energy Graph(Scatter)")
+                print("13: Plotting Temperature & Energy Graph (Wh/mile) (Scatter) ")
                 print("18: Quitting the program.")
                 plot = int(input("Enter number you want to run: "))
                 if plot == 1:
                     plot_stacked_graph(file_lists, folder_path)
                     break
                 elif plot == 2:
-                    plot_scatter_all_trip(file_lists, folder_path)
-                    break
-                elif plot == 3:
-                    plot_scatter_tbt(file_lists, folder_path)
-                    break
-                elif plot == 4:
                     while True:
                         print("1: Plotting Model's Energy Graph")
                         print("2: Plotting BMS's Energy Graph")
@@ -101,43 +91,38 @@ def main():
                             print("Quitting the program.")
                             return
                     break
-                elif plot == 5:
+                elif plot == 3:
                     plot_energy_comparison(file_lists, folder_path)
                     break
-                elif plot == 6:
-                    plot_stacked_graph(file_lists, folder_path)
-                    plot_scatter_all_trip(file_lists, folder_path)
-                    plot_energy_comparison(file_lists, folder_path)
-                    break
-                elif plot == 7:
+                elif plot == 4:
                     plot_speed_power(file_lists, folder_path)
                     break
-                elif plot == 8:
+                elif plot == 5:
                     plot_power_comparison(file_lists, folder_path)
                     break
-                elif plot == 9:
+                elif plot == 6:
                     plot_power_diff(file_lists, folder_path)
                     break
-                elif plot == 10:
+                elif plot == 7:
                     plot_power_comparison_enlarge(file_lists, folder_path, 0, 10)
                     break
-                elif plot == 11:
+                elif plot == 8:
                     plot_correlation(file_lists, folder_path)
                     break
-                elif plot == 12:
+                elif plot == 9:
+                    plot_scatter_all_trip(file_lists, folder_path)
+                    break
+                elif plot == 10:
+                    plot_scatter_tbt(file_lists, folder_path)
+                    break
+                elif plot == 11:
                     plot_temp_energy(file_lists, folder_path)
                     break
-                elif plot == 13:
+                elif plot == 12:
                     plot_distance_energy(file_lists, folder_path)
                     break
-                elif plot == 14:
+                elif plot == 13:
                     plot_temp_energy_wh_mile(file_lists, folder_path)
-                    break
-                elif plot == 15:
-                    break
-                elif plot == 16:
-                    break
-                elif plot == 17:
                     break
                 elif plot == 18:
                     print("Quitting the program.")
