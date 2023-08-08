@@ -1,14 +1,15 @@
 import os
 from GS_preprocessing_1 import get_file_list, parse_spacebar
 from GS_preprocessing_2 import process_files_combined
-from GS_preprocessing_3 import process_files_trip_by_trip
+from GS_preprocessing_3 import process_files_trip_by_trip, process_files_all_trips
 
 def pre_process():
     while True:
         print("1: Initial GS Data Parsing")
         print("2: Calculating Speed(m/s), Acceleration(m/s^2)")
         print("3: Trip by Trip Parsing")
-        print("4: Quitting the program.")
+        print("4: Parsing All trips in one file")
+        print("5: Quitting the program.")
         choice = int(input("Enter number you want to run: "))
 
         if choice == 1:
@@ -26,13 +27,20 @@ def pre_process():
             break
 
         elif choice == 3:
-            folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\speed-acc')
-            save_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터\\trip_by_trip')
+            folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc')
+            save_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip')
             file_list = get_file_list(folder_path)
             process_files_trip_by_trip(file_list, folder_path, save_path)
             break
 
         elif choice == 4:
+            folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc')
+            save_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\1min_trip')
+            file_list = get_file_list(folder_path)
+            process_files_all_trips(file_list, folder_path, save_path)
+            break
+
+        elif choice == 5:
             print("Quitting the program.")
             return
 
