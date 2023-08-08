@@ -33,8 +33,8 @@ def move_files(file_lists, folder_path, moved_path):
         # move file if the time range is more than 5 minutes and total distance is less than 1000 and Power_kWh_cumulative is less than 0
         time_range = t.iloc[-1] - t.iloc[0]
         time_limit = 300
-        distance_limit = 1000
-        Energy_limit = 0
+        distance_limit = 3000
+        Energy_limit = 1.0
         if time_range.total_seconds() < time_limit or total_distance < distance_limit or model_energy_cumulative[-1] < Energy_limit or  data_energy_cumulative[-1] < Energy_limit:    # 5 minutes = 300 seconds
             os.replace(file_path, os.path.join(moved_path, file))
 
