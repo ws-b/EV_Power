@@ -32,8 +32,7 @@ def process_files_combined(file_lists, folder_path, save_path):
 
         # merge selected columns into a single DataFrame
         data_save = df[['time', 'speed', 'acceleration', 'trip_chrg_pw', 'trip_dischrg_pw', 'pack_current', 'pack_volt',
-                        'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh', 'cell_volt_list', 'Power_IV'
-                        ]].copy()
+                        'chrg_cable_conn', 'ext_temp', 'int_temp', 'soc', 'soh', 'Power_IV']].copy()
 
         # save as a CSV file
         data_save.to_csv(os.path.join(save_path,
