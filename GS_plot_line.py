@@ -147,21 +147,22 @@ def plot_speed_power(file_lists, folder_path):
         # Plot the comparison graph
         fig, ax1 = plt.subplots(figsize=(10, 6))  # Create a subplot and get the first axis
         ax1.set_xlabel('Time (minutes)')
-        ax1.set_ylabel('BMS Power and Model Power (kW)')
+        ax1.set_ylabel('Power (kW), Speed (m/s)')
         ax1.set_ylim([-100, 100])
         line1, = ax1.plot(t_min, bms_power, label='BMS Power (kW)', color='lightblue')
         #line2, = ax1.plot(t_min, model_power, label='model Power (kW)', color='lightsalmon')
-        #line3, = ax1.plot(t_min, speed, label='Speed (m/s)', color='lightgreen')
+        line3, = ax1.plot(t_min, speed, label='Speed (m/s)', color='lightgreen')
 
-        # Create the second y-axis and plot acceleration
-        ax2 = ax1.twinx()
-        ax2.set_ylabel('Acceleration (m/s²)')  # Add label for the second y-axis
-        line4, = ax2.plot(t_min, acceleration, label='Acceleration (m/s²)', color='lightcoral')
-        ax2.set_ylim([-3, 3])
+
+        # # Create the second y-axis and plot acceleration
+        # ax2 = ax1.twinx()
+        # line4, = ax2.plot(t_min, acceleration, label='Acceleration (m/s²)', color='lightcoral')
+        # ax2.set_ylabel('Acceleration (m/s²)')  # Add label for the second y-axis
+        # ax2.set_ylim([-3, 3])
 
         # Combine legends
         #lines = [line1, line2, line3, line4]
-        lines = [line1, line4]
+        lines = [line1, line3]
         labels = [l.get_label() for l in lines]
         ax1.legend(lines, labels, loc='upper left', bbox_to_anchor=(0, 0.97))
 
@@ -172,7 +173,7 @@ def plot_speed_power(file_lists, folder_path):
         plt.text(0, 1, 'File: ' + file, transform=ax1.transAxes, fontsize=12,
                  verticalalignment='top', horizontalalignment='left', color='black')
 
-        plt.title('Model Power vs. BMS Power with Speed')
+        plt.title('Speed vs. BMS Power')
         plt.tight_layout()
         plt.show()
 
