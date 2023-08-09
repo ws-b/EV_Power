@@ -63,7 +63,7 @@ def apply_fitting(test_files, folder_path, fit, a_avg, b_avg):
         if fit == 'speed':
             data['Power_fit'] = data['Power'] * linear_func(data['speed'], a_avg, b_avg)
         elif fit == 'temp':
-            data['Power_fit'] = data['Power'] * linear_func((data['int_temp']+273), a_avg, b_avg)
+            data['Power_fit'] = data['Power'] * linear_func((data['ext_temp']), a_avg, b_avg)
         else:
             print("Wrong fitting type")
         data.to_csv(os.path.join(folder_path, file), index=False)

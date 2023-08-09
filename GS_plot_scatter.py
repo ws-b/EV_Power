@@ -6,6 +6,8 @@ from tqdm import tqdm
 from scipy.stats import linregress
 import matplotlib.cm as cm
 from scipy.optimize import curve_fit
+from matplotlib.colors import Normalize
+from scipy.interpolate import UnivariateSpline
 
 def plot_scatter_all_trip(file_lists, folder_path):
     final_energy_data = []
@@ -248,4 +250,206 @@ def plot_temp_energy_wh_mile(file_lists, folder_path):
     plt.xlim(-20, 120)
     plt.ylim(100, 600)
     plt.title("Average External Temperature vs. BMS Energy")
+    plt.show()
+def plot_energy_temp_speed(file_lists, folder_path):
+    all_distance_per_total_energy = []
+    avg_temps = []
+    avg_speeds = []
+
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        # 속도 변환 (m/s -> km/h)
+        v = data['speed'] * 3.6
+        v = np.array(v)
+        avg_speed = v.mean()
+        avg_speeds.append(avg_speed)
+
+        # 평균 온도 계산
+        avg_temp = data['ext_temp'].mean()
+        avg_temps.append(avg_temp)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        bms_power = data['Power_IV']
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
+
+        distance = v * t_diff / 3600  # km/h로 속도를 변환했기 때문에 시간 차이도 시간 단위로 맞춰줍니다.
+        total_distance = distance.cumsum()
+
+        distance_per_total_energy = (total_distance[-1]) / data_energy_cumulative[-1] if data_energy_cumulative[
+                                                                                                    -1] != 0 else 0
+        all_distance_per_total_energy.append(distance_per_total_energy)
+
+    # Color map
+    colors = cm.rainbow(np.linspace(0, 1, 10))  # 10km/h마다 색깔이 바뀌므로 10개의 색상을 생성
+
+    # 속도에 따른 색상 매핑
+    speed_colors = [colors[min(int(speed // 10), 9)] for speed in avg_speeds]
+
+    # plot the graph
+    fig, ax = plt.subplots(figsize=(12, 6))  # set the size of the graph
+
+    ax.set_xlabel('Average Temperature (°C)')
+    ax.set_ylabel('BMS Mileage (km/kWh)')
+
+    # Scatter plot
+    for i in range(len(all_distance_per_total_energy)):
+        ax.scatter(avg_temps[i], all_distance_per_total_energy[i], color=speed_colors[i],
+                   label=f"{avg_speeds[i]:.2f} km/h")
+
+    norm = Normalize(vmin=0, vmax=100)
+    plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cm.rainbow), ax=ax, label="Average Speed (km/h)")
+    plt.title("Average Temperature vs. BMS Energy with Average Speed")
+    # Set custom grid ticks and y-axis range
+    x_ticks = np.arange(-10, 36, 1)
+    y_ticks = np.arange(4.0, 12.5, 0.5)
+
+    ax.set_xticks(x_ticks)
+    ax.set_yticks(y_ticks)
+    ax.set_xlim(-10, 35)
+    ax.set_ylim(4.0, 12.0)
+    ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+def plot_energy_temp_speed_3d(file_lists, folder_path):
+    all_distance_per_total_energy = []
+    avg_temps = []
+    avg_speeds = []
+
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        # 속도 변환 (m/s -> km/h)
+        v = data['speed'] * 3.6
+        v = np.array(v)
+        avg_speed = v.mean()
+        avg_speeds.append(avg_speed)
+
+        # 평균 온도 계산
+        avg_temp = data['ext_temp'].mean()
+        avg_temps.append(avg_temp)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        bms_power = data['Power_IV']
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
+
+        distance = v * t_diff / 3600
+        total_distance = distance.cumsum()
+
+        distance_per_total_energy = (total_distance[-1]) / data_energy_cumulative[-1] if data_energy_cumulative[-1] != 0 else 0
+        all_distance_per_total_energy.append(distance_per_total_energy)
+
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.set_xlabel('Average Temperature (°C)')
+    ax.set_ylabel('Average Speed (km/h)')
+    ax.set_zlabel('BMS Mileage (km/kWh)')
+
+    colors = cm.rainbow(np.linspace(0, 1, 10))
+    speed_colors = [colors[min(int(speed // 10), 9)] for speed in avg_speeds]
+
+    for i in range(len(all_distance_per_total_energy)):
+        ax.scatter(avg_temps[i], avg_speeds[i], all_distance_per_total_energy[i], color=speed_colors[i])
+
+    plt.title("3D plot of Average Temperature, Average Speed and BMS Energy")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_energy_temp_speed_normalized(file_lists, folder_path):
+    all_distance_per_total_energy = []
+    avg_temps = []
+    avg_speeds = []
+    total_distances = []
+
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        # 속도 변환 (m/s -> km/h)
+        v = data['speed'] * 3.6
+        v = np.array(v)
+        avg_speed = v.mean()
+        avg_speeds.append(avg_speed)
+
+        # 평균 온도 계산
+        avg_temp = data['ext_temp'].mean()
+        avg_temps.append(avg_temp)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        bms_power = data['Power_IV']
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
+
+        distance = v * t_diff / 3600
+        total_distance = distance.cumsum()
+
+        total_distances.append(total_distance[-1])
+
+        distance_per_total_energy = (total_distance[-1]) / data_energy_cumulative[-1] if data_energy_cumulative[
+                                                                                             -1] != 0 else 0
+        all_distance_per_total_energy.append(distance_per_total_energy)
+
+    avg_mileage = np.mean(all_distance_per_total_energy)
+
+    def get_color_based_on_distance(distance):
+        if distance >= 80:
+            return 'yellow'
+        elif distance >= 32:
+            return 'orange'
+        elif distance >= 8:
+            return 'purple'
+        else:
+            return 'green'
+
+    distance_colors = [get_color_based_on_distance(dist) for dist in total_distances]
+    normalized_distances = [dist / avg_mileage for dist in all_distance_per_total_energy]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Scatter plot
+    for i in range(len(normalized_distances)):
+        ax.scatter(avg_temps[i], normalized_distances[i], color=distance_colors[i])
+
+    # Spline for smooth trendlines
+    for color in ['green', 'purple', 'orange', 'yellow']:
+        indices = [i for i, c in enumerate(distance_colors) if c == color]
+
+        # Sort the temperatures for proper spline fitting
+        sorted_indices = np.argsort(np.array(avg_temps)[indices])
+        x_sorted = np.array(avg_temps)[indices][sorted_indices]
+        y_sorted = np.array(normalized_distances)[indices][sorted_indices]
+
+        # Create a spline fit
+        spline = UnivariateSpline(x_sorted, y_sorted)
+
+        x_range = np.linspace(min(x_sorted), max(x_sorted), 100)
+        y_range = spline(x_range)
+        ax.plot(x_range, y_range, color=color, alpha=0.5, linestyle='--')
+
+    ax.set_xlabel('Average Temperature (°C)')
+    ax.set_ylabel('Normalized BMS Mileage (km/kWh)')
+
+    norm = Normalize(vmin=0, vmax=100)
+    plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cm.rainbow), ax=ax, label="Average Speed (km/h)")
+    plt.title("Average Temperature vs. Normalized BMS Energy")
+    plt.tight_layout()
     plt.show()
