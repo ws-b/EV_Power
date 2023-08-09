@@ -27,7 +27,7 @@ def select_vehicle(car):
         print("Invalid choice. Please try again.")
         return None
 
-def process_files_energy(file_lists, folder_path, EV):
+def process_files_power(file_lists, folder_path, EV):
     # Iterate over each file
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
