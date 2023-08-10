@@ -2,82 +2,47 @@ import os
 import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 import seaborn as sns
 from scipy.stats import linregress
-def split_data(file_lists, train_ratio=0.5, test_size=4):
-    # Randomly split files into training and validation sets
-    train_files, validation_files = train_test_split(file_lists, test_size=1 - train_ratio, random_state=42)
+from scipy.optimize import minimize
+from tqdm import tqdm
+def linear_func(v, T, a, b, c):
+    return a + b * v + c * T
 
-    # Randomly select specific files for testing within the validation set
-    test_files = np.random.choice(validation_files, test_size, replace=False)
+def objective(params, speed, temp, Power, Power_IV):
+    a, b, c = params
+    fitting_power = Power * linear_func(speed, temp, a, b, c)
+    costs = ((fitting_power - Power_IV) ** 2).sum()
+    return costs
 
-    return train_files, test_files
-def linear_func(v, a, b):
-    return a + b * v
-
-def objective(params, speed, Power, Power_IV):
-    a, b = params
-    fitting_power = Power * linear_func(speed, a, b)
-    return ((fitting_power - Power_IV) ** 2).sum()
-
-def fit_power(data):
+def fit_power(file, folder_path):
+    file_path = os.path.join(folder_path, file)
+    data = pd.read_csv(file_path)
     speed = data['speed']
+    temp = data['ext_temp']
     Power = data['Power']
     Power_IV = data['Power_IV']
 
     # 초기 추정값
-    initial_guess = [0, 0]
+    initial_guess = [0, 0, 0]
 
     # 최적화 수행
-    result = minimize(objective, initial_guess, args=(speed, Power, Power_IV))
+    result = minimize(objective, initial_guess, args=(speed, temp, Power, Power_IV), method= 'BFGS')
 
-    a, b = result.x
+    a, b, c = result.x
 
     # 최적화된 Power 값을 별도의 컬럼으로 저장
-    data['Power_fit'] = Power * linear_func(speed, a, b)
+    data['Power_fit'] = Power * linear_func(speed, temp, a, b, c)
 
-    return a, b, data
-def fit_parameters(train_files, folder_path):
-    a_values = []
-    b_values = []
-    for file in tqdm(train_files):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-        a, b, _ = fit_power(data)
-        a_values.append(a)
-        b_values.append(b)
+    # 최적화된 데이터를 저장
+    data.to_csv(file_path, index=False)
 
-    a_avg = sum(a_values) / len(a_values)
-    b_avg = sum(b_values) / len(b_values)
+    return a, b, c
 
-    return a_avg, b_avg
-
-def apply_fitting(test_files, folder_path, fit, a_avg, b_avg):
-    for file in tqdm(test_files):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-        if fit == 'speed':
-            data['Power_fit'] = data['Power'] * linear_func(data['speed'], a_avg, b_avg)
-        elif fit == 'temp':
-            data['Power_fit'] = data['Power'] * linear_func((data['ext_temp']), a_avg, b_avg)
-        else:
-            print("Wrong fitting type")
-        data.to_csv(os.path.join(folder_path, file), index=False)
-def fitting(file_lists, folder_path, fit = 'speed'):
-    # 훈련 및 테스트 데이터 분리
-    train_files, test_files = split_data(file_lists)
-
-    # 훈련 데이터에서 a, b 파라미터 최적화
-    a_avg, b_avg = fit_parameters(train_files, folder_path)
-
-    # 테스트 데이터에 대한 Power_fit 계산 및 저장
-    #apply_fitting_speed(file_lists, folder_path, a_avg, b_avg)
-    apply_fitting(file_lists, folder_path, fit, a_avg, b_avg)
-
+def fitting(file_lists, folder_path):
+    for file in tqdm(file_lists):
+        fit_power(file, folder_path)
     print("Done")
 
 def plot_fit_model_energy_dis(file_lists, folder_path):
