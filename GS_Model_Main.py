@@ -7,7 +7,7 @@ from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt, plot_temp_e
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
 from GS_Fitting import fitting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
 from GS_Fitting_2 import fitting as fitting2
-from GS_Fitting_gd import fitting as fitting_gd
+
 def main():
     print("1: Ioniq5")
     print("2: Kona_EV")
