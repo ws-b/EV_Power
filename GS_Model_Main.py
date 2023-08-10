@@ -7,6 +7,7 @@ from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt, plot_temp_e
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
 from GS_Fitting import fitting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
 from GS_Fitting_2 import fitting as fitting2
+from GS_Fitting_gd import fitting as fitting_gd
 def main():
     print("1: Ioniq5")
     print("2: Kona_EV")
@@ -188,6 +189,7 @@ def main():
                         print("1: Fitting Model with speed")
                         print("2: Fitting Model with temperature")
                         print("3: Fitting Model with speed & temperature")
+                        print("4: Fitting Model with speed & temperature with gradient descent")
                         print("5: Quitting the program.")
                         choice = int(input("Enter number you want to run: "))
                         if choice == 1:
@@ -200,7 +202,7 @@ def main():
                             fitting2(file_lists, folder_path)
                             break
                         elif choice == 4:
-                            fitting2(file_lists, folder_path)
+                            fitting_gd(file_lists, folder_path)
                             break
                         elif choice == 5:
                             print("Quitting the program.")
