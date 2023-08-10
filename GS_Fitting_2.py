@@ -22,7 +22,7 @@ def fit_power(data):
     initial_guess = [0, 0, 0]
 
     # 최적화 수행
-    result = minimize(objective, initial_guess, args=(speed, temp, Power, Power_IV))
+    result = minimize(objective, initial_guess, args=(speed, temp, Power, Power_IV), method= 'BFGS')
 
     a, b, c = result.x
 
