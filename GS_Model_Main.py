@@ -5,7 +5,7 @@ from GS_filtering_data import move_files
 from GS_plot_line import plot_energy_comparison, plot_stacked_graph, plot_model_energy, plot_bms_energy, plot_speed_power, plot_power_comparison, plot_power_diff, plot_correlation, plot_power_comparison_enlarge
 from GS_plot_scatter import plot_scatter_all_trip, plot_scatter_tbt, plot_temp_energy, plot_distance_energy, plot_temp_energy_wh_mile, plot_energy_temp_speed, plot_energy_temp_speed_3d, plot_energy_temp_speed_normalized
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis
-from GS_Fitting import fitting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis
+from GS_Fitting import fitting, plot_fit_power_comparison, plot_fit_energy_comparison, plot_fit_scatter_all_trip, plot_fit_scatter_tbt, plot_fit_model_energy_dis, plot_contour
 
 def main():
     print("1: Ioniq5")
@@ -43,7 +43,6 @@ def main():
         choice = int(input("Enter number you want to run: "))
 
         if choice == 1:
-            file_lists = get_file_list(folder_path)
             process_files_power(file_lists, folder_path, EV)
             break
         elif choice == 2:
@@ -172,7 +171,7 @@ def main():
                 print("2: Plotting Energy Distribution")
                 print("3: Plotting Energy/Power Comparison Graph")
                 print("4: Plotting Scatter Graph")
-                print("5: Plotting ")
+                print("5: Plotting contour Graph ")
                 print("6: Plotting ")
                 print("7: Plotting ")
                 print("8: Plotting ")
@@ -180,6 +179,8 @@ def main():
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
+                    folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\merged'
+                    file_lists = get_file_list(folder_path)
                     fitting(file_lists, folder_path)
                     break
                 elif choice == 2:
