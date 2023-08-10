@@ -7,8 +7,11 @@ import seaborn as sns
 from scipy.stats import linregress
 from scipy.optimize import minimize
 from tqdm import tqdm
+
+
 def linear_func(v, T, a, b, c):
     return a + b * v + c * T
+
 
 def objective(params, speed, temp, Power, Power_IV):
     a, b, c = params
@@ -16,7 +19,8 @@ def objective(params, speed, temp, Power, Power_IV):
     costs = ((fitting_power - Power_IV) ** 2).sum()
     return costs
 
-def fit_power(file, folder_path):
+
+def fit_power(file, folder_path, num_starts=10):
     file_path = os.path.join(folder_path, file)
     data = pd.read_csv(file_path)
     speed = data['speed']
@@ -24,27 +28,29 @@ def fit_power(file, folder_path):
     Power = data['Power']
     Power_IV = data['Power_IV']
 
-    # 초기 추정값
-    initial_guess = [0, 0, 0]
+    best_result = None
+    best_value = float('inf')
 
-    # 최적화 수행
-    result = minimize(objective, initial_guess, args=(speed, temp, Power, Power_IV), method= 'BFGS')
+    for _ in range(num_starts):
+        initial_guess = np.random.rand(3) * 10  # 초기값을 임의로 설정
+        result = minimize(objective, initial_guess, args=(speed, temp, Power, Power_IV), method='BFGS')
 
-    a, b, c = result.x
+        if result.fun < best_value:
+            best_value = result.fun
+            best_result = result
 
-    # 최적화된 Power 값을 별도의 컬럼으로 저장
+    a, b, c = best_result.x
+
     data['Power_fit'] = Power * linear_func(speed, temp, a, b, c)
-
-    # 최적화된 데이터를 저장
     data.to_csv(file_path, index=False)
 
     return a, b, c
+
 
 def fitting(file_lists, folder_path):
     for file in tqdm(file_lists):
         fit_power(file, folder_path)
     print("Done")
-
 def plot_fit_model_energy_dis(file_lists, folder_path):
     all_distance_per_total_energy = []
 
@@ -281,3 +287,29 @@ def plot_fit_scatter_tbt(file_lists, folder_path):
 
         plt.title('BMS Energy vs. Fit Model Energy')
         plt.show()
+
+def plot_contour(folder_path):
+    file_path = folder_path
+    data = pd.read_csv(file_path)
+    speed = data['speed']
+    temp = data['ext_temp']
+    Power = data['Power']
+    Power_IV = data['Power_IV']
+
+    a_values = np.linspace(-10, 10, 100)
+    b_values = np.linspace(-10, 10, 100)
+    A, B = np.meshgrid(a_values, b_values)
+
+    Z = np.zeros_like(A)
+    c_mean = np.mean(data['Power_fit'])  # c의 평균값
+
+    for i in range(A.shape[0]):
+        for j in range(A.shape[1]):
+            Z[i, j] = objective([A[i, j], B[i, j], c_mean], speed, temp, Power, Power_IV)
+
+    plt.contourf(A, B, Z, 20, cmap='RdGy')
+    plt.colorbar()
+    plt.title("Objective Function Contour Plot")
+    plt.xlabel("a value")
+    plt.ylabel("b value")
+    plt.show()
