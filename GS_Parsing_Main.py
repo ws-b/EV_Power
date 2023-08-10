@@ -1,7 +1,6 @@
 import os
-from GS_preprocessing_1 import get_file_list, parse_spacebar
-from GS_preprocessing_2 import process_files_combined
-from GS_preprocessing_3 import process_files_trip_by_trip, process_files_all_trips
+from GS_preprocessing import get_file_list, parse_spacebar, process_files_combined, process_files_trip_by_trip, process_files_all_trips
+
 
 def pre_process():
     while True:
