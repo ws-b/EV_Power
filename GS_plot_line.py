@@ -1,8 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import seaborn as sns
 def plot_stacked_graph(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
@@ -27,6 +27,7 @@ def plot_stacked_graph(file_lists, folder_path):
         plt.legend(loc='upper left')
 
         plt.show()
+
 def plot_model_energy(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -59,6 +60,7 @@ def plot_model_energy(file_lists, folder_path):
         plt.title('Model Energy over time')
         plt.tight_layout()
         plt.show()
+
 def plot_bms_energy(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -91,6 +93,7 @@ def plot_bms_energy(file_lists, folder_path):
         plt.title('BMS Energy')
         plt.tight_layout()
         plt.show()
+
 def plot_energy_comparison(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -129,7 +132,6 @@ def plot_energy_comparison(file_lists, folder_path):
         plt.title('Model Energy vs. BMS Energy')
         plt.tight_layout()
         plt.show()
-
 
 def plot_speed_power(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
@@ -177,8 +179,6 @@ def plot_speed_power(file_lists, folder_path):
         plt.tight_layout()
         plt.show()
 
-
-
 def plot_power_comparison(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -221,6 +221,7 @@ def plot_power_comparison(file_lists, folder_path):
         plt.title('Model Power vs. BMS Power')
         plt.tight_layout()
         plt.show()
+
 def plot_power_comparison_enlarge(file_lists, folder_path, start_time, end_time):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -255,7 +256,6 @@ def plot_power_comparison_enlarge(file_lists, folder_path, start_time, end_time)
         plt.tight_layout()
         plt.show()
 
-
 def plot_power_diff(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -283,6 +283,82 @@ def plot_power_diff(file_lists, folder_path):
 
         plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
         plt.title('BMS Power & Model Power Difference')
+        plt.tight_layout()
+        plt.show()
+
+def plot_fit_power_comparison(file_lists, folder_path):
+    for file in tqdm(file_lists[31:35]):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+        bms_power = data['Power_IV'] / 1000
+        model_power = data['Power_fit'] / 1000
+
+        # Plot the comparison graph
+        plt.figure(figsize=(10, 6))  # Set the size of the graph
+        plt.xlabel('Time (minutes)')
+        plt.ylabel('BMS Power and Fit Model Power (kW)')
+        plt.plot(t_min, bms_power, label='BMS Power (kW)', color='tab:blue')
+        plt.plot(t_min, model_power, label='Fit Model Power (kW)', color='tab:red')
+        # plt.plot(t_min, A_power, label='v Term (kW)', color='tab:orange')
+        # plt.plot(t_min, B_power, label='v^2 Term (kW)', color='tab:purple')
+        # plt.plot(t_min, C_power, label='v^3 Term (kW)', color='tab:pink')
+        # plt.plot(t_min, D_power, label='Acceleration Term (kW)', color='tab:green')
+        # plt.plot(t_min, E_power, label='Aux/Idle Term (kW)', color='tab:brown')
+
+        # Add date and file name
+        date = t.iloc[0].strftime('%Y-%m-%d')
+        plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                 verticalalignment='top', horizontalalignment='right', color='black')
+        plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
+                 verticalalignment='top', horizontalalignment='left', color='black')
+
+        plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+        plt.title('Fit Model Power vs. BMS Power')
+        plt.tight_layout()
+        plt.show()
+
+def plot_fit_energy_comparison(file_lists, folder_path):
+    for file in tqdm(file_lists[31:35]):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+        bms_power = data['Power_IV']
+        bms_power = np.array(bms_power)
+        data_energy = bms_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
+
+        model_power = data['Power_fit']
+        model_power = np.array(model_power)
+        model_energy = model_power * t_diff / 3600 / 1000
+        model_energy_cumulative = model_energy.cumsum()
+
+        # Plot the comparison graph
+        plt.figure(figsize=(10, 6))  # Set the size of the graph
+        plt.xlabel('Time (minutes)')
+        plt.ylabel('BMS Energy and Fit Model Energy (kWh)')
+        plt.plot(t_min, model_energy_cumulative, label='Fit Model Energy (kWh)', color='tab:blue')
+        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:red')
+
+        # Add date and file name
+        date = t.iloc[0].strftime('%Y-%m-%d')
+        plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                 verticalalignment='top', horizontalalignment='right', color='black')
+        plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
+                 verticalalignment='top', horizontalalignment='left', color='black')
+
+        plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+        plt.title('Fit Model Energy vs. BMS Energy')
         plt.tight_layout()
         plt.show()
 
