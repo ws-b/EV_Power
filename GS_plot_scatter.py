@@ -106,7 +106,7 @@ def plot_scatter_tbt(file_lists, folder_path):
 
         plt.title('BMS Energy vs. Model Energy')
         plt.show()
-        
+
 def polynomial(x, a, b, c):
     return a * x**2 + b * x + c
 def plot_temp_energy(file_lists, folder_path):
