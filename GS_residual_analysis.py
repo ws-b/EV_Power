@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 file_path = (r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\merged\01241248726.csv')
 data = pd.read_csv(file_path)
 data['Residual'] = data['Power'] - data['Power_IV']
-vehicle_type = 'kona EV'
+type = 2
+if type == 1:
+    vehicle_type = 'ioniq 5'
+elif type == 2:
+    vehicle_type = 'kona EV'
 # Speed vs Residuals
 plt.figure(figsize=(10, 6))
 sns.regplot(data=data, x='speed', y='Residual', scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
