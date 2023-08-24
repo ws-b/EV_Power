@@ -7,8 +7,6 @@ def pre_process():
         print("1: Initial GS Data Parsing")
         print("2: Calculating Speed(m/s), Acceleration(m/s^2)")
         print("3: Trip by Trip Parsing")
-        print("4: Merging All trips in one file")
-        print("5: Trip by Trip Parsing with Merged File")
         print("6: Quitting the program.")
         choice = int(input("Enter number you want to run: "))
 
@@ -28,20 +26,6 @@ def pre_process():
 
         elif choice == 3:
             folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\speed-acc')
-            save_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip')
-            file_list = get_file_list(folder_path)
-            process_files_trip_by_trip(file_list, folder_path, save_path)
-            break
-
-        elif choice == 4:
-            folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip')
-            save_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\merged')
-            file_list = get_file_list(folder_path)
-            merge_csv_files(file_list, folder_path, save_path)
-            break
-
-        elif choice == 5:
-            folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\merged')
             save_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip')
             file_list = get_file_list(folder_path)
             process_files_trip_by_trip(file_list, folder_path, save_path)
