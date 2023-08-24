@@ -32,7 +32,64 @@ def parse_spacebar(file_lists, folder_path, save_path):
                 writer = csv.writer(outfile, delimiter=',')
                 writer.writerows(data)
     print("Done!")
-    
+
+def process_files_combined(file_lists, folder_path, save_path):
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+
+        # Load CSV file into a pandas DataFrame
+        df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
+
+        # reverse the DataFrame based on the index
+        df = df[::-1]
+
+        # calculate time and speed changes
+        df['time'] = df['time'].str.strip()
+        df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
+        t = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds()
+        df['time_diff'] = t_diff
+        df['speed'] = df['emobility_spd'] * 0.27778
+        df['spd_diff'] = df['speed'].diff()
+
+        # Identify large speed differences
+        outlier_indices = df[df['spd_diff'].abs() >= 16].index.tolist()
+
+        # Iterate through the outlier indices and interpolate between them
+        for i in range(len(outlier_indices) - 1):
+            start = outlier_indices[i]
+            end = outlier_indices[i+1]
+            if end - start <= 2:  # Check if they are consecutive
+                df.loc[start:end, 'speed'] = np.nan
+
+        # Interpolate the missing values
+        df['speed'].interpolate(method='linear', inplace=True)
+        df['spd_diff'] = df['speed'].diff()
+
+        # calculate acceleration
+        df['acceleration'] = df['spd_diff'] / df['time_diff']
+
+        # replace NaN values with 0 or fill with desired values
+        df['acceleration'] = df['acceleration'].replace(np.nan, 0)
+
+        # merge selected columns into a single DataFrame
+        df['Power_IV'] = df['pack_volt'] * df['pack_current']
+
+        # merge selected columns into a single DataFrame
+        data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
+
+        # save as a CSV file
+        device_no = df['device_no'].iloc[0].replace(' ', '')
+        if not device_no.startswith('0'):
+            device_no = '0' + device_no
+
+        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
+        full_path = os.path.join(save_path, file_name)
+
+        data_save.to_csv(full_path, index=False)
+
+    print('Done')
+"""
 def process_files_combined(file_lists, folder_path, save_path):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
@@ -66,12 +123,17 @@ def process_files_combined(file_lists, folder_path, save_path):
                         'ext_temp', 'int_temp', 'soc', 'soh','chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
 
         # save as a CSV file
-        data_save.to_csv(os.path.join(save_path,
-                                      f"{df['device_no'].iloc[0].replace(' ', '')}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"),
-                         index=False)
+        device_no = df['device_no'].iloc[0].replace(' ', '')
+        if not device_no.startswith('0'):
+            device_no = '0' + device_no
+
+        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
+        full_path = os.path.join(save_path, file_name)
+
+        data_save.to_csv(full_path, index=False)
 
     print('Done')
-
+"""
 def merge_csv_files(file_list, folder_path, save_path):
     # 11자리 숫자를 키로 하여 파일들을 그룹화합니다.
     grouped_files = defaultdict(list)
@@ -171,61 +233,3 @@ def check_trip_conditions(trip):
     if time_range.total_seconds() < time_limit or total_distance < distance_limit or data_energy_cumulative < Energy_limit:
         return False  # Trip does not meet the conditions
     return True
-
-"""
-def process_files_trip_by_trip(file_lists, folder_path, save_path):
-    for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-
-        # Load CSV file into a pandas DataFrame
-        data = pd.read_csv(file_path)
-        cut = []
-
-        # Parse Trip by cable connection status
-        if data.loc[0, 'chrg_cable_conn'] == 0:
-            cut.append(0)
-        for i in range(len(data)-1):
-            if data.loc[i, 'chrg_cable_conn'] != data.loc[i+1, 'chrg_cable_conn']:
-                cut.append(i+1)
-        if data.loc[len(data)-1, 'chrg_cable_conn'] == 0:
-            cut.append(len(data)-1)
-
-        # Parse Trip by Time difference
-        cut_time = pd.Timedelta(seconds=300)  # 300sec 이상 차이 날 경우 다른 Trip으로 인식
-        data['time'] = pd.to_datetime(data['time'])  # Convert 'time' column to datetime
-        for i in range(len(data) - 1):
-            if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
-                cut.append(i + 1)
-
-        # Parse Trip by Trip Charge & Trip Discharge
-        for i in range(len(data) - 1):
-            if data.loc[i + 1, 'trip_dischrg_pw'] - data.loc[i, 'trip_dischrg_pw'] != 0 and data.loc[i + 1, 'trip_chrg_pw'] - data.loc[i, 'trip_chrg_pw'] != 0  and data.loc[i+1, 'trip_dischrg_pw'] == 0 and data.loc[i+1, 'trip_chrg_pw'] == 0:
-                cut.append(i + 1)
-
-        # Parse Trip by Trip Discharge difference
-        for i in range(len(data) - 1):
-            if abs(data.loc[i + 1, 'trip_dischrg_pw'] - data.loc[i, 'trip_dischrg_pw']) > 0.5:
-                cut.append(i + 1)
-
-        cut = list(set(cut))
-        cut.sort()
-
-        trip_counter = 1  # Start trip number from 1 for each file
-        for i in range(len(cut)-1):
-            if data.loc[cut[i], 'chrg_cable_conn'] == 0:
-                trip = data.loc[cut[i]:cut[i+1]-1, :]
-
-                # Check the duration of the trip
-                duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-                if duration >= pd.Timedelta(minutes=5):
-                    # Save to file
-                    trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)
-                    trip_counter += 1
-
-            # for the last trip
-            trip = data.loc[cut[-1]:, :]
-            duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-            if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
-                trip.to_csv(f"{save_path}/{file[:-4]}-trip-{trip_counter}.csv", index=False)
-    print("Done")
-"""
