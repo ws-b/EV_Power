@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -5,8 +6,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
 # 1. 데이터 불러오기 및 오차 계산
-file_path = (r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\merged\01241248726.csv')
-data = pd.read_csv(file_path)
+merge_csv_files(file_lists, folder_path)
+data = specific_dataframe
 data['Residual'] = data['Power'] - data['Power_IV']
 vehicle_type = 'kona EV'
 
