@@ -166,12 +166,12 @@ def process_files_combined(file_lists, folder_path, save_path):
         remove_flag = False
 
         for i in range(len(df)):
-            if df['acceleration'][i] < -9.8 and df['speed'][i] == 0:
+            if abs(df['acceleration'][i]) > 9.8 and df['speed'][i] == 0:
                 remove_flag = True
-            if remove_flag and df['speed'][i] == 0:
-                rows_to_remove.append(i)
             if df['speed'][i] != 0:
                 remove_flag = False
+            if remove_flag:
+                rows_to_remove.append(i)
 
         print("Rows will be removed:")
         print(rows_to_remove)
