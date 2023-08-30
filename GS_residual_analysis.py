@@ -54,6 +54,8 @@ for key, files in tqdm(grouped_files.items()):
     plt.title('Relationship between Acceleration and Residuals')
     plt.xlabel('Acceleration (mps^2)')
     plt.ylabel('Residual (Power - Power_IV)')
+    plt.xlim(-40, 40)
+    plt.ylim(-1.0 * 10**6, 3.0*10**6)
     plt.text(0.95, 0.95, f'{vehicle_type}', ha='right', va='top', transform=plt.gca().transAxes)
     plt.grid(True)
     plt.show()
