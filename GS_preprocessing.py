@@ -33,10 +33,10 @@ def parse_spacebar(file_lists, folder_path, save_path):
                 writer.writerows(data)
     print("Done!")
 
-def merge_csv_files(file_list, folder_path):
+def merge_csv_files(file_lists, folder_path):
     # 11자리 숫자를 키로 하여 파일들을 그룹화합니다.
     grouped_files = defaultdict(list)
-    for file in tqdm(file_list):
+    for file in tqdm(file_lists):
         key = file[:11]
         grouped_files[key].append(file)
 
@@ -173,7 +173,7 @@ def process_files_combined(file_lists, folder_path, save_path):
             if df['speed'][i] != 0:
                 remove_flag = False
 
-        print("Rows to be removed:")
+        print("Rows will be removed:")
         print(rows_to_remove)
 
         # remove rows
