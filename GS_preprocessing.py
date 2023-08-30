@@ -33,113 +33,14 @@ def parse_spacebar(file_lists, folder_path, save_path):
                 writer.writerows(data)
     print("Done!")
 
-def process_files_combined(file_lists, folder_path, save_path):
-    for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-
-        # Load CSV file into a pandas DataFrame
-        df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
-
-        # reverse the DataFrame based on the index
-        df = df[::-1]
-
-        # calculate time and speed changes
-        df['time'] = df['time'].str.strip()
-        df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
-        t = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds()
-        df['time_diff'] = t_diff
-        df['speed'] = df['emobility_spd'] * 0.27778
-        df['spd_diff'] = df['speed'].diff()
-
-        # Identify large speed differences
-        outlier_indices = df[df['spd_diff'].abs() >= 16].index.tolist()
-
-        # Iterate through the outlier indices and interpolate between them
-        for i in range(len(outlier_indices) - 1):
-            start = outlier_indices[i]
-            end = outlier_indices[i+1]
-            if end - start <= 2:  # Check if they are consecutive
-                df.loc[start:end, 'speed'] = np.nan
-
-        # Interpolate the missing values
-        df['speed'].interpolate(method='linear', inplace=True)
-        df['spd_diff'] = df['speed'].diff()
-
-        # calculate acceleration
-        df['acceleration'] = df['spd_diff'] / df['time_diff']
-
-        # replace NaN values with 0 or fill with desired values
-        df['acceleration'] = df['acceleration'].replace(np.nan, 0)
-
-        # merge selected columns into a single DataFrame
-        df['Power_IV'] = df['pack_volt'] * df['pack_current']
-
-        # merge selected columns into a single DataFrame
-        data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
-
-        # save as a CSV file
-        device_no = df['device_no'].iloc[0].replace(' ', '')
-        if not device_no.startswith('0'):
-            device_no = '0' + device_no
-
-        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
-        full_path = os.path.join(save_path, file_name)
-
-        data_save.to_csv(full_path, index=False)
-
-    print('Done')
-"""
-def process_files_combined(file_lists, folder_path, save_path):
-    for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-
-        # Load CSV file into a pandas DataFrame
-        df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
-
-        # reverse the DataFrame based on the index
-        df = df[::-1]
-
-        # calculate time and speed changes
-        df['time'] = df['time'].str.strip()
-        df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
-        t = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds()
-        df['time_diff'] = t_diff
-        df['speed'] = df['emobility_spd'] * 0.27778
-        df['spd_diff'] = df['speed'].diff()
-
-        # calculate acceleration
-        df['acceleration'] = df['spd_diff'] / df['time_diff']
-
-        # replace NaN values with 0 or fill with desired values
-        df['acceleration'] = df['acceleration'].replace(np.nan, 0)
-
-        # merge selected columns into a single DataFrame
-        df['Power_IV'] = df['pack_volt'] * df['pack_current']
-
-        # merge selected columns into a single DataFrame
-        data_save = df[['time', 'speed', 'acceleration',
-                        'ext_temp', 'int_temp', 'soc', 'soh','chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
-
-        # save as a CSV file
-        device_no = df['device_no'].iloc[0].replace(' ', '')
-        if not device_no.startswith('0'):
-            device_no = '0' + device_no
-
-        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
-        full_path = os.path.join(save_path, file_name)
-
-        data_save.to_csv(full_path, index=False)
-
-    print('Done')
-"""
-def merge_csv_files(file_list, folder_path, save_path):
+def merge_csv_files(file_list, folder_path):
     # 11자리 숫자를 키로 하여 파일들을 그룹화합니다.
     grouped_files = defaultdict(list)
     for file in tqdm(file_list):
         key = file[:11]
         grouped_files[key].append(file)
+
+    merged_dataframes = {}
 
     for key, files in grouped_files.items():
         # 각 그룹의 CSV 파일을 읽어들여 하나의 데이터프레임 리스트에 저장합니다.
@@ -148,9 +49,10 @@ def merge_csv_files(file_list, folder_path, save_path):
         # 모든 데이터프레임을 하나로 병합합니다.
         merged_df = pd.concat(list_of_dfs, ignore_index=True)
 
-        # 병합된 데이터프레임을 지정된 경로에 저장합니다.
-        new_save_path = os.path.join(save_path, key + ".csv")
-        merged_df.to_csv(new_save_path, index=False)
+        # Append the merged dataframe to the list
+        merged_dataframes[key] = merged_df
+
+    return merged_dataframes
 
 def process_files_trip_by_trip(file_lists, folder_path, save_path):
     for file in tqdm(file_lists):
@@ -233,3 +135,70 @@ def check_trip_conditions(trip):
     if time_range.total_seconds() < time_limit or total_distance < distance_limit or data_energy_cumulative < Energy_limit:
         return False  # Trip does not meet the conditions
     return True
+
+def process_files_combined(file_lists, folder_path, save_path):
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+
+        # Load CSV file into a pandas DataFrame
+        df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
+
+        # reverse the DataFrame based on the index
+        df = df[::-1]
+
+        # calculate time and speed changes
+        df['time'] = df['time'].str.strip()
+        df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
+        t = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds()
+        df['time_diff'] = t_diff
+        df['speed'] = df['emobility_spd'] * 0.27778
+        df['spd_diff'] = df['speed'].diff()
+
+        # calculate acceleration
+        df['acceleration'] = df['spd_diff'] / df['time_diff']
+
+        # replace NaN values with 0 or fill with desired values
+        df['acceleration'] = df['acceleration'].replace(np.nan, 0)
+
+        # remove missing data
+        rows_to_remove = []
+        remove_flag = False
+
+        for i in range(len(df)):
+            if df['acceleration'][i] < -9.8 and df['speed'][i] == 0:
+                remove_flag = True
+            if remove_flag and df['speed'][i] == 0:
+                rows_to_remove.append(i)
+            if df['speed'][i] != 0:
+                remove_flag = False
+
+        print("Rows to be removed:")
+        print(rows_to_remove)
+
+        # remove rows
+        cleaned_data = df.drop(rows_to_remove)
+
+        # calculate acceleration again
+        spd_diff = cleaned_data['speed'].diff()
+        cleaned_data['acceleration'] = spd_diff / cleaned_data['time_diff']
+        cleaned_data['acceleration'] = cleaned_data['acceleration'].replace(np.nan, 0)
+
+        # merge selected columns into a single DataFrame
+        cleaned_data['Power_IV'] = cleaned_data['pack_volt'] * cleaned_data['pack_current']
+
+        # merge selected columns into a single DataFrame
+        data_save = cleaned_data[['time', 'speed', 'acceleration',
+                                  'ext_temp', 'int_temp', 'soc', 'soh','chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
+
+        # save as a CSV file
+        device_no = df['device_no'].iloc[0].replace(' ', '')
+        if not device_no.startswith('0'):
+            device_no = '0' + device_no
+
+        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
+        full_path = os.path.join(save_path, file_name)
+
+        data_save.to_csv(full_path, index=False)
+
+    print('Done')
