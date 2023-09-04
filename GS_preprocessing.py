@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
+
 def get_file_list(folder_path, file_extension='.csv'):
     file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith(file_extension)]
     file_lists.sort()
@@ -161,35 +162,12 @@ def process_files_combined(file_lists, folder_path, save_path):
         # replace NaN values with 0 or fill with desired values
         df['acceleration'] = df['acceleration'].replace(np.nan, 0)
 
-        # remove missing data
-        rows_to_remove = []
-        remove_flag = False
-
-        for i in range(len(df)):
-            if abs(df['acceleration'][i]) > 9.8 and df['speed'][i] == 0:
-                remove_flag = True
-            if df['speed'][i] != 0:
-                remove_flag = False
-            if remove_flag:
-                rows_to_remove.append(i)
-
-        print("Rows will be removed:")
-        print(rows_to_remove)
-
-        # remove rows
-        cleaned_data = df.drop(rows_to_remove)
-
-        # calculate acceleration again
-        spd_diff = cleaned_data['speed'].diff()
-        cleaned_data['acceleration'] = spd_diff / cleaned_data['time_diff']
-        cleaned_data['acceleration'] = cleaned_data['acceleration'].replace(np.nan, 0)
+        # merge selected columns into a single DataFrame
+        df['Power_IV'] = df['pack_volt'] * df['pack_current']
 
         # merge selected columns into a single DataFrame
-        cleaned_data['Power_IV'] = cleaned_data['pack_volt'] * cleaned_data['pack_current']
-
-        # merge selected columns into a single DataFrame
-        data_save = cleaned_data[['time', 'speed', 'acceleration',
-                                  'ext_temp', 'int_temp', 'soc', 'soh','chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
+        data_save = df[['time', 'speed', 'acceleration',
+                        'ext_temp', 'int_temp', 'soc', 'soh','chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
 
         # save as a CSV file
         device_no = df['device_no'].iloc[0].replace(' ', '')
