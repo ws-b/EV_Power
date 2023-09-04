@@ -32,9 +32,9 @@ def fitting(file_lists, folder_path):
         combined_df = pd.concat(list_of_dfs, ignore_index=True)
         combined_df = combined_df.sort_values(by='time', ignore_index=True)
 
-        # 병합된 데이터프레임을 CSV 파일로 저장합니다.
-        #combined_df_path = os.path.join(folder_path, f"{key}.csv")
-        #combined_df.to_csv(combined_df_path, index=False)
+        # # 병합된 데이터프레임을 CSV 파일로 저장합니다.
+        # combined_df_path = os.path.join(folder_path, f"{key}.csv")
+        # combined_df.to_csv(combined_df_path, index=False)
 
         # 병합된 데이터프레임으로 fitting을 진행하여 파라미터를 추정합니다.
         speed = combined_df['speed']
