@@ -116,6 +116,10 @@ def check_trip_conditions(trip):
     if trip.empty:
         return False
 
+    # Check if the absolute value of any acceleration value in the trip exceeds 9.8
+    if (trip['acceleration'].abs() > 9.8).any():
+        return False
+
     # Calculate conditions from the first function for the trip
     v = trip['speed']
     t = pd.to_datetime(trip['time'], format='%Y-%m-%d %H:%M:%S')
@@ -135,6 +139,7 @@ def check_trip_conditions(trip):
     Energy_limit = 1.0
     if time_range.total_seconds() < time_limit or total_distance < distance_limit or data_energy_cumulative < Energy_limit:
         return False  # Trip does not meet the conditions
+
     return True
 
 def process_files_combined(file_lists, folder_path, save_path):
