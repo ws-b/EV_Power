@@ -1,4 +1,5 @@
 import os
+import platform
 from GS_preprocessing import get_file_list, parse_spacebar, process_files_combined, process_files_trip_by_trip, merge_csv_files
 
 
