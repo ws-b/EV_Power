@@ -1,4 +1,5 @@
 import os
+import platform
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -10,7 +11,14 @@ def select_vehicle(num):
     vehicles = {1: 'ioniq 5', 2: 'kona EV', 3: 'porter EV'}
     return vehicles.get(num, 'unknown')
 
-folder_path = r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip'
+
+if platform.system() == "Windows":
+    folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip')
+elif platform.system() == "Darwin":
+    folder_path = os.path.normpath('/Users/wsong/Documents/KENTECH/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip')
+else:
+    print("Unknown system.")
+
 file_lists = get_file_list(folder_path)
 
 vehicle_types = {
@@ -38,7 +46,7 @@ for key, files in tqdm(grouped_files.items()):
 
     # Save merged dataframe to CSV
     merged_df.sort_values(by='time', ignore_index=True)
-    merged_df.to_csv(os.path.join(save_folder, f"{key}.csv"), index=False)
+    # merged_df.to_csv(os.path.join(save_folder, f"{key}.csv"), index=False)
 
     plt.figure(figsize=(10, 6))
     sns.regplot(data=merged_df, x='speed', y='Residual', scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
@@ -54,8 +62,6 @@ for key, files in tqdm(grouped_files.items()):
     plt.title('Relationship between Acceleration and Residuals')
     plt.xlabel('Acceleration (mps^2)')
     plt.ylabel('Residual (Power - Power_IV)')
-    plt.xlim(-40, 40)
-    plt.ylim(-1.0 * 10**6, 3.0*10**6)
     plt.text(0.95, 0.95, f'{vehicle_type}', ha='right', va='top', transform=plt.gca().transAxes)
     plt.grid(True)
     plt.show()
