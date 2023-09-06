@@ -93,7 +93,7 @@ def main():
 
                 if choice == 1:
                     fitting(file_lists, folder_path)
-                    visualize_all_files(file_lists, folder_path)
+                    # visualize_all_files(file_lists, folder_path)
                     break
                 elif choice == 2:
                     plot_fit_model_energy_dis(file_lists, folder_path)
@@ -104,7 +104,7 @@ def main():
                     break
                 elif choice == 4:
                     plot_fit_scatter_all_trip(file_lists, folder_path)
-                    #plot_fit_scatter_tbt(file_lists, folder_path)
+                    plot_fit_scatter_tbt(file_lists, folder_path)
                     break
                 elif choice == 5:
                     break
