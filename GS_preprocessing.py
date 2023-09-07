@@ -34,14 +34,12 @@ def parse_spacebar(file_lists, folder_path, save_path):
                 writer.writerows(data)
     print("Done!")
 
-def merge_csv_files(file_lists, folder_path):
+def merge_csv_files(file_lists, folder_path, save_path):
     # 11자리 숫자를 키로 하여 파일들을 그룹화합니다.
     grouped_files = defaultdict(list)
     for file in tqdm(file_lists):
         key = file[:11]
         grouped_files[key].append(file)
-
-    merged_dataframes = {}
 
     for key, files in grouped_files.items():
         # 각 그룹의 CSV 파일을 읽어들여 하나의 데이터프레임 리스트에 저장합니다.
@@ -50,11 +48,9 @@ def merge_csv_files(file_lists, folder_path):
         # 모든 데이터프레임을 하나로 병합합니다.
         merged_df = pd.concat(list_of_dfs, ignore_index=True)
 
-        # Append the merged dataframe to the list
-        merged_dataframes[key] = merged_df
-
-    return merged_dataframes
-
+        # 병합된 데이터프레임을 CSV로 저장합니다.
+        merged_file_path = os.path.join(save_path, f"{key}.csv")
+        merged_df.to_csv(merged_file_path, index=False)
 def process_files_trip_by_trip(file_lists, folder_path, save_path):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
