@@ -1,5 +1,6 @@
 import os
 import platform
+import numpy as np
 from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot_line import (
@@ -28,8 +29,8 @@ plot_fit_scatter_all_trip,
 plot_fit_scatter_tbt
 )
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis, plot_fit_model_energy_dis
-from GS_Fitting import fitting, visualize_all_files
-from GS_plot_contour import plot_contour
+from GS_Fitting import fitting, visualize_all_files, fitting_multistart, plot_contour
+
 
 def main():
     print("1: Ioniq5")
@@ -92,8 +93,13 @@ def main():
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
-                    fitting(file_lists, folder_path)
+                    # fitting(file_lists, folder_path)
                     # visualize_all_files(file_lists, folder_path)
+                    best_a, best_b, costs = fitting_multistart(file_lists, folder_path)
+                    a_range = np.linspace(-abs(10 * best_a), abs(10 * best_a), 100)
+                    b_range = np.linspace(-abs(10 * best_b), abs(10 * best_b), 100)
+                    plot_contour(a_range, b_range, costs)
+
                     break
                 elif choice == 2:
                     plot_fit_model_energy_dis(file_lists, folder_path)
@@ -104,7 +110,7 @@ def main():
                     break
                 elif choice == 4:
                     plot_fit_scatter_all_trip(file_lists, folder_path)
-                    plot_fit_scatter_tbt(file_lists, folder_path)
+                    # plot_fit_scatter_tbt(file_lists, folder_path)
                     break
                 elif choice == 5:
                     break
