@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from GS_preprocessing import get_file_list
 from tqdm import tqdm
 from collections import defaultdict
+import random
 
 def select_vehicle(num):
     vehicles = {1: 'ioniq 5', 2: 'kona EV', 3: 'porter EV'}
@@ -21,16 +22,41 @@ else:
 
 file_lists = get_file_list(folder_path)
 
-for file in file_lists:
+vehicle_types = {
+    '01241248726': 'kona EV',
+    '01241248782': 'ioniq 5',
+    '01241228177': 'porter EV'
+}
 
-    merged_df['Residual'] = (merged_df['Power_IV'] - merged_df['Power']) / abs(merged_df['Power_IV']).mean()
+file_lists = [file for file in file_lists if any(key in file for key in vehicle_types.keys())]
+grouped_files = defaultdict(list)
+
+for file in file_lists:
+    key = file[:11]
+    grouped_files[key].append(file)
+
+# Use a random file for each key
+selected_files = {key: random.choice(files) for key, files in grouped_files.items()}
+dataframes = {}
+
+# Process the data
+for key, file in selected_files.items():
+    df = pd.read_csv(os.path.join(folder_path, file))
+    df['Residual'] = (df['Power_IV'] - df['Power']) / abs(df['Power_IV']).mean()
+    dataframes[key] = df
+
+# Plotting
+for key, df in dataframes.items():
     plt.figure(figsize=(10, 7))
     sns.set_style("whitegrid")
-    sns.kdeplot(df['Residual'], fill=True)
+    sns.kdeplot(df['Residual'], label=vehicle_types.get(key, 'unknown'), fill=True)
 
     plt.xlabel('Residual')
     plt.ylabel('Density')
     plt.title(f'Density Plot of Residuals for {vehicle_types.get(key, "unknown")}')
+    plt.xlim(-6, 6)
     plt.legend()
     plt.grid(True)
     plt.show()
+
+print("Done")
