@@ -29,7 +29,7 @@ plot_fit_scatter_all_trip,
 plot_fit_scatter_tbt
 )
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis, plot_fit_model_energy_dis
-from GS_Fitting import fitting, visualize_all_files, fitting_multistart, plot_contour
+from GS_Fitting import fitting
 
 
 def main():
@@ -95,10 +95,7 @@ def main():
                 if choice == 1:
                     # fitting(file_lists, folder_path)
                     # visualize_all_files(file_lists, folder_path)
-                    best_a, best_b, costs = fitting_multistart(file_lists, folder_path)
-                    a_range = np.linspace(-abs(10 * best_a), abs(10 * best_a), 100)
-                    b_range = np.linspace(-abs(10 * best_b), abs(10 * best_b), 100)
-                    plot_contour(a_range, b_range, costs)
+                    fitting(file_lists, folder_path)
 
                     break
                 elif choice == 2:
