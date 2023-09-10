@@ -1,18 +1,23 @@
-import os
+from scipy.optimize import basinhopping
+from collections import defaultdict
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+import os
 from tqdm import tqdm
-from collections import defaultdict
 import matplotlib.pyplot as plt
+
+
 def linear_func(v, acc, a, b):
     return 1 + a * v + b * acc
 
-def objective(params, speed, acc, Power, Power_IV):
+
+def objective(params, *args):
     a, b = params
+    speed, acc, Power, Power_IV = args
     fitting_power = Power * linear_func(speed, acc, a, b)
     costs = ((fitting_power - Power_IV) ** 2).sum()
     return costs
+
 
 def fitting(file_lists, folder_path):
     # CSV 파일들을 그룹화
@@ -33,13 +38,14 @@ def fitting(file_lists, folder_path):
 
         # 병합된 데이터프레임으로 fitting을 진행하여 파라미터를 추정합니다.
         speed = combined_df['speed']
-        temp = combined_df['ext_temp']
         acc = combined_df['acceleration']
         Power = combined_df['Power']
         Power_IV = combined_df['Power_IV']
 
-        initial_guess = [0,0]
-        result = minimize(objective, initial_guess, args=(speed, acc, Power, Power_IV), method='BFGS')
+        initial_guess = [0, 0]
+        minimizer = {"method": "BFGS"}
+        result = basinhopping(objective, initial_guess,
+                              minimizer_kwargs={"args": (speed, acc, Power, Power_IV), "method": "BFGS"})
         a, b = result.x
 
         # 해당 키의 모든 CSV 파일에 대해서 fitting을 진행합니다.
@@ -49,82 +55,38 @@ def fitting(file_lists, folder_path):
             data['Power_fit'] = data['Power'] * linear_func(data['speed'], data['acceleration'], a, b)
             data.to_csv(file_path, index=False)
 
-    print("Fitting 완료")
-
-def fitting_multistart(file_lists, folder_path, num_starts=10):
-    grouped_files = defaultdict(list)
-    for file in file_lists:
-        key = file[:11]
-        grouped_files[key].append(file)
-
-    costs = defaultdict(float)  # Store the costs for each (a, b)
-
-    for key, files in grouped_files.items():
-        selected_files = np.random.choice(files, size=len(files) // 2, replace=False)
-        list_of_dfs = [pd.read_csv(os.path.join(folder_path, f)) for f in selected_files]
-        combined_df = pd.concat(list_of_dfs, ignore_index=True).sort_values(by='time', ignore_index=True)
-
-        speed = combined_df['speed']
-        acc = combined_df['acceleration']
-        Power = combined_df['Power']
-        Power_IV = combined_df['Power_IV']
-
-        # First optimization with initial guess [0,0]
-        initial_guess = [0, 0]
-        result = minimize(objective, initial_guess, args=(speed, acc, Power, Power_IV), method='BFGS')
-        best_a, best_b = result.x
-        best_cost = result.fun
-
-        # Generate multiple initial guesses based on range
-        a_range = np.linspace(-abs(10 * best_a), abs(10 * best_a), num_starts)
-        b_range = np.linspace(-abs(10 * best_b), abs(10 * best_b), num_starts)
-
-        for a_guess in a_range:
-            for b_guess in b_range:
-                result = minimize(objective, [a_guess, b_guess], args=(speed, acc, Power, Power_IV), method='BFGS')
-                costs[(a_guess, b_guess)] = result.fun  # Store the cost for this (a, b) combination
-                if result.fun < best_cost:
-                    best_a, best_b = result.x
-                    best_cost = result.fun
-
-        for file in tqdm(files):
-            file_path = os.path.join(folder_path, file)
-            data = pd.read_csv(file_path)
-            data['Power_fit'] = data['Power'] * linear_func(data['speed'], data['acceleration'], best_a, best_b)
-            data.to_csv(file_path, index=False)
+        # Visualize for the current key
+        visualize_objective_normalized(combined_df, objective)
 
     print("Fitting 완료")
-    return best_a, best_b, costs  # Return the costs as well
-
-def plot_contour(a_range, b_range, costs):
-    A, B = np.meshgrid(a_range, b_range)
-    Z = np.array([[costs.get((a, b), np.nan) for a in a_range] for b in b_range])
-
-    plt.contourf(A, B, Z, 50, cmap='viridis')
-    plt.colorbar()
-    plt.xlabel('a')
-    plt.ylabel('b')
-    plt.title('Objective Function Landscape')
-    plt.show()
 
 
-def visualize_all_files(file_list, folder_path):
-    all_dfs = []
+def visualize_objective_normalized(data, objective_func):
+    # Extract relevant columns from the data
+    speed = data['speed']
+    acc = data['acceleration']
+    Power = data['Power']
+    Power_IV = data['Power_IV']
 
-    for file in tqdm(file_list):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-        all_dfs.append(data)
+    # Create a grid over the parameter space
+    a_values = np.linspace(-10, 10, 200)  # Adjust bounds if needed
+    b_values = np.linspace(-10, 10, 200)
+    A, B = np.meshgrid(a_values, b_values)
 
-    combined_data = pd.concat(all_dfs, ignore_index=True)
+    # Evaluate the objective function on the grid
+    Z = np.zeros_like(A)
+    for i in range(A.shape[0]):
+        for j in range(A.shape[1]):
+            Z[i, j] = objective_func([A[i, j], B[i, j]], speed, acc, Power, Power_IV)
 
-    plt.figure(figsize=(14, 7))
-    plt.scatter(combined_data['Power_IV'], combined_data['Power_fit'], alpha=0.5)
-    plt.plot([combined_data['Power_IV'].min(), combined_data['Power_IV'].max()],
-             [combined_data['Power_IV'].min(), combined_data['Power_IV'].max()],
-             color='red', linestyle='--', label='y=x line')
-    plt.title("Comparison between Power_IV and Fitted Power")
-    plt.xlabel('Power_IV')
-    plt.ylabel('Power_fit')
-    plt.legend()
+    # Normalize the objective function values
+    Z = (Z - Z.min()) / (Z.max() - Z.min())
+
+    # Plot
+    plt.figure(figsize=(10, 7))
+    cp = plt.contourf(A, B, Z, cmap='viridis', levels=50)
+    plt.colorbar(cp, label='Normalized Objective Function Value')
+    plt.xlabel('Parameter a')
+    plt.ylabel('Parameter b')
+    plt.title('Normalized Objective Function Landscape')
     plt.show()
