@@ -534,13 +534,13 @@ def plot_fit_scatter_all_trip(file_lists, folder_path):
     ax.set_xlim(lims)
     ax.set_ylim(lims)
 
-    # # Display MAPE at the top of the graph
-    # ax.text(0.95, 0.97, r"MAPE: {:.2f}%".format(mape),
-    #         transform=ax.transAxes, ha="right", va="top", fontsize=12,
-    #         fontweight="bold", bbox=dict(facecolor='white', alpha=0.5))
-
     # Display R^2 value below MAPE
     ax.text(0.95, 0.97, r"$R^2$: {:.4f}".format(r2),
+            transform=ax.transAxes, ha="right", va="top", fontsize=12,
+            fontweight="bold", bbox=dict(facecolor='white', alpha=0.5))
+
+    # # Display MAPE at the top of the graph
+    ax.text(0.95, 0.90, r"MAPE: {:.2f}%".format(mape),
             transform=ax.transAxes, ha="right", va="top", fontsize=12,
             fontweight="bold", bbox=dict(facecolor='white', alpha=0.5))
 
