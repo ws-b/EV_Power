@@ -93,9 +93,8 @@ def main():
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
-                    # fitting(file_lists, folder_path)
-                    # visualize_all_files(file_lists, folder_path)
                     fitting(file_lists, folder_path)
+                    plot_fit_scatter_all_trip(file_lists, folder_path)
 
                     break
                 elif choice == 2:
