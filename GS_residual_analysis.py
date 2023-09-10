@@ -53,6 +53,7 @@ for key, df in merged_dataframes.items():
     plt.xlabel('Residual')
     plt.ylabel('Density')
     plt.title(f'Density Plot of Residuals for {vehicle_types.get(key, "unknown")}')
+    plt.xlim(-6, 6)
     plt.legend()
     plt.grid(True)
     plt.show()
