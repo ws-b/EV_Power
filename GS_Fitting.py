@@ -39,6 +39,7 @@ def fitting(file_lists, folder_path):
         # 병합된 데이터프레임으로 fitting을 진행하여 파라미터를 추정합니다.
         speed = combined_df['speed']
         acc = combined_df['acceleration']
+        # acc = combined_df['ext_temp']
         Power = combined_df['Power']
         Power_IV = combined_df['Power_IV']
 
@@ -56,12 +57,12 @@ def fitting(file_lists, folder_path):
             data.to_csv(file_path, index=False)
 
         # Visualize for the current key
-        visualize_objective_normalized(combined_df, objective)
+        visualize_objective(combined_df, objective, a, b)
 
     print("Fitting 완료")
 
 
-def visualize_objective_normalized(data, objective_func):
+def visualize_objective(data, objective_func, a, b):
     # Extract relevant columns from the data
     speed = data['speed']
     acc = data['acceleration']
@@ -86,7 +87,9 @@ def visualize_objective_normalized(data, objective_func):
     plt.figure(figsize=(10, 7))
     cp = plt.contourf(A, B, Z, cmap='viridis', levels=50)
     plt.colorbar(cp, label='Normalized Objective Function Value')
+    plt.scatter(a, b, color='red', marker='o', s=10, label=f'Optimal Parameters (a, b)\n(a={a:.3f}, b={b:.3f})')
     plt.xlabel('Parameter a')
     plt.ylabel('Parameter b')
     plt.title('Normalized Objective Function Landscape')
+    plt.legend()
     plt.show()
