@@ -19,6 +19,10 @@ def objective(params, *args):
     return costs
 
 
+def min_max_normalize(data):
+    return (data - data.min()) / (data.max() - data.min())
+
+
 def fitting(file_lists, folder_path):
     # CSV 파일들을 그룹화
     grouped_files = defaultdict(list)
@@ -36,10 +40,15 @@ def fitting(file_lists, folder_path):
         combined_df = pd.concat(list_of_dfs, ignore_index=True)
         combined_df = combined_df.sort_values(by='time', ignore_index=True)
 
+        # Normalize speed and acceleration
+        combined_df['speed_nmz'] = min_max_normalize(combined_df['speed'])
+        combined_df['acceleration_nmz'] = min_max_normalize(combined_df['acceleration'])
+        combined_df['ext_temp_nmz'] = min_max_normalize(combined_df['ext_temp'])
+
         # 병합된 데이터프레임으로 fitting을 진행하여 파라미터를 추정합니다.
-        speed = combined_df['speed']
-        acc = combined_df['acceleration']
-        # acc = combined_df['ext_temp']
+        speed = combined_df['speed_nmz']
+        acc = combined_df['acceleration_nmz']
+        # acc = combined_df['ext_temp_nmz']
         Power = combined_df['Power']
         Power_IV = combined_df['Power_IV']
 
@@ -53,14 +62,16 @@ def fitting(file_lists, folder_path):
         for file in tqdm(files):
             file_path = os.path.join(folder_path, file)
             data = pd.read_csv(file_path)
-            data['Power_fit'] = data['Power'] * linear_func(data['speed'], data['acceleration'], a, b)
+            data['speed_nmz'] = min_max_normalize(data['speed'])
+            data['acceleration_nmz'] = min_max_normalize(data['acceleration'])
+            data['ext_temp_nmz'] = min_max_normalize(data['ext_temp'])
+            data['Power_fit'] = data['Power'] * linear_func(data['speed_nmz'], data['acceleration_nmz'], a, b)
             data.to_csv(file_path, index=False)
 
         # Visualize for the current key
         visualize_objective(combined_df, objective, a, b)
 
     print("Fitting 완료")
-
 
 def visualize_objective(data, objective_func, a, b):
     # Extract relevant columns from the data
