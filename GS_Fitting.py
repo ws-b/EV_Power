@@ -19,8 +19,8 @@ def objective(params, *args):
     return costs
 
 
-def min_max_normalize(data):
-    return (data - data.min()) / (data.max() - data.min())
+def normalize(data):
+    return data / abs(data).mean()
 
 
 def fitting(file_lists, folder_path):
@@ -41,9 +41,9 @@ def fitting(file_lists, folder_path):
         combined_df = combined_df.sort_values(by='time', ignore_index=True)
 
         # Normalize speed and acceleration
-        combined_df['speed_nmz'] = min_max_normalize(combined_df['speed'])
-        combined_df['acceleration_nmz'] = min_max_normalize(combined_df['acceleration'])
-        combined_df['ext_temp_nmz'] = min_max_normalize(combined_df['ext_temp'])
+        combined_df['speed_nmz'] = normalize(combined_df['speed'])
+        combined_df['acceleration_nmz'] = normalize(combined_df['acceleration'])
+        combined_df['ext_temp_nmz'] = normalize(combined_df['ext_temp'])
 
         # 병합된 데이터프레임으로 fitting을 진행하여 파라미터를 추정합니다.
         speed = combined_df['speed_nmz']
@@ -62,9 +62,9 @@ def fitting(file_lists, folder_path):
         for file in tqdm(files):
             file_path = os.path.join(folder_path, file)
             data = pd.read_csv(file_path)
-            data['speed_nmz'] = min_max_normalize(data['speed'])
-            data['acceleration_nmz'] = min_max_normalize(data['acceleration'])
-            data['ext_temp_nmz'] = min_max_normalize(data['ext_temp'])
+            data['speed_nmz'] = normalize(data['speed'])
+            data['acceleration_nmz'] = normalize(data['acceleration'])
+            data['ext_temp_nmz'] = normalize(data['ext_temp'])
             data['Power_fit'] = data['Power'] * linear_func(data['speed_nmz'], data['acceleration_nmz'], a, b)
             data.to_csv(file_path, index=False)
 
