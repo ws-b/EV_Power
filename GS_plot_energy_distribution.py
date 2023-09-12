@@ -37,15 +37,18 @@ def plot_model_energy_dis(file_lists, folder_path):
 
     # plot vertical line for mean value
     mean_value = np.mean(all_distance_per_total_energy)
-    plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.2f}')
-
-    # display mean value
+    plt.axvline(mean_value, color='red', linestyle='--')
     plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
 
-    # display total number of samples
+    # plot vertical line for median value
+    median_value = np.median(all_distance_per_total_energy)
+    plt.axvline(median_value, color='blue', linestyle='--')
+    plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue', fontsize=12)
+
+    # display total number of samples at top right
     total_samples = len(all_distance_per_total_energy)
     plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
-             verticalalignment='top', transform=plt.gca().transAxes)
+             verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
     # set x-axis range (from 0 to 25)
     plt.xlim(0, 25)
@@ -87,15 +90,18 @@ def plot_bms_energy_dis(file_lists, folder_path):
 
     # plot vertical line for mean value
     mean_value = np.mean(all_distance_per_total_energy)
-    plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.2f}')
-
-    # display mean value
+    plt.axvline(mean_value, color='red', linestyle='--')
     plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
 
-    # display total number of samples
+    # plot vertical line for median value
+    median_value = np.median(all_distance_per_total_energy)
+    plt.axvline(median_value, color='blue', linestyle='--')
+    plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue', fontsize=12)
+
+    # display total number of samples at top right
     total_samples = len(all_distance_per_total_energy)
     plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
-             verticalalignment='top', transform=plt.gca().transAxes)
+             verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
     # set x-axis range (from 0 to 25)
     plt.xlim(0, 25)
@@ -137,15 +143,18 @@ def plot_fit_model_energy_dis(file_lists, folder_path):
 
     # plot vertical line for mean value
     mean_value = np.mean(all_distance_per_total_energy)
-    plt.axvline(mean_value, color='red', linestyle='--', label=f'Mean: {mean_value:.2f}')
-
-    # display mean value
+    plt.axvline(mean_value, color='red', linestyle='--')
     plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
 
-    # display total number of samples
+    # plot vertical line for median value
+    median_value = np.median(all_distance_per_total_energy)
+    plt.axvline(median_value, color='blue', linestyle='--')
+    plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue', fontsize=12)
+
+    # display total number of samples at top right
     total_samples = len(all_distance_per_total_energy)
     plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
-             verticalalignment='top', transform=plt.gca().transAxes)
+             verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
     # set x-axis range (from 0 to 25)
     plt.xlim(0, 25)
