@@ -4,7 +4,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from GS_preprocessing import get_file_list
-from tqdm import tqdm
 from collections import defaultdict
 import random
 
@@ -35,21 +34,30 @@ for file in file_lists:
     key = file[:11]
     grouped_files[key].append(file)
 
-# Use a random file for each key
-selected_files = {key: random.choice(files) for key, files in grouped_files.items()}
-dataframes = {}
+# Get merged dataframes for all data
+merged_dataframes = {}
+for key, files in grouped_files.items():
+    list_of_dfs = [pd.read_csv(os.path.join(folder_path, f)) for f in files]
+    merged_df = pd.concat(list_of_dfs, ignore_index=True)
+    merged_df['Residual'] = (merged_df['Power_IV'] - merged_df['Power']) / abs(merged_df['Power_IV']).mean()
+    merged_dataframes[key] = merged_df
 
-# Process the data
-for key, file in selected_files.items():
-    df = pd.read_csv(os.path.join(folder_path, file))
-    df['Residual'] = (df['Power_IV'] - df['Power']) / abs(df['Power_IV']).mean()
-    dataframes[key] = df
+# Select random files
+selected_files = {key: random.choices(files, k=5) for key, files in grouped_files.items()}
 
-# Plotting
-for key, df in dataframes.items():
+# Process the data and plot for each vehicle type
+for key in vehicle_types.keys():
+    if key not in merged_dataframes:  # Check if the key exists in merged_dataframes
+        continue
+
     plt.figure(figsize=(10, 7))
-    sns.set_style("whitegrid")
-    sns.kdeplot(df['Residual'], label=vehicle_types.get(key, 'unknown'), fill=True)
+    sns.kdeplot(merged_dataframes[key]['Residual'], label=f'All {vehicle_types.get(key, "unknown")}', fill=True)
+
+    # Process the data for random files
+    for idx, file in enumerate(selected_files[key]):
+        df = pd.read_csv(os.path.join(folder_path, file))
+        df['Residual'] = (df['Power_IV'] - df['Power']) / abs(df['Power_IV']).mean()
+        sns.kdeplot(df['Residual'], label=f'Sample {idx+1}')
 
     plt.xlabel('Residual')
     plt.ylabel('Density')
