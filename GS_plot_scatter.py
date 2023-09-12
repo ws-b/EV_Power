@@ -9,10 +9,10 @@ from scipy.stats import linregress
 from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
 from sklearn.metrics import r2_score
-
 def plot_scatter_all_trip(file_lists, folder_path):
     final_energy_data = []
-    final_energy = []
+    final_energy_fit = []
+    final_energy_original = []
 
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
@@ -32,23 +32,33 @@ def plot_scatter_all_trip(file_lists, folder_path):
         model_power = np.array(model_power)
         model_energy = model_power * t_diff / 3600 / 1000
         model_energy_cumulative = model_energy.cumsum()
-        final_energy.append(model_energy_cumulative[-1])
+        final_energy_original.append(model_energy_cumulative[-1])
+
+    # MAPE calculation
+    mape = np.mean(
+        np.abs((np.array(final_energy_data) - np.array(final_energy_original)) / np.array(final_energy_data))) * 100
+
+    # R^2 calculation
+    r2 = r2_score(final_energy_data, final_energy_original)
 
     # plot the graph
-    fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
+    fig, ax = plt.subplots(figsize=(6, 6))
 
     # Color map
-    colors = cm.rainbow(np.linspace(0, 1, len(final_energy)))
+    colors = cm.rainbow(np.linspace(0, 1, len(final_energy_original)))
 
-    ax.set_xlabel('Model Energy (kWh)')
-    ax.set_ylabel('BMS Energy (kWh)')
+    ax.set_xlabel('BMS Energy (kWh)')
+    ax.set_ylabel('Model Energy (kWh)')
 
-    for i in range(len(final_energy)):
-        ax.scatter(final_energy[i], final_energy_data[i], color=colors[i])
+    # Scatter for before fitting data
+    for i in range(len(final_energy_original)):
+        ax.scatter(final_energy_data[i], final_energy_original[i], color=colors[i], facecolors='none',
+                   edgecolors=colors[i], label='Model Energy' if i == 0 else "")
 
-    # Add trendline
-    slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
-    ax.plot(np.array(final_energy), intercept + slope * np.array(final_energy), 'b', label='fitted line')
+    # Add trendline for final_energy_original and final_energy_data
+    slope_original, intercept_original, _, _, _ = linregress(final_energy_data, final_energy_original)
+    ax.plot(np.array(final_energy_data), intercept_original + slope_original * np.array(final_energy_data),
+            color='lightblue', label='Trendline')
 
     # Create y=x line
     lims = [
@@ -60,8 +70,65 @@ def plot_scatter_all_trip(file_lists, folder_path):
     ax.set_xlim(lims)
     ax.set_ylim(lims)
 
+    # Display R^2 value below MAPE
+    ax.text(0.95, 0.97, r"$R^2$: {:.4f}".format(r2),
+            transform=ax.transAxes, ha="right", va="top", fontsize=12,
+            fontweight="bold", bbox=dict(facecolor='white', alpha=0.5))
+    plt.legend()
     plt.title("All trip's BMS Energy vs. Model Energy over Time")
     plt.show()
+# def plot_scatter_all_trip(file_lists, folder_path):
+#     final_energy_data = []
+#     final_energy = []
+#
+#     for file in tqdm(file_lists):
+#         file_path = os.path.join(folder_path, file)
+#         data = pd.read_csv(file_path)
+#
+#         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+#         t_diff = t.diff().dt.total_seconds().fillna(0)
+#         t_diff = np.array(t_diff.fillna(0))
+#
+#         bms_power = data['Power_IV']
+#         bms_power = np.array(bms_power)
+#         data_energy = bms_power * t_diff / 3600 / 1000
+#         data_energy_cumulative = data_energy.cumsum()
+#         final_energy_data.append(data_energy_cumulative[-1])
+#
+#         model_power = data['Power']
+#         model_power = np.array(model_power)
+#         model_energy = model_power * t_diff / 3600 / 1000
+#         model_energy_cumulative = model_energy.cumsum()
+#         final_energy.append(model_energy_cumulative[-1])
+#
+#     # plot the graph
+#     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
+#
+#     # Color map
+#     colors = cm.rainbow(np.linspace(0, 1, len(final_energy)))
+#
+#     ax.set_xlabel('Model Energy (kWh)')
+#     ax.set_ylabel('BMS Energy (kWh)')
+#
+#     for i in range(len(final_energy)):
+#         ax.scatter(final_energy[i], final_energy_data[i], color=colors[i])
+#
+#     # Add trendline
+#     slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
+#     ax.plot(np.array(final_energy), intercept + slope * np.array(final_energy), 'b', label='fitted line')
+#
+#     # Create y=x line
+#     lims = [
+#         np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+#         np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+#     ]
+#     ax.plot(lims, lims, 'r-', alpha=0.75, zorder=0)
+#     ax.set_aspect('equal')
+#     ax.set_xlim(lims)
+#     ax.set_ylim(lims)
+#
+#     plt.title("All trip's BMS Energy vs. Model Energy over Time")
+#     plt.show()
 
 def plot_scatter_tbt(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
