@@ -77,58 +77,6 @@ def plot_scatter_all_trip(file_lists, folder_path):
     plt.legend()
     plt.title("All trip's BMS Energy vs. Model Energy over Time")
     plt.show()
-# def plot_scatter_all_trip(file_lists, folder_path):
-#     final_energy_data = []
-#     final_energy = []
-#
-#     for file in tqdm(file_lists):
-#         file_path = os.path.join(folder_path, file)
-#         data = pd.read_csv(file_path)
-#
-#         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-#         t_diff = t.diff().dt.total_seconds().fillna(0)
-#         t_diff = np.array(t_diff.fillna(0))
-#
-#         bms_power = data['Power_IV']
-#         bms_power = np.array(bms_power)
-#         data_energy = bms_power * t_diff / 3600 / 1000
-#         data_energy_cumulative = data_energy.cumsum()
-#         final_energy_data.append(data_energy_cumulative[-1])
-#
-#         model_power = data['Power']
-#         model_power = np.array(model_power)
-#         model_energy = model_power * t_diff / 3600 / 1000
-#         model_energy_cumulative = model_energy.cumsum()
-#         final_energy.append(model_energy_cumulative[-1])
-#
-#     # plot the graph
-#     fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
-#
-#     # Color map
-#     colors = cm.rainbow(np.linspace(0, 1, len(final_energy)))
-#
-#     ax.set_xlabel('Model Energy (kWh)')
-#     ax.set_ylabel('BMS Energy (kWh)')
-#
-#     for i in range(len(final_energy)):
-#         ax.scatter(final_energy[i], final_energy_data[i], color=colors[i])
-#
-#     # Add trendline
-#     slope, intercept, r_value, p_value, std_err = linregress(final_energy, final_energy_data)
-#     ax.plot(np.array(final_energy), intercept + slope * np.array(final_energy), 'b', label='fitted line')
-#
-#     # Create y=x line
-#     lims = [
-#         np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-#         np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
-#     ]
-#     ax.plot(lims, lims, 'r-', alpha=0.75, zorder=0)
-#     ax.set_aspect('equal')
-#     ax.set_xlim(lims)
-#     ax.set_ylim(lims)
-#
-#     plt.title("All trip's BMS Energy vs. Model Energy over Time")
-#     plt.show()
 
 def plot_scatter_tbt(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
@@ -152,9 +100,9 @@ def plot_scatter_tbt(file_lists, folder_path):
         # plot the graph
         fig, ax = plt.subplots(figsize=(6, 6))  # set the size of the graph
 
-        ax.set_xlabel('Model Energy (kWh)')
-        ax.set_ylabel('BMS Energy (kWh)')
-        ax.scatter(model_energy_cumulative, data_energy_cumulative, color='tab:blue')
+        ax.set_xlabel('BMS Energy (kWh)')
+        ax.set_ylabel('Model Energy (kWh)')
+        ax.scatter(data_energy_cumulative, model_energy_cumulative, color='tab:blue')
 
         # Create y=x line
         lims = [
