@@ -30,6 +30,7 @@ plot_fit_scatter_tbt
 )
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis, plot_fit_model_energy_dis
 from GS_Fitting import fitting
+from GS_Fitting_2 import fitting_with_p_values
 
 
 def main():
@@ -93,7 +94,8 @@ def main():
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
-                    fitting(file_lists, folder_path)
+                    #fitting(file_lists, folder_path)
+                    fitting_with_p_values(file_lists, folder_path)
                     plot_fit_scatter_all_trip(file_lists, folder_path)
                     break
                 elif choice == 2:
