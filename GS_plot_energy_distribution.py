@@ -6,6 +6,7 @@ import os
 from tqdm import tqdm
 def plot_model_energy_dis(file_lists, folder_path):
     all_distance_per_total_energy = []
+    all_total_distances = []
 
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
@@ -29,16 +30,21 @@ def plot_model_energy_dis(file_lists, folder_path):
         # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
         distance_per_total_energy = (total_distance[-1] / 1000) / (model_energy_cumulative[-1]) if model_energy_cumulative[-1] != 0 else 0
 
-        # collect all distance_per_total_Energy values for all files
+        # collect all distance_per_total_energy values for all files
         all_distance_per_total_energy.append(distance_per_total_energy)
+
+        # collect total distances for each file
+        all_total_distances.append(total_distance[-1])
+
+    # compute weighted mean using total distances as weights
+    weighted_mean = np.dot(all_distance_per_total_energy, all_total_distances) / sum(all_total_distances)
 
     # plot histogram for all files
     hist_data = sns.histplot(all_distance_per_total_energy, bins='auto', color='gray', kde=False)
 
-    # plot vertical line for mean value
-    mean_value = np.mean(all_distance_per_total_energy)
-    plt.axvline(mean_value, color='red', linestyle='--')
-    plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
+    # plot vertical line for weighted mean value
+    plt.axvline(weighted_mean, color='red', linestyle='--')
+    plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}', color='red', fontsize=12)
 
     # plot vertical line for median value
     median_value = np.median(all_distance_per_total_energy)
@@ -59,6 +65,7 @@ def plot_model_energy_dis(file_lists, folder_path):
     plt.show()
 def plot_bms_energy_dis(file_lists, folder_path):
     all_distance_per_total_energy = []
+    all_distances = []
 
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
@@ -85,13 +92,18 @@ def plot_bms_energy_dis(file_lists, folder_path):
         # collect all distance_per_total_energy values for all files
         all_distance_per_total_energy.append(distance_per_total_energy)
 
+        # collect total distance for each file
+        all_distances.append(total_distance[-1])
+
+    # compute weighted mean using total_distance as weights
+    weighted_mean = np.dot(all_distance_per_total_energy, all_distances) / sum(all_distances)
+
     # plot histogram for all files
     hist_data = sns.histplot(all_distance_per_total_energy, bins='auto', color='gray', kde=False)
 
-    # plot vertical line for mean value
-    mean_value = np.mean(all_distance_per_total_energy)
-    plt.axvline(mean_value, color='red', linestyle='--')
-    plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
+    # plot vertical line for weighted mean value
+    plt.axvline(weighted_mean, color='red', linestyle='--')
+    plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}', color='red', fontsize=12)
 
     # plot vertical line for median value
     median_value = np.median(all_distance_per_total_energy)
@@ -110,8 +122,10 @@ def plot_bms_energy_dis(file_lists, folder_path):
     plt.title('Total Distance / Total BMS Energy Distribution')
     plt.grid(False)
     plt.show()
+
 def plot_fit_model_energy_dis(file_lists, folder_path):
     all_distance_per_total_energy = []
+    all_distances = []
 
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
@@ -138,13 +152,18 @@ def plot_fit_model_energy_dis(file_lists, folder_path):
         # collect all distance_per_total_Energy values for all files
         all_distance_per_total_energy.append(distance_per_total_energy)
 
+        # collect total distance for each file
+        all_distances.append(total_distance[-1])
+
+    # compute weighted mean using total_distance as weights
+    weighted_mean = np.dot(all_distance_per_total_energy, all_distances) / sum(all_distances)
+
     # plot histogram for all files
     hist_data = sns.histplot(all_distance_per_total_energy, bins='auto', color='gray', kde=False)
 
-    # plot vertical line for mean value
-    mean_value = np.mean(all_distance_per_total_energy)
-    plt.axvline(mean_value, color='red', linestyle='--')
-    plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
+    # plot vertical line for weighted mean value
+    plt.axvline(weighted_mean, color='red', linestyle='--')
+    plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}', color='red', fontsize=12)
 
     # plot vertical line for median value
     median_value = np.median(all_distance_per_total_energy)
