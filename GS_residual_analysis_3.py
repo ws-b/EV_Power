@@ -57,7 +57,7 @@ for key in vehicle_types.keys():
     for idx, file in enumerate(selected_files[key]):
         df = pd.read_csv(os.path.join(folder_path, file))
         df['Residual'] = (df['Power_IV'] - df['Power']) / abs(df['Power_IV']).mean()
-        sns.kdeplot(df['Residual'], label=f'Sample {idx+1}')
+        sns.kdeplot(df['Residual'], label=f'Trip {idx+1}')
 
     plt.xlabel('Residual')
     plt.ylabel('Density')
