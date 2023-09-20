@@ -47,7 +47,7 @@ def plot_model_energy(file_lists, folder_path):
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
         plt.ylabel('Model Energy (kWh)')
-        plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:blue')
+        plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
 
         # Add date and file name
         date = t.iloc[0].strftime('%Y-%m-%d')
@@ -80,7 +80,7 @@ def plot_bms_energy(file_lists, folder_path):
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
         plt.ylabel('BMS Energy (kWh)')
-        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:red')
+        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:blue')
 
         # Add date and file name
         date = t.iloc[0].strftime('%Y-%m-%d')
@@ -118,8 +118,8 @@ def plot_energy_comparison(file_lists, folder_path):
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
         plt.ylabel('BMS Energy and Model Energy (kWh)')
-        plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:blue')
-        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:red')
+        plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:blue')
 
         # Add date and file name
         date = t.iloc[0].strftime('%Y-%m-%d')
@@ -302,9 +302,9 @@ def plot_fit_power_comparison(file_lists, folder_path):
         # Plot the comparison graph
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
-        plt.ylabel('BMS Power and Fit Model Power (kW)')
+        plt.ylabel('BMS Power and Fitted Model Power (kW)')
         plt.plot(t_min, bms_power, label='BMS Power (kW)', color='tab:blue')
-        plt.plot(t_min, model_power, label='Fit Model Power (kW)', color='tab:red')
+        plt.plot(t_min, model_power, label='Fitted Model Power (kW)', color='tab:red')
         # plt.plot(t_min, A_power, label='v Term (kW)', color='tab:orange')
         # plt.plot(t_min, B_power, label='v^2 Term (kW)', color='tab:purple')
         # plt.plot(t_min, C_power, label='v^3 Term (kW)', color='tab:pink')
@@ -319,7 +319,7 @@ def plot_fit_power_comparison(file_lists, folder_path):
                  verticalalignment='top', horizontalalignment='left', color='black')
 
         plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-        plt.title('Fit Model Power vs. BMS Power')
+        plt.title('Fitted Model Power vs. BMS Power')
         plt.tight_layout()
         plt.show()
 
@@ -346,7 +346,7 @@ def plot_fit_energy_comparison(file_lists, folder_path):
         # Plot the comparison graph
         plt.figure(figsize=(10, 6))  # Set the size of the graph
         plt.xlabel('Time (minutes)')
-        plt.ylabel('BMS Energy and Fit Model Energy (kWh)')
+        plt.ylabel('BMS Energy and Fitted Model Energy (kWh)')
         plt.plot(t_min, model_energy_cumulative, label='Fit Model Energy (kWh)', color='tab:blue')
         plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:red')
 
@@ -358,7 +358,7 @@ def plot_fit_energy_comparison(file_lists, folder_path):
                  verticalalignment='top', horizontalalignment='left', color='black')
 
         plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-        plt.title('Fit Model Energy vs. BMS Energy')
+        plt.title('Fitted Model Energy vs. BMS Energy')
         plt.tight_layout()
         plt.show()
 
