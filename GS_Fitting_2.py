@@ -130,8 +130,3 @@ def visualize_objective(data, objective_func, a, b, p_values):
                 xy=(1.05, 1.07), xycoords='axes fraction', fontsize=10, ha='left', va='top')
 
     plt.show()
-
-# 사용 예:
-# file_lists = ['your_files_here.csv', ...]  # 여기에 CSV 파일들의 목록을 넣으세요
-# folder_path = 'path_to_your_files'  # 여기에 CSV 파일들이 저장된 폴더 경로를 넣으세요
-# fitting_with_p_values(file_lists, folder_path)
