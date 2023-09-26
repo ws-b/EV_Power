@@ -42,7 +42,7 @@ def main():
     if platform.system() == "Windows":
         folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터')
     elif platform.system() == "Darwin":
-        folder_path = os.path.normpath('/Users/wsong/Documents/KENTECH/삼성미래과제/한국에너지공과대학교_샘플데이터')
+        folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터')
     else:
         print("Unknown system.")
         return
