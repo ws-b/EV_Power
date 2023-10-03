@@ -1,98 +1,132 @@
 import os
+import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import basinhopping
+from scipy.stats import t
+from collections import defaultdict
 from tqdm import tqdm
-from GS_Fitting import split_data
 import matplotlib.pyplot as plt
-def linear_func(v, T, a, b, c):
-    return a + b * v + c * T
+from numpy.linalg import inv
 
-def objective(params, speed, temp, Power, Power_IV):
-    a, b, c = params
-    fitting_power = Power * linear_func(speed, temp, a, b, c)
-    return ((fitting_power - Power_IV) ** 2).sum()
-def fit_power(data):
+
+def linear_func(v, acc, a, b):
+    return 1 + a * v + b * acc
+
+
+def objective(params, *args):
+    a, b = params
+    speed, acc, Power, Power_IV = args
+    fitting_power = Power * linear_func(speed, acc, a, b)
+    costs = ((fitting_power - Power_IV) ** 2).sum()
+    return costs
+
+
+def normalize(data):
+    return data / abs(data).mean()
+
+
+def linear_regression(X, y):
+    # Add a column of ones for the intercept term
+    X = np.column_stack([np.ones(X.shape[0]), X])
+
+    # Compute the parameters
+    beta = inv(X.T @ X) @ X.T @ y
+
+    # Compute the residuals
+    residuals = y - X @ beta
+    residual_sum_of_squares = residuals.T @ residuals
+
+    # Compute the variance of the residuals
+    residual_variance = residual_sum_of_squares / (X.shape[0] - X.shape[1])
+
+    # Compute the standard error
+    standard_error = np.sqrt(np.diag(residual_variance * inv(X.T @ X)))
+
+    # Compute the t-statistics
+    t_statistic = beta / standard_error
+
+    # Compute the p-values
+    p_values = 2 * (1 - t.cdf(np.abs(t_statistic), X.shape[0] - X.shape[1]))
+
+    return beta, p_values
+
+
+def fitting_with_p_values(file_lists, folder_path):
+    grouped_files = defaultdict(list)
+    for file in file_lists:
+        key = file[:11]
+        grouped_files[key].append(file)
+
+    for key, files in grouped_files.items():
+        selected_files = np.random.choice(files, size=len(files) // 2, replace=False)
+        list_of_dfs = [pd.read_csv(os.path.join(folder_path, f)) for f in selected_files]
+        combined_df = pd.concat(list_of_dfs, ignore_index=True)
+        combined_df = combined_df.sort_values(by='time', ignore_index=True)
+
+        combined_df['speed_nmz'] = normalize(combined_df['speed'])
+        combined_df['acceleration_nmz'] = normalize(combined_df['acceleration'])
+        combined_df['ext_temp_nmz'] = normalize(combined_df['ext_temp'])
+
+        speed = combined_df['speed_nmz']
+        acc = combined_df['acceleration_nmz']
+        Power = combined_df['Power']
+        Power_IV = combined_df['Power_IV']
+
+        initial_guess = [0, 0]
+        minimizer = {"method": "BFGS"}
+        result = basinhopping(objective, initial_guess,
+                              minimizer_kwargs={"args": (speed, acc, Power, Power_IV), "method": "BFGS"})
+        a, b = result.x
+
+        # Compute the p-values
+        X = np.column_stack([speed, acc])
+        beta, p_values = linear_regression(X, Power_IV - Power * linear_func(speed, acc, a, b))
+
+        for file in tqdm(files):
+            file_path = os.path.join(folder_path, file)
+            data = pd.read_csv(file_path)
+            data['speed_nmz'] = normalize(data['speed'])
+            data['acceleration_nmz'] = normalize(data['acceleration'])
+            data['ext_temp_nmz'] = normalize(data['ext_temp'])
+            data['Power_fit'] = data['Power'] * linear_func(data['speed_nmz'], data['acceleration_nmz'], a, b)
+            data.to_csv(file_path, index=False)
+
+        visualize_objective(combined_df, objective, a, b, p_values)
+
+        # Print the p-values for the parameters
+        print(f"P-values for {key} - a: {p_values[1]:.5f}, b: {p_values[2]:.5f}")
+
+    print("Fitting 완료")
+
+
+def visualize_objective(data, objective_func, a, b, p_values):
     speed = data['speed']
-    temp = data['ext_temp']
+    acc = data['acceleration']
     Power = data['Power']
     Power_IV = data['Power_IV']
 
-    # 초기 추정값
-    initial_guess = [0, 1, 0]
+    a_values = np.linspace(-10, 10, 200)
+    b_values = np.linspace(-10, 10, 200)
+    A, B = np.meshgrid(a_values, b_values)
 
-    # 최적화 수행
-    result = minimize(objective, initial_guess, args=(speed, temp, Power, Power_IV))
+    Z = np.zeros_like(A)
+    for i in range(A.shape[0]):
+        for j in range(A.shape[1]):
+            Z[i, j] = objective_func([A[i, j], B[i, j]], speed, acc, Power, Power_IV)
 
-    a, b, c = result.x
+    Z = (Z - Z.min()) / (Z.max() - Z.min())
 
-    # 최적화된 Power 값을 별도의 컬럼으로 저장
-    data['Power_fit'] = Power * linear_func(speed, temp, a, b, c)
+    fig, ax = plt.subplots(figsize=(10, 7))
+    cp = ax.contourf(A, B, Z, cmap='viridis', levels=50)
+    plt.colorbar(cp, ax=ax, label='Normalized Objective Function Value')
+    ax.scatter(a, b, color='red', marker='o', s=10, label=f'Optimal Parameters (a, b)\n(a={a:.3f}, b={b:.3f})')
+    ax.set_xlabel('Parameter a')
+    ax.set_ylabel('Parameter b')
+    ax.set_title('Normalized Objective Function Landscape')
+    ax.legend()
 
-    return a, b, c, data
-def fit_parameters(train_files, folder_path):
-    a_values = []
-    b_values = []
-    c_values = []
-    for file in tqdm(train_files):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-        a, b, c, _ = fit_power(data)  # Make sure fit_power returns a, b, c
-        a_values.append(a)
-        b_values.append(b)
-        c_values.append(c)
+    # Add the p-values outside the graph on the right top corner
+    ax.annotate(f'p-value for a: {p_values[1]:.5f}\np-value for b: {p_values[2]:.5f}',
+                xy=(1.05, 1.07), xycoords='axes fraction', fontsize=10, ha='left', va='top')
 
-    a_avg = sum(a_values) / len(a_values)
-    b_avg = sum(b_values) / len(b_values)
-    c_avg = sum(c_values) / len(c_values)
-
-    return a_avg, b_avg, c_avg
-def apply_fitting(test_files, folder_path, a_avg, b_avg, c_avg):
-    for file in tqdm(test_files):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-        temp = data['ext_temp']
-        data['Power_fit'] = data['Power'] * linear_func(data['speed'], temp, a_avg, b_avg, c_avg)
-        data.to_csv(os.path.join(folder_path, file), index=False)
-def fitting(file_lists, folder_path):
-    # 훈련 및 테스트 데이터 분리
-    train_files, test_files = split_data(file_lists)
-    # 훈련 데이터에서 a, b, c 파라미터 최적화
-    a_avg, b_avg, c_avg = fit_parameters(train_files, folder_path)
-    # 테스트 데이터에 대한 Power_fit 계산 및 저장
-    apply_fitting(file_lists, folder_path, a_avg, b_avg, c_avg)
-    print("Done")
-
-def objective_with_callback(params, speed, temp, Power, Power_IV):
-    cost = objective(params, speed, temp, Power, Power_IV)
-    costs.append(cost)
-    return cost
-
-def fit_power_with_costs(data):
-    global costs
-    # Reset costs for each new optimization
-    costs = []
-
-    speed = data['speed']
-    temp = data['ext_temp']
-    Power = data['Power']
-    Power_IV = data['Power_IV']
-
-    # Initial guess
-    initial_guess = [0, 0, 0]
-
-    # Perform optimization
-    result = minimize(objective_with_callback, initial_guess, args=(speed, temp, Power, Power_IV))
-
-    a, b, c = result.x
-
-    # Store the optimized Power values in a separate column
-    data['Power_fit'] = Power * linear_func(speed, temp, a, b, c)
-
-    return a, b, c, data, costs
-
-def plot_costs(costs):
-    plt.plot(costs)
-    plt.xlabel('Iterations')
-    plt.ylabel('Cost')
-    plt.title('Gradient Descent Progress')
     plt.show()
