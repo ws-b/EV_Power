@@ -4,6 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.backends.backend_pdf import PdfPages
 def plot_stacked_graph(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -222,40 +223,6 @@ def plot_power_comparison(file_lists, folder_path):
         plt.tight_layout()
         plt.show()
 
-def plot_power_comparison_enlarge(file_lists, folder_path, start_time, end_time):
-    for file in tqdm(file_lists[31:35]):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-
-        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds().fillna(0)
-        t_diff = np.array(t_diff.fillna(0))
-        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
-
-        bms_power = data['Power_IV'] / 1000
-        model_power = data['Power'] / 1000
-
-        # Plot the comparison graph
-        plt.figure(figsize=(10, 6))  # Set the size of the graph
-        plt.xlabel('Time (minutes)')
-        plt.ylabel('BMS Power and Model Power (kW)')
-        plt.plot(t_min, bms_power, label='BMS Power (kW)', color='tab:blue')
-        plt.plot(t_min, model_power, label='model Power (kW)', color='tab:red')
-        plt.ylim([-100, 100])
-        plt.xlim([start_time, end_time])
-
-        # Add date and file name
-        date = t.iloc[0].strftime('%Y-%m-%d')
-        plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-                 verticalalignment='top', horizontalalignment='right', color='black')
-        plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
-                 verticalalignment='top', horizontalalignment='left', color='black')
-
-        plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-        plt.title('Model Power vs. BMS Power')
-        plt.tight_layout()
-        plt.show()
-
 def plot_power_diff(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)
@@ -382,3 +349,68 @@ def plot_correlation(file_lists, folder_path):
         sns.heatmap(correlations, annot=True, cmap='coolwarm', center=0)
         plt.title('Correlation Matrix of energy_diff and Power Terms')
         plt.show()
+
+
+def plot_bms_energy_pdf(file_lists, folder_path, EV):
+    # PDF 저장 경로 설정
+    pdf_path = os.path.join(folder_path, f'{EV}_bms_energy_graphs.pdf')
+
+    with PdfPages(pdf_path) as pdf:
+        for file in tqdm(file_lists):
+            file_path = os.path.join(folder_path, file)
+            data = pd.read_csv(file_path)
+
+            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            t_diff = t.diff().dt.total_seconds().fillna(0)
+            t_diff = np.array(t_diff.fillna(0))
+            t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+            bms_power = data['Power_IV']
+            bms_power = np.array(bms_power)
+            data_energy = bms_power * t_diff / 3600 / 1000
+            data_energy_cumulative = data_energy.cumsum()
+
+            model_power = data['Power']
+            model_power = np.array(model_power)
+            model_energy = model_power * t_diff / 3600 / 1000
+            model_energy_cumulative = model_energy.cumsum()
+
+            # Plot the comparison graph for energy
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+
+            # Energy graph
+            ax1.set_ylabel('BMS Energy and Model Energy (kWh)')
+            ax1.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+            ax1.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:blue')
+            ax1.legend(loc='upper left', bbox_to_anchor=(0, 0.95))  # 레전드 위치 조정
+            ax1.set_title('Model Energy vs. BMS Energy')
+
+            # Speed and acceleration graph
+            ax2.plot(t_min, data['speed'], label='Speed (m/s)', color='tab:green')
+            ax3_ax2 = ax2.twinx()  # instantiate a second y-axis sharing the same x-axis
+            ax3_ax2.plot(t_min, data['acceleration'], label='Acceleration (m/s^2)', color='tab:orange')
+            ax2.set_ylabel('Speed (m/s)', color='tab:green')
+            ax3_ax2.set_ylabel('Acceleration (m/s^2)', color='tab:orange')
+            ax2.tick_params(axis='y', labelcolor='tab:green')
+            ax3_ax2.tick_params(axis='y', labelcolor='tab:orange')
+
+            # Power graph
+            ax3.plot(t_min, model_power, label='Model Power', color='tab:red')
+            ax3.plot(t_min, bms_power, label='BMS Power', color='tab:blue')
+            ax3.set_ylabel('Power')
+            ax3.set_xlabel('Time (minutes)')
+            ax3.legend(loc='upper left')
+
+            # Add date and file name
+            date = t.iloc[0].strftime('%Y-%m-%d')
+            ax1.text(1, 1, date, transform=ax1.transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            ax1.text(0, 1, 'File: ' + file, transform=ax1.transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.tight_layout()
+            # 현재 그래프를 PDF에 저장
+            pdf.savefig()
+            plt.close()
+
+    print(f"Graphs saved in {pdf_path}")
