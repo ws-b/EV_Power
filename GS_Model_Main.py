@@ -1,6 +1,5 @@
 import os
 import platform
-import numpy as np
 from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot_line import (
@@ -12,9 +11,9 @@ plot_speed_power,
 plot_power_comparison,
 plot_power_diff,
 plot_correlation,
-plot_power_comparison_enlarge,
 plot_fit_energy_comparison,
-plot_fit_power_comparison
+plot_fit_power_comparison,
+plot_bms_energy_pdf
 )
 from GS_plot_scatter import (
 plot_scatter_all_trip,
@@ -30,8 +29,8 @@ plot_fit_scatter_tbt
 )
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis, plot_fit_model_energy_dis
 from GS_Fitting import fitting
-from GS_Fitting_2 import fitting_with_p_values
-
+from GS_Fitting_3 import fitting_with_p_values
+from matplotlib.backends.backend_pdf import PdfPages
 
 def main():
     print("1: Ioniq5")
@@ -160,7 +159,7 @@ def main():
                 print("4: Plotting Speed & Power Graph(Line)")
                 print("5: Plotting each trip's Power Comparison Graph(Line)")
                 print("6: Plotting each trip's Power difference Graph(Line)")
-                print("7: Plotting each trip's Enlarged Power Comparison Graph(Line)")
+                print("7: ")
                 print("8: Plotting Correlation Graph")
                 print("9: Plotting All trip's Energy Graph(Scatter)")
                 print("10: Plotting each trip's Energy Graph(Scatter)")
@@ -169,8 +168,8 @@ def main():
                 print("13: Plotting Temperature & Energy Graph (Wh/mile) (Scatter)")
                 print("14: Plotting Temperature & Energy & Speed Graph (Scatter)")
                 print("15: Plotting Temperature & Energy & Speed Graph 3D (Scatter) ")
-                print("16: Plotting Noramalized Temperature & Energy & Speed Graph")
-                print("17: Plotting All figure")
+                print("16: Plotting Normalized Temperature & Energy & Speed Graph")
+                print("17: Plotting BMS energy graph in pdf")
                 print("18: Quitting the program.")
                 plot = int(input("Enter number you want to run: "))
                 if plot == 1:
@@ -210,7 +209,7 @@ def main():
                     plot_power_diff(file_lists, folder_path)
                     break
                 elif plot == 7:
-                    plot_power_comparison_enlarge(file_lists, folder_path, 0, 10)
+
                     break
                 elif plot == 8:
                     plot_correlation(file_lists, folder_path)
@@ -238,6 +237,9 @@ def main():
                     break
                 elif plot == 16:
                     plot_energy_temp_speed_normalized(file_lists, folder_path)
+                    break
+                elif plot == 17:
+                    plot_bms_energy_pdf(file_lists, folder_path, EV)
                     break
                 elif plot == 18:
                     print("Quitting the program.")
