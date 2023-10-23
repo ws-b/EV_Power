@@ -12,7 +12,7 @@ file_lists = [f for f in os.listdir(directory_path) if f.endswith('.csv')]
 # 2. 파일 목록을 그룹화하기
 grouped_files = defaultdict(list)
 for file in file_lists:
-    key = file[:11]  # 파일 이름 기반으로 그룹화 (조정 가능)
+    key = file[:11]
     grouped_files[key].append(file)
 
 for key, files in grouped_files.items():
@@ -20,7 +20,7 @@ for key, files in grouped_files.items():
         for file in tqdm(files):
             filepath = os.path.join(directory_path, file)
             df = pd.read_csv(filepath)
-            df['time'] = pd.to_datetime(df['time'])  # 'time' 컬럼을 datetime 형식으로 변환
+            df['time'] = pd.to_datetime(df['time'])
 
             # 'time' 컬럼을 시작부터 경과된 시간(초)으로 변환
             df['time'] = (df['time'] - df['time'].iloc[0]).dt.total_seconds()
