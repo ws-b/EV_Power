@@ -1,70 +1,47 @@
+import pandas as pd
 import os
-import platform
+import matplotlib.pyplot as plt
+from collections import defaultdict
+from matplotlib.backends.backend_pdf import PdfPages
+from tqdm import tqdm
 
-def main():
-    print("1: Ioniq5")
-    print("2: Kona_EV")
-    print("3: Porter_EV")
-    print("4: Quitting the program.")
-    car = int(input("Select Car you want to calculate: "))
-    if platform.system() == "Windows":
-        folder_path = os.path.normpath('D:\\Data\\대학교 자료\\켄텍 자료\\삼성미래과제\\한국에너지공과대학교_샘플데이터')
-    elif platform.system() == "Darwin":
-        folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터')
-    else:
-        print("Unknown system.")
-        return
-    folder_path = os.path.join(folder_path, 'trip_by_trip')
+# 1. 주어진 디렉토리에서 파일 목록을 가져오기
+directory_path = '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip'
+file_lists = [f for f in os.listdir(directory_path) if f.endswith('.csv')]
 
-    if car == 1: #ioniq5
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if '01241248782' in file]
-    elif car == 2: #kona_ev
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if '01241248726' in file]
-    elif car == 3: #porter_ev
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if '01241228177' in file]
-    elif car == 4:
-        print("Quitting the program.")
-        return
-    else:
-        print("Invalid choice. Please try again.")
+# 2. 파일 목록을 그룹화하기
+grouped_files = defaultdict(list)
+for file in file_lists:
+    key = file[:11]
+    grouped_files[key].append(file)
 
-    file_lists.sort()
+for key, files in grouped_files.items():
+    with PdfPages(os.path.join(directory_path, f'{key}_Energy.pdf')) as pdf:  # Energy PDF
+        for file in tqdm(files):
+            filepath = os.path.join(directory_path, file)
+            df = pd.read_csv(filepath)
+            df['time'] = pd.to_datetime(df['time'])
 
-def plot_bms_energy(file_lists, folder_path):
-    for file in tqdm(file_lists[31:35]):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
+            # 'time' 컬럼을 시작부터 경과된 시간(초)으로 변환
+            df['time'] = (df['time'] - df['time'].iloc[0]).dt.total_seconds()
 
-        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds().fillna(0)
-        t_diff = np.array(t_diff.fillna(0))
-        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+            # 'Power'와 'Power_IV'의 차이(Residual) 계산
+            df['Residual'] = df['Power'] - df['Power_IV']
 
-        bms_power = data['Power_IV']
-        bms_power = np.array(bms_power)
-        data_energy = bms_power * t_diff / 3600 / 1000
-        data_energy_cumulative = data_energy.cumsum()
+            # 모델 에너지와 BMS 에너지 계산
+            df['Model_Energy'] = (df['Power'].cumsum() * 2) / 3600
+            df['BMS_Energy'] = (df['Power_IV'].cumsum() * 2) / 3600
 
-        # Plot the comparison graph
-        plt.figure(figsize=(10, 6))  # Set the size of the graph
-        plt.xlabel('Time (minutes)')
-        plt.ylabel('BMS Energy (kWh)')
-        plt.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:blue')
+            # 모델 에너지와 BMS 에너지를 동일한 그래프에 표시
+            plt.figure(figsize=(10, 7))
+            plt.plot(df['time'], df['Model_Energy'], 'b', label='Model Energy')  # 파란색으로 모델 에너지 표시
+            plt.plot(df['time'], df['BMS_Energy'], 'r', label='BMS Energy')  # 빨간색으로 BMS 에너지 표시
+            plt.title(f'Energy Comparison for {file}')
+            plt.xlabel('Elapsed Time (seconds)')
+            plt.ylabel('Energy (kWh)')
+            plt.legend(loc='upper left')
+            plt.tight_layout()
 
-        # Add date and file name
-        date = t.iloc[0].strftime('%Y-%m-%d')
-        plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-                 verticalalignment='top', horizontalalignment='right', color='black')
-        plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
-                 verticalalignment='top', horizontalalignment='left', color='black')
-
-        plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-        plt.title('BMS Energy')
-        plt.tight_layout()
-        plt.show()
+            # PDF 파일에 그래프 추가
+            pdf.savefig()
+            plt.close()
