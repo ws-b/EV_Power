@@ -28,20 +28,35 @@ for key, files in grouped_files.items():
             # 'Power'와 'Power_IV'의 차이(Residual) 계산
             df['Residual'] = df['Power'] - df['Power_IV']
 
+            # 모델 에너지와 BMS 에너지 계산
+            df['Model_Energy'] = (df['Power'].cumsum() * 2) / 3600
+            df['BMS_Energy'] = (df['Power_IV'].cumsum() * 2) / 3600
+
             # Residual에 대한 이동 평균 계산
             df['Residual_MA_10s'] = df['Residual'].rolling(window=5).mean()
             df['Residual_MA_1min'] = df['Residual'].rolling(window=30).mean()
             df['Residual_MA_5min'] = df['Residual'].rolling(window=150).mean()
 
-            # Residual과 그에 대한 이동 평균 시각화
-            plt.figure(figsize=(10, 7))
-            plt.plot(df['time'], df['Residual_MA_10s'], label='10s MA')
-            plt.plot(df['time'], df['Residual_MA_1min'], label='1min MA')
-            plt.plot(df['time'], df['Residual_MA_5min'], label='5min MA')
-            plt.title(f'Residual and its Moving Averages for {file}')
-            plt.xlabel('Elapsed Time (seconds)')
-            plt.ylabel('Residual')
-            plt.legend(loc='upper left')
+            # 두 개의 서브플롯 생성
+            fig, axs = plt.subplots(1, 2, figsize=(20, 7))  # 1 row, 2 columns, and figure size of 20x7 inches
+
+            # 첫 번째 서브플롯 (왼쪽): Residual과 그에 대한 이동 평균
+            axs[0].plot(df['time'], df['Residual_MA_10s'], label='10s MA')
+            axs[0].plot(df['time'], df['Residual_MA_1min'], label='1min MA')
+            axs[0].plot(df['time'], df['Residual_MA_5min'], label='5min MA')
+            axs[0].set_title(f'Residual and its Moving Averages for {file}')
+            axs[0].set_xlabel('Elapsed Time (seconds)')
+            axs[0].set_ylabel('Residual')
+            axs[0].legend(loc='upper left')
+
+            # 두 번째 서브플롯 (오른쪽): 모델 에너지와 BMS 에너지
+            axs[1].plot(df['time'], df['Model_Energy'], label='Model Energy')
+            axs[1].plot(df['time'], df['BMS_Energy'], label='BMS Energy')
+            axs[1].set_title(f'Model and BMS Energy for {file}')
+            axs[1].set_xlabel('Elapsed Time (seconds)')
+            axs[1].set_ylabel('Energy (kWh)')
+            axs[1].legend(loc='upper left')
+
             plt.tight_layout()
 
             # PDF 파일에 그래프 추가
