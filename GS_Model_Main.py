@@ -25,12 +25,9 @@ plot_energy_temp_speed,
 plot_energy_temp_speed_3d,
 plot_energy_temp_speed_normalized,
 plot_fit_scatter_all_trip,
-plot_fit_scatter_tbt
 )
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis, plot_fit_model_energy_dis
 from GS_Fitting import fitting
-from GS_Fitting_3 import fitting_with_p_values
-from matplotlib.backends.backend_pdf import PdfPages
 
 def main():
     print("1: Ioniq5")
@@ -94,7 +91,6 @@ def main():
 
                 if choice == 1:
                     #fitting(file_lists, folder_path)
-                    fitting_with_p_values(file_lists, folder_path)
                     plot_fit_scatter_all_trip(file_lists, folder_path)
                     break
                 elif choice == 2:

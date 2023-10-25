@@ -16,7 +16,7 @@ for file in file_lists:
     grouped_files[key].append(file)
 
 for key, files in grouped_files.items():
-    with PdfPages(os.path.join(directory_path, f'{key}_Energy_cd.pdf')) as pdf:  # Energy PDF
+    with PdfPages(os.path.join(directory_path, f'{key}_Power_cd.pdf')) as pdf:  # Power PDF
         for file in tqdm(files):
             filepath = os.path.join(directory_path, file)
             df = pd.read_csv(filepath)
@@ -25,20 +25,13 @@ for key, files in grouped_files.items():
             # 'time' 컬럼을 시작부터 경과된 시간(초)으로 변환
             df['time'] = (df['time'] - df['time'].iloc[0]).dt.total_seconds()
 
-            # 'Power'와 'Power_IV'의 차이(Residual) 계산
-            df['Residual'] = df['Power'] - df['Power_IV']
-
-            # 모델 에너지와 BMS 에너지 계산
-            df['Model_Energy'] = (df['Power'].cumsum() * 2) / 3600
-            df['BMS_Energy'] = (df['Power_IV'].cumsum() * 2) / 3600
-
-            # 모델 에너지와 BMS 에너지를 동일한 그래프에 표시
+            # Power와 Power_IV를 동일한 그래프에 표시
             plt.figure(figsize=(10, 7))
-            plt.plot(df['time'], df['Model_Energy'], 'b', label='Model Energy')  # 파란색으로 모델 에너지 표시
-            plt.plot(df['time'], df['BMS_Energy'], 'r', label='BMS Energy')  # 빨간색으로 BMS 에너지 표시
-            plt.title(f'Energy Comparison for {file}')
+            plt.plot(df['time'], df['Power'], 'b', label='Power')
+            plt.plot(df['time'], df['Power_IV'], 'r', label='Power_IV')
+            plt.title(f'Power Comparison for {file}')
             plt.xlabel('Elapsed Time (seconds)')
-            plt.ylabel('Energy (kWh)')
+            plt.ylabel('Power (kW)')
             plt.legend(loc='upper left')
             plt.tight_layout()
 
