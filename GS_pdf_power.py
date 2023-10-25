@@ -25,16 +25,27 @@ for key, files in grouped_files.items():
             # 'time' 컬럼을 시작부터 경과된 시간(초)으로 변환
             df['time'] = (df['time'] - df['time'].iloc[0]).dt.total_seconds()
 
-            # Power와 Power_IV를 동일한 그래프에 표시
-            plt.figure(figsize=(10, 7))
-            plt.plot(df['time'], df['Power'], 'b', label='Power')
-            plt.plot(df['time'], df['Power_IV'], 'r', label='Power_IV')
-            plt.title(f'Power Comparison for {file}')
-            plt.xlabel('Elapsed Time (seconds)')
-            plt.ylabel('Power (kW)')
-            plt.legend(loc='upper left')
+            # Create a figure with two subplots side by side
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 7))
+
+            # Left subplot: Power only
+            ax1.plot(df['time'], df['Power'], 'b', label='Power')
+            ax1.set_title(f'Power for {file}')
+            ax1.set_xlabel('Elapsed Time (seconds)')
+            ax1.set_ylabel('Power (kW)')
+            ax1.legend(loc='upper left')
+
+            # Right subplot: Difference between Power and Power2
+            ax2.plot(df['time'], df['Power'] - df['Power2'], 'r', label='Difference (Power - Power2)')
+            ax2.set_title(f'Power Difference for {file}')
+            ax2.set_xlabel('Elapsed Time (seconds)')
+            ax2.set_ylabel('Power Difference (kW)')
+            ax2.legend(loc='upper left')
+
             plt.tight_layout()
 
-            # PDF 파일에 그래프 추가
+            # Save to PDF
             pdf.savefig()
             plt.close()
+
+
