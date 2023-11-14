@@ -133,51 +133,7 @@ def check_trip_conditions(trip):
         return False  # Trip does not meet the conditions
 
     return True
-"""
-def process_files_combined(file_lists, folder_path, save_path):
-    for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
 
-        # Load CSV file into a pandas DataFrame
-        df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
-
-        # reverse the DataFrame based on the index
-        df = df[::-1]
-
-        # calculate time and speed changes
-        df['time'] = df['time'].str.strip()
-        df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
-        t = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds()
-        df['time_diff'] = t_diff
-        df['speed'] = df['emobility_spd'] * 0.27778
-        df['spd_diff'] = df['speed'].diff()
-
-        # calculate acceleration
-        df['acceleration'] = df['spd_diff'] / df['time_diff']
-
-        # replace NaN values with 0 or fill with desired values
-        df['acceleration'] = df['acceleration'].replace(np.nan, 0)
-
-        # merge selected columns into a single DataFrame
-        df['Power_IV'] = df['pack_volt'] * df['pack_current']
-
-        # merge selected columns into a single DataFrame
-        data_save = df[['time', 'speed', 'acceleration',
-                        'ext_temp', 'int_temp', 'soc', 'soh','chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
-
-        # save as a CSV file
-        device_no = df['device_no'].iloc[0].replace(' ', '')
-        if not device_no.startswith('0'):
-            device_no = '0' + device_no
-
-        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
-        full_path = os.path.join(save_path, file_name)
-
-        data_save.to_csv(full_path, index=False)
-
-    print('Done')
-"""
 def process_files_combined(file_lists, folder_path, save_path):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
@@ -195,26 +151,33 @@ def process_files_combined(file_lists, folder_path, save_path):
         t_diff = t.diff().dt.total_seconds()
         df['time_diff'] = t_diff
         df['speed'] = df['emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
+        df['spd_diff'] = df['speed'].diff()
+
+        # calculate acceleration
+        df['acceleration'] = df['spd_diff'] / df['time_diff']
+
+        # replace NaN values with 0 or fill with desired values
+        df['acceleration'] = df['acceleration'].replace(np.nan, 0)
 
         # Calculate speed difference using central differentiation
-        df['spd_diff'] = df['speed'].rolling(window=3, center=True).apply(lambda x: x[2] - x[0], raw=True) / 2
+        df['spd_diff2'] = df['speed'].rolling(window=3, center=True).apply(lambda x: x[2] - x[0], raw=True) / 2
 
         # calculate acceleration using the speed difference and time difference
-        df['acceleration'] = df['spd_diff'] / df['time_diff']
+        df['acceleration2'] = df['spd_diff2'] / df['time_diff']
 
         # Handling edge cases for acceleration (first and last elements)
         # You might need to handle these cases differently based on your exact requirements
-        df.at[0, 'acceleration'] = (df.at[1, 'speed'] - df.at[0, 'speed']) / df.at[1, 'time_diff']
-        df.at[len(df) - 1, 'acceleration'] = (df.at[len(df) - 1, 'speed'] - df.at[len(df) - 2, 'speed']) / df.at[len(df) - 1, 'time_diff']
+        df.at[0, 'acceleration2'] = (df.at[1, 'speed'] - df.at[0, 'speed']) / df.at[1, 'time_diff']
+        df.at[len(df) - 1, 'acceleration2'] = (df.at[len(df) - 1, 'speed'] - df.at[len(df) - 2, 'speed']) / df.at[len(df) - 1, 'time_diff']
 
         # replace NaN values with 0 or fill with desired values
-        df['acceleration'] = df['acceleration'].fillna(0)
+        df['acceleration2'] = df['acceleration2'].fillna(0)
 
         # additional calculations...
         df['Power_IV'] = df['pack_volt'] * df['pack_current']
 
         # merge selected columns into a single DataFrame
-        data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
+        data_save = df[['time', 'speed', 'acceleration', 'acceleration2', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
 
         # save as a CSV file
         device_no = df['device_no'].iloc[0].replace(' ', '')

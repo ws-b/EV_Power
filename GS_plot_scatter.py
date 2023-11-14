@@ -71,9 +71,9 @@ def plot_scatter_all_trip(file_lists, folder_path):
     ax.set_ylim(lims)
 
     # Display R^2 value below MAPE
-    ax.text(0.95, 0.97, r"$R^2$: {:.4f}".format(r2),
-            transform=ax.transAxes, ha="right", va="top", fontsize=12,
-            fontweight="bold", bbox=dict(facecolor='white', alpha=0.5))
+    # ax.text(0.95, 0.97, r"$R^2$: {:.4f}".format(r2),
+    #         transform=ax.transAxes, ha="right", va="top", fontsize=12,
+    #         fontweight="bold", bbox=dict(facecolor='white', alpha=0.5))
     plt.legend()
     plt.title("All trip's BMS Energy vs. Model Energy over Time")
     plt.show()

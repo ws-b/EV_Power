@@ -41,12 +41,14 @@ def process_files_power(file_lists, folder_path, EV):
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         v = data['speed'].tolist()
         a = data['acceleration'].tolist()
+        a2 = data['acceleration2'].tolist()
         int_temp = data['int_temp'].tolist()
 
         A = []
         B = []
         C = []
         D = []
+        D2 = []
         E = []
 
         for velocity in v:
@@ -66,20 +68,38 @@ def process_files_power(file_lists, folder_path, EV):
                     D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
                 else:
                     D.append(0)
+
+        for i in range(len(a)):
+            if EV.re_brake == 1:
+                if a2[i] >= 0:
+                    D2.append(((1 + inertia) * (EV.mass + EV.load) * a2[i]) * v[i] / EV.eff)
+                else:
+                    D2.append((((1 + inertia) * (EV.mass + EV.load)  * a2[i] * v[i] / np.exp(0.0411 / abs(a2[i]))))*EV.eff)
+                    #D.append((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]* EV.eff)
+            else:
+                if a2[i] >= 0:
+                    D2.append(((1 + inertia) * (EV.mass + EV.load) * a2[i]) * v[i] / EV.eff)
+                else:
+                    D2.append(0)
             E_hvac = abs(22 - int_temp[i]) * EV.hvac  # 22'c is the set temperature
             if v[i] <= 0.5:
                 E.append(EV.aux + EV.idle + E_hvac)
             else:
                 E.append(EV.aux + E_hvac)
-        Power_list = [A, B, C, D, E]
+        Power_list = [A, B, C, D2, E]
         Power = np.sum(Power_list, axis=0)
+        Power_list2 = [A, B, C, D2, E]
+        Power2 = np.sum(Power_list2, axis=0)
 
         data['A'] = A
         data['B'] = B
         data['C'] = C
         data['D'] = D
+        data['D2'] = D2
         data['E'] = E
         data['Power'] = Power
+        data['Power2'] = Power2
+
 
         data.to_csv(os.path.join(folder_path, file), index=False)
 
