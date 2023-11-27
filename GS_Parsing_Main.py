@@ -1,6 +1,6 @@
 import os
 import platform
-from GS_preprocessing import get_file_list, parse_spacebar, process_files_combined, process_files_trip_by_trip, merge_csv_files
+from GS_preprocessing import get_file_list, parse_spacebar, process_files_combined, process_files_trip_by_trip
 
 
 def pre_process():
@@ -54,20 +54,6 @@ def pre_process():
 
             file_list = get_file_list(folder_path)
             process_files_trip_by_trip(file_list, folder_path, save_path)
-            break
-
-        elif choice == 4:
-            if platform.system() == "Windows":
-                folder_path = os.path.normpath(r'D:\Data\대학교 자료\켄텍 자료\삼성미래과제\한국에너지공과대학교_샘플데이터\trip_by_trip')
-                save_path = os.path.normpath()
-            elif platform.system() == "Darwin":
-                folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip')
-                save_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/merged')
-            else:
-                print("Unknown system.")
-                return
-            file_list = get_file_list(folder_path)
-            merge_csv_files(file_list, folder_path,save_path)
             break
 
         elif choice == 6:

@@ -3,10 +3,14 @@ import pandas as pd
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 from tqdm import tqdm
+from collections import defaultdict
 
-# 주어진 디렉토리에서 파일 목록을 가져오기
 directory_path = '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip'
 file_lists = [f for f in os.listdir(directory_path) if f.endswith('.csv')]
+
+# 절대값 평균으로 정규화하는 함수 정의
+def normalize_by_abs_mean(series):
+    return series / series.abs().mean()
 
 # 파일 목록을 그룹화하기
 grouped_files = defaultdict(list)
@@ -25,8 +29,8 @@ for key, files in grouped_files.items():
             # 'time' 컬럼을 시작부터 경과된 시간(초)으로 변환
             df['time_seconds'] = (df['time'] - df['time'].iloc[0]).dt.total_seconds()
 
-            # 'Power'와 'Power_IV'의 차이 계산
-            df['Power_Diff'] = df['Power'] - df['Power_IV']
+            # 'Power'와 'Power_IV'의 차이 계산 및 정규화
+            df['Power_Diff'] = normalize_by_abs_mean(df['Power'] - df['Power_IV'])
 
             # 이동 평균 계산
             df['Power_Diff_MA_10s'] = df['Power_Diff'].rolling(window=5).mean()

@@ -28,11 +28,9 @@ def select_vehicle(car):
         return None
 
 def process_files_power(file_lists, folder_path, EV):
-    # Iterate over each file
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
 
-        # Read the data from the file into a pandas DataFrame
         data = pd.read_csv(file_path)
 
         # Set parameters for the vehicle model
@@ -75,7 +73,6 @@ def process_files_power(file_lists, folder_path, EV):
                     D2.append(((1 + inertia) * (EV.mass + EV.load) * a2[i]) * v[i] / EV.eff)
                 else:
                     D2.append((((1 + inertia) * (EV.mass + EV.load)  * a2[i] * v[i] / np.exp(0.0411 / abs(a2[i]))))*EV.eff)
-                    #D.append((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]* EV.eff)
             else:
                 if a2[i] >= 0:
                     D2.append(((1 + inertia) * (EV.mass + EV.load) * a2[i]) * v[i] / EV.eff)
@@ -86,7 +83,7 @@ def process_files_power(file_lists, folder_path, EV):
                 E.append(EV.aux + EV.idle + E_hvac)
             else:
                 E.append(EV.aux + E_hvac)
-        Power_list = [A, B, C, D2, E]
+        Power_list = [A, B, C, D, E]
         Power = np.sum(Power_list, axis=0)
         Power_list2 = [A, B, C, D2, E]
         Power2 = np.sum(Power_list2, axis=0)

@@ -27,7 +27,6 @@ plot_energy_temp_speed_normalized,
 plot_fit_scatter_all_trip,
 )
 from GS_plot_energy_distribution import plot_bms_energy_dis, plot_model_energy_dis, plot_fit_model_energy_dis
-from GS_Fitting import fitting
 
 def main():
     print("1: Ioniq5")
@@ -90,7 +89,6 @@ def main():
                 choice = int(input("Enter number you want to run: "))
 
                 if choice == 1:
-                    #fitting(file_lists, folder_path)
                     plot_fit_scatter_all_trip(file_lists, folder_path)
                     break
                 elif choice == 2:
@@ -102,7 +100,6 @@ def main():
                     break
                 elif choice == 4:
                     plot_fit_scatter_all_trip(file_lists, folder_path)
-                    # plot_fit_scatter_tbt(file_lists, folder_path)
                     break
                 elif choice == 5:
                     break

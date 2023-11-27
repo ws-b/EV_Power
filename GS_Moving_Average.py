@@ -5,7 +5,7 @@ import seaborn as sns
 from collections import defaultdict
 
 # 1. 주어진 디렉토리에서 파일 목록을 가져오기
-directory_path = '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip'  # 사용자의 디렉토리 경로를 입력하세요
+directory_path = '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip'
 file_lists = [f for f in os.listdir(directory_path) if f.endswith('.csv')]
 
 # 2. 파일 목록을 그룹화하기
