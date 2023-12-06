@@ -26,12 +26,16 @@ for key, files in grouped_files.items():
             df['time'] = (df['time'] - df['time'].iloc[0]).dt.total_seconds()
 
             # Energy 계산 (간단한 방법으로 시간 간격을 고정 가정)
-            df['Energy'] = df['Power'].cumsum() * (df['time'][1] - df['time'][0]) / 3600  # kWh 단위로 변환
+            df['Energy_Power'] = df['Power'].cumsum() * (df['time'][1] - df['time'][0]) / 3600
+            df['Energy_Power2'] = df['Power2'].cumsum() * (df['time'][1] - df['time'][0]) / 3600
+            df['BMS_Energy'] = df['Power_IV'].cumsum() * (df['time'][1] - df['time'][0]) / 3600
 
             fig, axs = plt.subplots(1, 2, figsize=(15, 7))
 
-            # Left subplot: Energy over Time
-            axs[0].plot(df['time'], df['Energy'], 'b', label='Energy')
+            # Left subplot: Energy over Time for Power and Power2
+            axs[0].plot(df['time'], df['Energy_Power'], 'b', label='Energy from typical Acceleration')
+            axs[0].plot(df['time'], df['Energy_Power2'], 'g', label='Energy from C_D_Acceleration')
+            axs[0].plot(df['time'], df['BMS_Energy'], 'r', label='Energy from BMS')
             axs[0].set_title(f'Energy over Time for {file}')
             axs[0].set_xlabel('Elapsed Time (seconds)')
             axs[0].set_ylabel('Energy (kWh)')

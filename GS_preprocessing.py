@@ -166,7 +166,6 @@ def process_files_combined(file_lists, folder_path, save_path):
         df['acceleration2'] = df['spd_diff2'] / df['time_diff']
 
         # Handling edge cases for acceleration (first and last elements)
-        # You might need to handle these cases differently based on your exact requirements
         df.at[0, 'acceleration2'] = (df.at[1, 'speed'] - df.at[0, 'speed']) / df.at[1, 'time_diff']
         df.at[len(df) - 1, 'acceleration2'] = (df.at[len(df) - 1, 'speed'] - df.at[len(df) - 2, 'speed']) / df.at[len(df) - 1, 'time_diff']
 
