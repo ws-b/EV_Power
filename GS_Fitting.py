@@ -68,8 +68,8 @@ def fitting(file_lists, folder_path):
             data['Power_fit'] = data['Power'] * linear_func(data['speed_nmz'], data['acceleration_nmz'], a, b)
             data.to_csv(file_path, index=False)
 
-        # Visualize for the current key
-        visualize_objective(combined_df, objective, a, b)
+        # # Visualize for the current key
+        # visualize_objective(combined_df, objective, a, b)
 
     print("Fitting 완료")
 
