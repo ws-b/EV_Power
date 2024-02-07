@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import glob
 import os
+import chardet
 
 # 최상위 폴더 경로 설정
 base_path = '/Users/wsong/Downloads/test_case/'
@@ -32,8 +33,15 @@ for vehicle_folder in vehicle_folders:
         # 파일 쌍별로 병합 작업 수행
         for altitude_file, bms_file in zip(altitude_files, bms_files):
             # 파일 읽기
-            altitude_df = pd.read_csv(altitude_file)
-            bms_df = pd.read_csv(bms_file)
+            # 파일 인코딩 감지 및 파일 읽기
+            def read_file_with_detected_encoding(file_path):
+                with open(file_path, 'rb') as f:
+                    result = chardet.detect(f.read(100000))  # 첫 100,000 바이트를 사용하여 인코딩 감지
+                return pd.read_csv(file_path, encoding=result['encoding'])
+
+            # 감지된 인코딩으로 파일 읽기
+            altitude_df = read_file_with_detected_encoding(altitude_file)
+            bms_df = read_file_with_detected_encoding(bms_file)
 
             # 시간 형식 정의 및 변환
             bms_df['time'] = pd.to_datetime(bms_df['time'], format="%y-%m-%d %H:%M:%S")
