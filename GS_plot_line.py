@@ -134,6 +134,58 @@ def plot_energy_comparison(file_lists, folder_path):
         plt.tight_layout()
         plt.show()
 
+def plot_alt_energy_comparison(file_lists, folder_path):
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # 시간을 분 단위로 변환
+
+        # BMS 에너지 계산
+        bms_power = np.array(data['Power_IV'])
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        data_energy = bms_power * t_diff / 3600 / 1000  # kWh로 변환
+        data_energy_cumulative = data_energy.cumsum()
+
+        # 모델 에너지 계산
+        model_power = np.array(data['Power'])
+        model_energy = model_power * t_diff / 3600 / 1000  # kWh로 변환
+        model_energy_cumulative = model_energy.cumsum()
+
+        # 고도 데이터
+        altitude = np.array(data['altitude'])
+
+        # 그래프 그리기
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+
+        # 첫 번째 y축 (왼쪽): 에너지 데이터
+        ax1.set_xlabel('Time (minutes)')
+        ax1.set_ylabel('Energy (kWh)')
+        ax1.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+        ax1.plot(t_min, data_energy_cumulative, label='BMS Energy (kWh)', color='tab:blue')
+        ax1.tick_params(axis='y')
+
+        # 두 번째 y축 (오른쪽): 고도 데이터
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('Altitude (m)', color='tab:green')  # 오른쪽 y축 레이블
+        # ax2.set_ylim([0, 2000])
+        ax2.plot(t_min, altitude, label='Altitude (m)', color='tab:green')
+        ax2.tick_params(axis='y', labelcolor='tab:green')
+
+        # 파일과 날짜 추가
+        date = t.iloc[0].strftime('%Y-%m-%d')
+        fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
+        fig.text(0.01, 0.99, 'File: ' + file, verticalalignment='top', color='black', fontsize=12)
+
+        # 범례와 타이틀
+        fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+        plt.title('Model Energy vs. BMS Energy and Altitude')
+
+        # 그래프 출력
+        plt.tight_layout()
+        plt.show()
+
 def plot_speed_power(file_lists, folder_path):
     for file in tqdm(file_lists[31:35]):
         file_path = os.path.join(folder_path, file)

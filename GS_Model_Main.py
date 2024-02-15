@@ -4,6 +4,7 @@ from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot_line import (
 plot_energy_comparison,
+plot_alt_energy_comparison,
 plot_stacked_graph,
 plot_model_energy,
 plot_bms_energy,
@@ -32,7 +33,7 @@ from GS_Fitting import fitting
 def main():
     print("1: Ioniq5")
     print("2: Kona_EV")
-    print("3: Porter_EV")
+    print("3: Ioniq5_2")
     print("4: Quitting the program.")
     car = int(input("Select Car you want to calculate: "))
     if platform.system() == "Windows":
@@ -55,7 +56,7 @@ def main():
     elif car == 3: #porter_ev
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if '01241228177' in file]
+        file_lists = [file for file in all_file_lists if '01241592868' in file]
     elif car == 4:
         print("Quitting the program.")
         return
@@ -154,7 +155,7 @@ def main():
                 print("4: Plotting Speed & Power Graph(Line)")
                 print("5: Plotting each trip's Power Comparison Graph(Line)")
                 print("6: Plotting each trip's Power difference Graph(Line)")
-                print("7: ")
+                print("7: Plotting Altitude & Energy Graph(Line)")
                 print("8: Plotting Correlation Graph")
                 print("9: Plotting All trip's Energy Graph(Scatter)")
                 print("10: Plotting each trip's Energy Graph(Scatter)")
@@ -204,7 +205,7 @@ def main():
                     plot_power_diff(file_lists, folder_path)
                     break
                 elif plot == 7:
-
+                    plot_alt_energy_comparison(file_lists, folder_path)
                     break
                 elif plot == 8:
                     plot_correlation(file_lists, folder_path)

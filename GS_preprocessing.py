@@ -71,7 +71,7 @@ def process_files_trip_by_trip(file_lists, folder_path, save_path):
 
         # Parse Trip by Time difference
         cut_time = pd.Timedelta(seconds=300)  # 300sec 이상 차이 날 경우 다른 Trip으로 인식
-        data['time'] = pd.to_datetime(data['time'])  # Convert 'time' column to datetime
+        data['time'] = pd.to_datetime(data['time'], format="%Y-%m-%d %H:%M:%S")  # Convert 'time' column to datetime
         for i in range(len(data) - 1):
             if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
                 cut.append(i + 1)
@@ -141,12 +141,12 @@ def process_files_combined(file_lists, folder_path, save_path):
         # Load CSV file into a pandas DataFrame
         df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
 
-        # reverse the DataFrame based on the index
-        df = df.iloc[::-1].reset_index(drop=True)  # Reset index after reversing to maintain order
+        # # reverse the DataFrame based on the index
+        # df = df.iloc[::-1].reset_index(drop=True)  # Reset index after reversing to maintain order
 
         # calculate time and speed changes
         df['time'] = df['time'].str.strip()
-        df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
+        df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
         t = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds()
         df['time_diff'] = t_diff
@@ -167,9 +167,12 @@ def process_files_combined(file_lists, folder_path, save_path):
 
         # additional calculations...
         df['Power_IV'] = df['pack_volt'] * df['pack_current']
-
-        # merge selected columns into a single DataFrame
-        data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
+        if 'altitude' in df.columns:
+            # merge selected columns into a single DataFrame
+            data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'altitude', 'pack_current', 'pack_volt', 'Power_IV']].copy()
+        else:
+            # merge selected columns into a single DataFrame
+            data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_current', 'pack_volt', 'Power_IV']].copy()
 
         # save as a CSV file
         device_no = df['device_no'].iloc[0].replace(' ', '')

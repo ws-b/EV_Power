@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-start_path = '/Volumes/Data/bms_gps_data/'  # 시작 디렉토리
+start_path = '/Volumes/Data/test_case/'  # 시작 디렉토리
 
 def extract_info_from_filename(file_name):
     """ 파일명에서 단말기 번호와 연월 추출 """

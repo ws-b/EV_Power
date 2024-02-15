@@ -5,7 +5,7 @@ import os
 import chardet
 
 # 최상위 폴더 경로 설정
-base_path = '/Users/wsong/Downloads/test_case/'
+base_path = '/Volumes/Data/test_case/'
 
 def match_closest_bms_time(altitude_time):
     # bms와 altitude 시간 차이 계산
@@ -34,10 +34,22 @@ for vehicle_folder in vehicle_folders:
         for altitude_file, bms_file in zip(altitude_files, bms_files):
             # 파일 읽기
             # 파일 인코딩 감지 및 파일 읽기
+            # def read_file_with_detected_encoding(file_path):
+            #     with open(file_path, 'rb') as f:
+            #         result = chardet.detect(f.read(100000))  # 첫 100,000 바이트를 사용하여 인코딩 감지
+            #     return pd.read_csv(file_path, encoding=result['encoding'])
+
             def read_file_with_detected_encoding(file_path):
-                with open(file_path, 'rb') as f:
-                    result = chardet.detect(f.read(100000))  # 첫 100,000 바이트를 사용하여 인코딩 감지
-                return pd.read_csv(file_path, encoding=result['encoding'])
+                try:
+                    # 파일의 인코딩을 감지하여 데이터를 읽음
+                    with open(file_path, 'rb') as f:
+                        result = chardet.detect(f.read(100000))  # 첫 100,000 바이트를 사용하여 인코딩 감지
+                    encoding = result['encoding']
+                    return pd.read_csv(file_path, encoding=encoding)
+                except pd.errors.ParserError:
+                    print(f"오류가 발생한 파일: {file_path}")
+                    return None  # 오류가 발생한 경우 None 반환
+
 
             # 감지된 인코딩으로 파일 읽기
             altitude_df = read_file_with_detected_encoding(altitude_file)

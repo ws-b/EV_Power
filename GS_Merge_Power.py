@@ -22,7 +22,7 @@ def select_vehicle(car):
     elif car == 2:
         return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV
     elif car == 3:
-        return Vehicle(0, 0, 0, 0, 0, 0, 0, 0, 0) # parameters for Porter_EV
+        return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9)
     else:
         print("Invalid choice. Please try again.")
         return None
