@@ -1,56 +1,13 @@
 import os
-import csv
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from collections import defaultdict
 
 def get_file_list(folder_path, file_extension='.csv'):
     file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith(file_extension)]
     file_lists.sort()
     return file_lists
-def parse_spacebar(file_lists, folder_path, save_path):
-    for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-        with open(file_path, 'r') as infile:  # Open the file
-            reader = csv.reader(infile, delimiter='|')
 
-            data = []
-            last_line = None
-            for i, row in enumerate(reader):
-                if i == 0 or i == 2:  # skip first and third row
-                    continue
-                if last_line is not None:
-                    data.append(last_line)
-                last_line = row
-
-            # 첫 번째 행에서 각 열의 공백을 제거합니다.
-            if data:  # Make sure data is not empty
-                data[0] = [col.strip() for col in data[0]]
-
-            # ','를 구분자로 사용해 출력 파일을 작성합니다.
-            with open(os.path.join(save_path, file[:-4] + "_parsed.csv"), 'w', newline='') as outfile:
-                writer = csv.writer(outfile, delimiter=',')
-                writer.writerows(data)
-    print("Done!")
-
-def merge_csv_files(file_lists, folder_path, save_path):
-    # 11자리 숫자를 키로 하여 파일들을 그룹화합니다.
-    grouped_files = defaultdict(list)
-    for file in tqdm(file_lists):
-        key = file[:11]
-        grouped_files[key].append(file)
-
-    for key, files in grouped_files.items():
-        # 각 그룹의 CSV 파일을 읽어들여 하나의 데이터프레임 리스트에 저장합니다.
-        list_of_dfs = [pd.read_csv(os.path.join(folder_path, f)) for f in files]
-
-        # 모든 데이터프레임을 하나로 병합합니다.
-        merged_df = pd.concat(list_of_dfs, ignore_index=True)
-
-        # 병합된 데이터프레임을 CSV로 저장합니다.
-        merged_file_path = os.path.join(save_path, f"{key}.csv")
-        merged_df.to_csv(merged_file_path, index=False)
 def process_files_trip_by_trip(file_lists, folder_path, save_path):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)

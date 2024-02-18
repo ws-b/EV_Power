@@ -1,6 +1,6 @@
 import os
 import platform
-from GS_preprocessing import get_file_list, parse_spacebar, process_files_combined, process_files_trip_by_trip
+from GS_preprocessing import get_file_list, process_files_combined, process_files_trip_by_trip
 
 
 def pre_process():
