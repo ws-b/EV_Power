@@ -5,7 +5,7 @@ import os
 import chardet
 
 # 최상위 폴더 경로 설정
-base_path = '/Volumes/Data/test_case/'
+base_path = '/Volumes/Data/bms_gps_data/니로EV'
 
 def match_closest_bms_time(altitude_time):
     # bms와 altitude 시간 차이 계산
