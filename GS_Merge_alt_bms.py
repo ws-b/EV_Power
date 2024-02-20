@@ -5,7 +5,7 @@ import os
 import chardet
 
 # 최상위 폴더 경로 설정
-base_path = '/Volumes/Data/bms_gps_data/니로EV'
+base_path = '/Volumes/Data/bms_gps_data'
 
 def match_closest_bms_time(altitude_time):
     # bms와 altitude 시간 차이 계산
@@ -32,13 +32,6 @@ for vehicle_folder in vehicle_folders:
 
         # 파일 쌍별로 병합 작업 수행
         for altitude_file, bms_file in zip(altitude_files, bms_files):
-            # 파일 읽기
-            # 파일 인코딩 감지 및 파일 읽기
-            # def read_file_with_detected_encoding(file_path):
-            #     with open(file_path, 'rb') as f:
-            #         result = chardet.detect(f.read(100000))  # 첫 100,000 바이트를 사용하여 인코딩 감지
-            #     return pd.read_csv(file_path, encoding=result['encoding'])
-
             def read_file_with_detected_encoding(file_path):
                 try:
                     # 파일의 인코딩을 감지하여 데이터를 읽음
