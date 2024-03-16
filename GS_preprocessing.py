@@ -125,6 +125,8 @@ def process_files_combined(file_lists, folder_path, save_path):
         # additional calculations...
         df['Power_IV'] = df['pack_volt'] * df['pack_current']
         if 'altitude' in df.columns:
+            # 'delta altitude' 열 추가
+            df['delta altitude'] = df['altitude'].diff()
             # merge selected columns into a single DataFrame
             data_save = df[['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'altitude', 'pack_current', 'pack_volt', 'Power_IV']].copy()
         else:
@@ -136,7 +138,7 @@ def process_files_combined(file_lists, folder_path, save_path):
         if not device_no.startswith('0'):
             device_no = '0' + device_no
 
-        file_name = f"{device_no}{'-0' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
+        file_name = f"{device_no}{'-' + df['measured_month'].iloc[0][-2:].replace(' ', '')}.csv"
         full_path = os.path.join(save_path, file_name)
 
         data_save.to_csv(full_path, index=False)
