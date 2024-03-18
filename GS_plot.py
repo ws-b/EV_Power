@@ -135,7 +135,8 @@ def plot_power(file_lists, folder_path, Target):
 
             # 두 번째 y축 (오른쪽): 고도 데이터
             ax2 = ax1.twinx()
-            ax2.set_ylabel('Altitude (m)', color='tab:green')  # 오른쪽 y축 레이블
+            ax2.set_ylabel('Altitude (m)', color='tab:green')
+            ax2.set_ylim([-2, 2])
             ax2.plot(t_min, d_altitude, label='Delta Altitude (m)', color='tab:green')
             ax2.tick_params(axis='y', labelcolor='tab:green')
 
@@ -158,7 +159,7 @@ def plot_power(file_lists, folder_path, Target):
 
 def plot_energy(file_lists, folder_path, Target):
     print("Plotting Energy, Put Target : model, data, comparison, altitude, d_altitude")
-    for file in tqdm(file_lists[31:35]):
+    for file in tqdm(file_lists[0:9]):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
