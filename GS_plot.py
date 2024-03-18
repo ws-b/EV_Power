@@ -8,7 +8,7 @@ from scipy.stats import linregress
 
 def plot_power(file_lists, folder_path, Target):
     print("Plotting Power, Put Target : stacked, model, data, comparison, difference, d_altitude")
-    for file in tqdm(file_lists[31:35]):
+    for file in tqdm(file_lists[0:9]):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
