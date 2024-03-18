@@ -77,9 +77,9 @@ def check_trip_conditions(trip):
     distance = v * t_diff
     total_distance = distance.cumsum().iloc[-1]
     time_range = t.iloc[-1] - t.iloc[0]
-    bms_power = trip['Power_IV']
-    bms_power = np.array(bms_power)
-    data_energy = bms_power * t_diff / 3600 / 1000
+    data_power = trip['Power_IV']
+    data_power = np.array(data_power)
+    data_energy = data_power * t_diff / 3600 / 1000
     data_energy_cumulative = data_energy.cumsum().iloc[-1]
 
     # Check if any of the conditions are met for the trip

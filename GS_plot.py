@@ -6,123 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from scipy.stats import linregress
 
-def plot_energy(file_lists, folder_path, Target):
-    print("Plotting Energy, Put Target : model, data, comparison, altitude, d_altitude")
-    for file in tqdm(file_lists[31:35]):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-
-        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds().fillna(0)
-        t_diff = np.array(t_diff.fillna(0))
-        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
-
-        data_power = data['Power_IV']
-        data_power = np.array(data_power)
-        data_energy = data_power * t_diff / 3600 / 1000
-        data_energy_cumulative = data_energy.cumsum()
-
-        model_power = data['Power']
-        model_power = np.array(model_power)
-        model_energy = model_power * t_diff / 3600 / 1000
-        model_energy_cumulative = model_energy.cumsum()
-
-        if Target == 'model':
-            # Plot the comparison graph
-            plt.figure(figsize=(10, 6))  # Set the size of the graph
-            plt.xlabel('Time (minutes)')
-            plt.ylabel('Model Energy (kWh)')
-            plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
-
-            # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
-
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Model Energy')
-            plt.tight_layout()
-            plt.show()
-
-        elif Target == 'data':
-            # Plot the comparison graph
-            plt.figure(figsize=(10, 6))  # Set the size of the graph
-            plt.xlabel('Time (minutes)')
-            plt.ylabel('Data Energy (kWh)')
-            plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
-
-            # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
-
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Data(BMS) Energy')
-            plt.tight_layout()
-            plt.show()
-
-        elif Target == 'comparison':
-            # Plot the comparison graph
-            plt.figure(figsize=(10, 6))  # Set the size of the graph
-            plt.xlabel('Time (minutes)')
-            plt.ylabel('BMS Energy and Model Energy (kWh)')
-            plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
-            plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
-
-            # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
-
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Model Energy vs. BMS Energy')
-            plt.tight_layout()
-            plt.show()
-
-        elif Target == 'altitude' and 'altitude' in data.columns:
-            # 고도 데이터
-            altitude = np.array(data['altitude'])
-
-            # 그래프 그리기
-            fig, ax1 = plt.subplots(figsize=(10, 6))
-
-            # 첫 번째 y축 (왼쪽): 에너지 데이터
-            ax1.set_xlabel('Time (minutes)')
-            ax1.set_ylabel('Energy (kWh)')
-            ax1.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
-            ax1.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
-            ax1.tick_params(axis='y')
-
-            # 두 번째 y축 (오른쪽): 고도 데이터
-            ax2 = ax1.twinx()
-            ax2.set_ylabel('Altitude (m)', color='tab:green')  # 오른쪽 y축 레이블
-            # ax2.set_ylim([0, 2000])
-            ax2.plot(t_min, altitude, label='Altitude (m)', color='tab:green')
-            ax2.tick_params(axis='y', labelcolor='tab:green')
-
-            # 파일과 날짜 추가
-            date = t.iloc[0].strftime('%Y-%m-%d')
-            fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
-            fig.text(0.01, 0.99, 'File: ' + file, verticalalignment='top', color='black', fontsize=12)
-
-            # 범례와 타이틀
-            fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
-            plt.title('Model Energy vs. Data Energy and Altitude')
-
-            # 그래프 출력
-            plt.tight_layout()
-            plt.show()
-
-        else:
-            print("Invalid Target")
-            return
-
 def plot_power(file_lists, folder_path, Target):
     print("Plotting Power, Put Target : stacked, model, data, comparison, difference, d_altitude")
     for file in tqdm(file_lists[31:35]):
@@ -134,11 +17,11 @@ def plot_power(file_lists, folder_path, Target):
         t_diff = np.array(t_diff.fillna(0))
         t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
 
-        data_power = data['Power_IV'] / 1000
-        model_power = data['Power'] / 1000
-        power_diff = (data['Power_IV'] - data['Power']) / 1000
+        data_power = np.array(data['Power_IV']) / 1000
+        model_power = np.array(data['Power']) / 1000
+        power_diff = data_power - model_power
 
-        if Target == 'stacked'
+        if Target == 'stacked':
             A = data['A'] / 1000
             B = data['B'] / 1000
             C = data['C'] / 1000
@@ -273,6 +156,122 @@ def plot_power(file_lists, folder_path, Target):
             print("Invalid Target")
             return
 
+def plot_energy(file_lists, folder_path, Target):
+    print("Plotting Energy, Put Target : model, data, comparison, altitude, d_altitude")
+    for file in tqdm(file_lists[31:35]):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+        data_power = np.array(data['Power_IV'])
+        data_energy = data_power * t_diff / 3600 / 1000
+        data_energy_cumulative = data_energy.cumsum()
+
+        model_power = np.array(data['Power'])
+        model_energy = model_power * t_diff / 3600 / 1000
+        model_energy_cumulative = model_energy.cumsum()
+
+        if Target == 'model':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('Model Energy (kWh)')
+            plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+
+            # Add date and file name
+            date = t.iloc[0].strftime('%Y-%m-%d')
+            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Model Energy')
+            plt.tight_layout()
+            plt.show()
+
+        elif Target == 'data':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('Data Energy (kWh)')
+            plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
+
+            # Add date and file name
+            date = t.iloc[0].strftime('%Y-%m-%d')
+            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Data(BMS) Energy')
+            plt.tight_layout()
+            plt.show()
+
+        elif Target == 'comparison':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('BMS Energy and Model Energy (kWh)')
+            plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+            plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
+
+            # Add date and file name
+            date = t.iloc[0].strftime('%Y-%m-%d')
+            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Model Energy vs. BMS Energy')
+            plt.tight_layout()
+            plt.show()
+
+        elif Target == 'altitude' and 'altitude' in data.columns:
+            # 고도 데이터
+            altitude = np.array(data['altitude'])
+
+            # 그래프 그리기
+            fig, ax1 = plt.subplots(figsize=(10, 6))
+
+            # 첫 번째 y축 (왼쪽): 에너지 데이터
+            ax1.set_xlabel('Time (minutes)')
+            ax1.set_ylabel('Energy (kWh)')
+            ax1.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+            ax1.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            ax1.tick_params(axis='y')
+
+            # 두 번째 y축 (오른쪽): 고도 데이터
+            ax2 = ax1.twinx()
+            ax2.set_ylabel('Altitude (m)', color='tab:green')  # 오른쪽 y축 레이블
+            # ax2.set_ylim([0, 2000])
+            ax2.plot(t_min, altitude, label='Altitude (m)', color='tab:green')
+            ax2.tick_params(axis='y', labelcolor='tab:green')
+
+            # 파일과 날짜 추가
+            date = t.iloc[0].strftime('%Y-%m-%d')
+            fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
+            fig.text(0.01, 0.99, 'File: ' + file, verticalalignment='top', color='black', fontsize=12)
+
+            # 범례와 타이틀
+            fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+            plt.title('Model Energy vs. Data Energy and Altitude')
+
+            # 그래프 출력
+            plt.tight_layout()
+            plt.show()
+
+        else:
+            print("Invalid Target")
+            return
+
+
 def plot_energy_scatter(file_lists, folder_path, Target):
     print('Put Target: model, fitting')
     data_energies = []
@@ -286,13 +285,11 @@ def plot_energy_scatter(file_lists, folder_path, Target):
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
 
-        data_power = data['Power_IV']
-        data_power = np.array(data_power)
+        data_power = np.array(data['Power_IV'])
         data_energy = data_power * t_diff / 3600 / 1000
         data_energies.append(data_energy.cumsum()[-1])
 
-        model_power = data['Power']
-        model_power = np.array(model_power)
+        model_power = np.array(data['Power'])
         model_energy = model_power * t_diff / 3600 / 1000
         mod_energies.append(model_energy.cumsum()[-1])
 
@@ -378,7 +375,34 @@ def plot_energy_scatter(file_lists, folder_path, Target):
         print('Invalid Target')
         return
 
+def plot_power_scatter(file_lists, folder_path):
+    for file in tqdm(file_lists[0:10]):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        d_altitude = np.array(data['delta altitude'])
+        data_power = np.array(data['Power_IV'])
+        model_power = np.array(data['Power'])
+        diff_power = data_power - model_power
+
+        # Plotting for each file
+        plt.figure(figsize=(10, 6))
+        plt.scatter(d_altitude, diff_power, alpha=0.5)  # alpha for transparency
+
+        plt.xlabel('Delta Altitude')
+        plt.xlim(-2, 2)
+        plt.ylabel('Power Difference (Data - Model)')
+        plt.ylim(-40000, 40000)
+        plt.title(f'Delta Altitude vs Power Difference for {file}')
+        plt.grid(True)
+        plt.show()
+
 def plot_energy_dis(file_lists, folder_path, Target):
+    print('Put Target: model, data, fitting')
     dis_mod_energies = []
     dis_data_energies = []
     dis_fitmod_energies = []
@@ -398,13 +422,11 @@ def plot_energy_dis(file_lists, folder_path, Target):
         distance = v * t_diff
         total_distance = distance.cumsum()
 
-        model_power = data['Power']
-        model_power = np.array(model_power)
+        model_power = np.array(data['Power'])
         model_energy = model_power * t_diff / 3600 / 1000
 
-        bms_power = data['Power_IV']
-        bms_power = np.array(bms_power)
-        data_energy = bms_power * t_diff / 3600 / 1000
+        data_power = np.array(data['Power_IV'])
+        data_energy = data_power * t_diff / 3600 / 1000
 
         if 'Power_fit' in data.columns:
             modfit_power = data['Power_fit']
