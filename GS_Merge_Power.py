@@ -18,11 +18,23 @@ class Vehicle:
 
 def select_vehicle(car):
     if car == 1:
-        return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9) # parameters for Ioniq5
-    elif car == 2:
-        return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV
+        return Vehicle()
+    elif car ==2:
+        return Vehicle()
     elif car == 3:
-        return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9)
+        return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9) # parameters for Ioniq5
+    elif car == 4:
+        return Vehicle()
+    elif car == 5:
+        return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV
+    elif car == 6:
+        return Vehicle()
+    elif car == 7:
+        return Vehicle()
+    elif car == 8:
+        return Vehicle()
+    elif car == 9:
+        return Vehicle()
     else:
         print("Invalid choice. Please try again.")
         return None
