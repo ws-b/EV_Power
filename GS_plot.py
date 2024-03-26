@@ -1,14 +1,15 @@
 import os
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from scipy.stats import linregress
+from tqdm import tqdm
 
 def plot_power(file_lists, folder_path, Target):
     print("Plotting Power, Put Target : stacked, model, data, comparison, difference, d_altitude")
-    for file in tqdm(file_lists[0:9]):
+    for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
@@ -159,7 +160,7 @@ def plot_power(file_lists, folder_path, Target):
 
 def plot_energy(file_lists, folder_path, Target):
     print("Plotting Energy, Put Target : model, data, comparison, altitude, d_altitude")
-    for file in tqdm(file_lists[0:9]):
+    for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
@@ -377,7 +378,7 @@ def plot_energy_scatter(file_lists, folder_path, Target):
         return
 
 def plot_power_scatter(file_lists, folder_path):
-    for file in tqdm(file_lists[0:10]):
+    for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 

@@ -8,11 +8,10 @@ def main():
     niroEV = ['01241228149', '01241228151', '01241228153', '01241228154', '01241228155']
     bongo3EV = ['01241228162', '01241228179', '01241248642', '01241248723', '01241248829']
     ionic5 = ['01241227999', '01241228003', '01241228005', '01241228007', '01241228009', '01241228014', '01241228016',
-              '01241228020', '01241228021', '01241228024', '01241228025', '01241228026', '01241228030', '01241228037',
-              '01241228044', '01241228046', '01241228047', '01241248780', '01241248782', '01241248790', '01241248811',
-              '01241248815', '01241248817', '01241248820', '01241248827', '01241364543', '01241364560', '01241364570',
-              '01241364581', '01241592867', '01241592868', '01241592878', '01241592896', '01241592907', '01241597801',
-              '01241597802']
+              '01241228020', '01241228024', '01241228025', '01241228026', '01241228030', '01241228037', '01241228044',
+              '01241228046', '01241228047', '01241248780', '01241248782', '01241248790', '01241248811', '01241248815',
+              '01241248817', '01241248820', '01241248827', '01241364543', '01241364560', '01241364570', '01241364581',
+              '01241592867', '01241592868', '01241592878', '01241592896', '01241592907', '01241597801', '01241597802']
     ionic6 = ['01241248713', '01241592904', '01241597763', '01241597804']
     konaEV = ['01241228102', '01241228122', '01241228123', '01241228156', '01241228197', '01241228203', '01241228204',
               '01241248726', '01241248727', '01241364621']
@@ -24,9 +23,9 @@ def main():
            '01241228106', '01241228107', '01241228114', '01241228124', '01241228132', '01241228134', '01241248679',
            '01241248818', '01241248831', '01241248833', '01241248842', '01241248843', '01241248850', '01241248860',
            '01241248876', '01241248877', '01241248882', '01241248891', '01241248892', '01241248900', '01241248903',
-           '01241248908', '01241248909', '01241248912', '01241248913', '01241248921', '01241248924', '01241248926',
-           '01241248927', '01241248929', '01241248932', '01241248933', '01241248934', '01241321943', '01241321947',
-           '01241364554', '01241364575', '01241364592', '01241364627', '01241364638', '01241364714']
+           '01241248908', '01241248912', '01241248913', '01241248921', '01241248924', '01241248926', '01241248927',
+           '01241248929', '01241248932', '01241248933', '01241248934', '01241321943', '01241321947', '01241364554',
+           '01241364575', '01241364592', '01241364627', '01241364638', '01241364714']
     GV60 = ['01241228108', '01241228130', '01241228131', '01241228136', '01241228137', '01241228138']
 
     # Select car
@@ -139,40 +138,47 @@ def main():
                 print("9: Plotting Energy Comparison Graph")
                 print("10: Plotting Altitude and Energy Graph")
                 print("11: Quitting the program.")
-                plot = int(input("Enter number you want to run: "))
-                if plot == 1:
-                    plot_power(file_lists, folder_path, 'stacked')
-                    break
-                elif plot == 2:
-                    plot_power(file_lists, folder_path, 'model')
-                    break
-                elif plot == 3:
-                    plot_power(file_lists, folder_path, 'data')
-                    break
-                elif plot == 4:
-                    plot_power(file_lists, folder_path, 'comparison')
-                    break
-                elif plot == 5:
-                    plot_power(file_lists, folder_path, 'difference')
-                    break
-                elif plot == 6:
-                    plot_power(file_lists, folder_path, 'd_altitude')
-                    break
-                elif plot == 7:
-                    plot_energy(file_lists, folder_path, 'model')
-                    break
-                elif plot == 8:
-                    plot_energy(file_lists, folder_path, 'data')
-                    break
-                elif plot == 9:
-                    plot_energy(file_lists, folder_path, 'comparison')
-                    break
-                elif plot == 10:
-                    plot_energy(file_lists, folder_path, 'altitude')
-                    break
-                elif plot == 11:
-                    print("Quitting the program.")
-                    return
+
+                selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
+                selections_list = selections.split(',')
+
+                for selection in selections_list:
+                    plot = int(selection.strip())
+                    if plot == 1:
+                        plot_power(file_lists, folder_path, 'stacked')
+                        break
+                    elif plot == 2:
+                        plot_power(file_lists, folder_path, 'model')
+                        break
+                    elif plot == 3:
+                        plot_power(file_lists, folder_path, 'data')
+                        break
+                    elif plot == 4:
+                        plot_power(file_lists, folder_path, 'comparison')
+                        break
+                    elif plot == 5:
+                        plot_power(file_lists, folder_path, 'difference')
+                        break
+                    elif plot == 6:
+                        plot_power(file_lists, folder_path, 'd_altitude')
+                        break
+                    elif plot == 7:
+                        plot_energy(file_lists, folder_path, 'model')
+                        break
+                    elif plot == 8:
+                        plot_energy(file_lists, folder_path, 'data')
+                        break
+                    elif plot == 9:
+                        plot_energy(file_lists, folder_path, 'comparison')
+                        break
+                    elif plot == 10:
+                        plot_energy(file_lists, folder_path, 'altitude')
+                        break
+                    elif plot == 11:
+                        print("Quitting the program.")
+                        return
+                    else:
+                        print(f"Invalid choice: {plot}. Please try again.")
             break
         elif choice == 4:
             while True:
@@ -184,30 +190,30 @@ def main():
                 print("6: Plotting Data Energy Distribution Graph")
                 print("7: Plotting Fitting Energy Distribution Graph")
                 print("10: Quitting the program.")
-                plot = int(input("Enter number you want to run: "))
-                if plot == 1:
-                    plot_energy_scatter(file_lists, folder_path, 'model')
-                    break
-                elif plot == 2:
-                    plot_energy_scatter(file_lists, folder_path, 'fitting')
-                    break
-                elif plot == 3:
-                    plot_power_scatter(file_lists, folder_path)
-                    break
-                elif plot == 4:
-                    break
-                elif plot == 5:
-                    plot_energy_dis(file_lists, folder_path, 'model')
-                    break
-                elif plot == 6:
-                    plot_energy_dis(file_lists, folder_path, 'data')
-                    break
-                elif plot == 7:
-                    plot_energy_dis(file_lists, folder_path, 'fitting')
-                    break
-                elif plot == 10:
-                    print("Quitting the program.")
-                    return
+
+                selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
+                selections_list = selections.split(',')
+                for selection in selections_list:
+                    plot = int(selection.strip())
+                    if plot == 1:
+                        plot_energy_scatter(file_lists, folder_path, 'model')
+                    elif plot == 2:
+                        plot_energy_scatter(file_lists, folder_path, 'fitting')
+                    elif plot == 3:
+                        plot_power_scatter(file_lists, folder_path)
+                    elif plot == 4:
+                        break
+                    elif plot == 5:
+                        plot_energy_dis(file_lists, folder_path, 'model')
+                    elif plot == 6:
+                        plot_energy_dis(file_lists, folder_path, 'data')
+                    elif plot == 7:
+                        plot_energy_dis(file_lists, folder_path, 'fitting')
+                    elif plot == 10:
+                        print("Quitting the program.")
+                        return
+                    else:
+                        print(f"Invalid choice: {plot}. Please try again.")
             break
         elif choice == 6:
             print("Quitting the program.")
