@@ -140,7 +140,6 @@ def process_bms_files(start_path):
                             device_no = parts[1]  # 단말기 번호
                             date_parts = parts[2].split('-')
                             year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
-                            print(device_no, year_month)
                     else:
                         continue
 
@@ -149,7 +148,6 @@ def process_bms_files(start_path):
                         device_no = parts[1]  # 단말기 번호
                         date_parts = parts[2].split('-')
                         year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
-                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
@@ -192,7 +190,6 @@ def process_gps_files(start_path):
                         device_no = parts[1]  # 단말기 번호
                         date_parts = parts[2].split('-')
                         year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
-                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
