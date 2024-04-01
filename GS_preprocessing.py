@@ -11,28 +11,6 @@ def get_file_list(folder_path, file_extension='.csv'):
     file_lists.sort()
     return file_lists
 
-def extract_info_from_filename(file_name):
-    """파일명에서 단말기 번호와 연월 추출"""
-    try:
-        parts = file_name.split('_')
-        device_no = parts[2]  # 단말기 번호
-        date_parts = parts[3].split('-')
-        year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
-        return device_no, year_month
-    except IndexError:
-        return None, None
-
-def extract_info_from_bms_altitude(file_name):
-    """파일명에서 단말기 번호와 연월 추출"""
-    try:
-        parts = file_name.split('_')
-        device_no = parts[3]  # 단말기 번호
-        date_parts = parts[4].split('-')
-        year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
-        return device_no, year_month
-    except IndexError:
-        return None, None
-
 def read_file_with_detected_encoding(file_path):
     try:
         # 파일의 인코딩을 감지하여 데이터를 읽음
@@ -144,7 +122,7 @@ def process_bms_files(start_path):
     with tqdm(total=total_folders, desc="진행 상황", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                filtered_files = [file for file in files if file.startswith('bms') and file.endswith('.csv') and 'altitude' not in file]
+                filtered_files = [file for file in files if 'bms' in file and file.endswith('.csv') and 'altitude' not in file]
                 filtered_files.sort()
                 dfs = []
                 device_no, year_month = None, None
@@ -152,24 +130,26 @@ def process_bms_files(start_path):
                     file_path = os.path.join(root, file)
                     df = read_file_with_detected_encoding(file_path)
 
-
-
                     if df is not None:  # df가 None이 아닐 때만 처리
-                        # 열의 컬럼명에 'Unnamed'가 포함되어 있는지 확인
-                        if 'Unnamed' in df.columns:
-                            df = df.drop(columns=[col for col in df.columns if 'Unnamed' in col])
-
-                        # 첫 행을 제외하고 역순으로 정렬
+                        df = df.loc[:, ~df.columns.str.contains('Unnamed')]  # Unnamed 컬럼 제거
                         df = df.iloc[1:][::-1]
                         dfs.append(df)
 
                         if device_no is None or year_month is None:
-                            device_no, year_month = extract_info_from_filename(file)
+                            parts = file.split('_')
+                            device_no = parts[1]  # 단말기 번호
+                            date_parts = parts[2].split('-')
+                            year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                            print(device_no, year_month)
                     else:
                         continue
 
                     if device_no is None or year_month is None:
-                        device_no, year_month = extract_info_from_filename(file)
+                        parts = file.split('_')
+                        device_no = parts[1]  # 단말기 번호
+                        date_parts = parts[2].split('-')
+                        year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
@@ -188,7 +168,7 @@ def process_gps_files(start_path):
     with tqdm(total=total_folders, desc="진행 상황", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                filtered_files = [file for file in files if file.startswith('altitude') and file.endswith('.csv') and 'bms' not in file]
+                filtered_files = [file for file in files if 'gps' in file and file.endswith('.csv') and 'bms' not in file]
                 filtered_files.sort()  # 파일 이름으로 정렬
                 dfs = []  # 각 파일의 DataFrame을 저장할 리스트
                 device_no, year_month = None, None
@@ -200,7 +180,7 @@ def process_gps_files(start_path):
                         df = pd.read_csv(file_path, header=0, encoding='cp949')
 
                     # 'Unnamed'으로 시작하는 컬럼과 컬럼명이 비어있는 컬럼 제거
-                    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+                    df = df.loc[:, ~df.columns.str.contains('Unnamed')]
                     df = df.loc[:, df.columns != '']  # 빈 컬럼명 제거
 
                     # 첫 행을 제외하고 역순으로 정렬
@@ -208,7 +188,11 @@ def process_gps_files(start_path):
                     dfs.append(df)
 
                     if device_no is None or year_month is None:
-                        device_no, year_month = extract_info_from_filename(file)
+                        parts = file.split('_')
+                        device_no = parts[1]  # 단말기 번호
+                        date_parts = parts[2].split('-')
+                        year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
@@ -303,22 +287,26 @@ def process_bms_altitude_files(start_path):
                     df = read_file_with_detected_encoding(file_path)
 
                     if df is not None:  # df가 None이 아닐 때만 처리
-                        # 열의 컬럼명에 'Unnamed'가 포함되어 있는지 확인
-                        if 'Unnamed' in df.columns:
-                            df = df.drop(columns=[col for col in df.columns if 'Unnamed' in col])
-
-                        # 첫 행을 제외하고 역순으로 정렬
+                        df = df.loc[:, ~df.columns.str.contains('Unnamed')]  # Unnamed 컬럼 제거
                         df = df.iloc[1:][::-1]
                         dfs.append(df)
 
                         if device_no is None or year_month is None:
-                            device_no, year_month = extract_info_from_bms_altitude(file)
+                            parts = file.split('_')
+                            device_no = parts[2]  # 단말기 번호
+                            date_parts = parts[3].split('-')
+                            year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                            print(device_no, year_month)
                     else:
                         # df가 None인 경우, 즉 파일 읽기에서 오류가 발생한 경우, 해당 파일은 건너뜀
                         continue
 
                     if device_no is None or year_month is None:
-                        device_no, year_month = extract_info_from_bms_altitude(file)
+                        parts = file.split('_')
+                        device_no = parts[2]  # 단말기 번호
+                        date_parts = parts[3].split('-')
+                        year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
