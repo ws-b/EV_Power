@@ -42,16 +42,16 @@ def pre_process():
             if data_choice.isdigit() and int(data_choice) in [1, 2, 3, 4]:
                 data_choice = int(data_choice)
                 if data_choice == 1:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
+                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
                     process_bms_files(start_path)
                 elif data_choice == 2:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
+                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
                     process_gps_files(start_path)
                 elif data_choice == 3:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
+                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
                     process_bms_altitude_files(start_path)
                 elif data_choice == 4:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
+                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
                     merge_bms_gps(start_path)
             else:
                 print("Invalid choice for data processing.")

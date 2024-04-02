@@ -1,6 +1,7 @@
 import os
 import shutil
 import glob
+from datetime import datetime
 
 # 원본 폴더 경로 설정
 source_dir = "/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data/"
@@ -45,6 +46,18 @@ for vehicle, device_ids in device_ids_by_vehicle.items():
         patterns = [f"bms_{device_id}_*.csv", f"bms_altitude_{device_id}_*.csv"]
         for pattern in patterns:
             for filename in glob.glob(os.path.join(source_dir, "**", pattern), recursive=True):
+                # 파일 이름에서 날짜 형식을 검사 (년-월-일.csv 형식을 제외)
+                try:
+                    # 파일명에서 날짜 부분만 추출
+                    date_str = os.path.basename(filename).split('_')[-1].split('.')[0]
+                    # 날짜 형식 확인
+                    datetime.strptime(date_str, '%Y-%m-%d')
+                    # 형식에 맞으면 이 파일은 건너뜀
+                    continue
+                except ValueError:
+                    # 날짜 형식이 아니면 파일 이동 진행
+                    pass
+
                 # 대상 폴더 경로 생성
                 target_dir = f"/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/{vehicle}/"
                 os.makedirs(target_dir, exist_ok=True)  # 대상 폴더가 없다면 생성
