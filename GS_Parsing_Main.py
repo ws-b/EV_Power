@@ -42,16 +42,16 @@ def pre_process():
             if data_choice.isdigit() and int(data_choice) in [1, 2, 3, 4]:
                 data_choice = int(data_choice)
                 if data_choice == 1:
-                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
+                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
                     process_bms_files(start_path)
                 elif data_choice == 2:
-                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
+                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
                     process_gps_files(start_path)
                 elif data_choice == 3:
-                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
+                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
                     process_bms_altitude_files(start_path)
                 elif data_choice == 4:
-                    start_path = '/Users/wsong/Downloads/testcase/bms_gps_data'
+                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/bms_gps_data'
                     merge_bms_gps(start_path)
             else:
                 print("Invalid choice for data processing.")
@@ -62,9 +62,9 @@ def pre_process():
                 save_path = os.path.normpath('')
             elif platform.system() == "Darwin":
                 folder_path = os.path.normpath(
-                    '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/processed')
+                    '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/Merged')
                 save_path = os.path.normpath(
-                    '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/speed-acc')
+                    '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/Modified')
             else:
                 print("Unknown system.")
                 return
@@ -79,9 +79,9 @@ def pre_process():
                 save_path = os.path.normpath('')
             elif platform.system() == "Darwin":
                 folder_path = os.path.normpath(
-                    '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/speed-acc')
+                    '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/Modified')
                 save_path = os.path.normpath(
-                    '/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터/trip_by_trip')
+                    '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/TripByTrip')
             else:
                 print("Unknown system.")
                 return
