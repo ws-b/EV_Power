@@ -116,7 +116,7 @@ def process_device_folders(source_paths, destination_root):
                             shutil.move(os.path.join(device_number_path, file), destination_path)
                             print(f'Moved {file} to {destination_path}')
 
-def process_bms_files(start_path):
+def process_bms_files(start_path, save_path):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="진행 상황", unit="folder") as pbar:
@@ -148,19 +148,72 @@ def process_bms_files(start_path):
                         device_no = parts[1]  # 단말기 번호
                         date_parts = parts[2].split('-')
                         year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
-                    output_file_name = f'bms_{device_no}_{year_month}.csv'
-                    # 현재 폴더의 상위 폴더에 파일 저장
-                    parent_folder = os.path.dirname(root)
-                    combined_df.to_csv(os.path.join(parent_folder, output_file_name), index=False)
 
+                    # calculate time and speed changes
+                    combined_df['time'] = combined_df['time'].str.strip()
+                    combined_df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
+                    t = pd.to_datetime(combined_df['time'], format='%y-%m-%d %H:%M:%S')
+                    t_diff = t.diff().dt.total_seconds()
+                    combined_df['time_diff'] = t_diff
+                    combined_df['speed'] = combined_df[
+                                               'emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
+
+                    # Calculate speed difference using central differentiation
+                    combined_df['spd_diff'] = combined_df['speed'].rolling(window=3, center=True).apply(
+                        lambda x: x[2] - x[0],
+                        raw=True) / 2
+
+                    # calculate acceleration using the speed difference and time difference
+                    combined_df['acceleration'] = combined_df['spd_diff'] / combined_df['time_diff']
+
+                    # Handling edge cases for acceleration (first and last elements)
+                    combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
+                                                        combined_df.at[1, 'time_diff']
+                    combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
+                                                                                len(combined_df) - 1, 'speed'] -
+                                                                            combined_df.at[
+                                                                                len(combined_df) - 2, 'speed']) / \
+                                                                           combined_df.at[
+                                                                               len(combined_df) - 1, 'time_diff']
+
+                    # replace NaN values with 0 or fill with desired values
+                    combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
+
+                    # additional calculations...
+                    combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
+                    if 'altitude' in combined_df.columns:
+                        # 'delta altitude' 열 추가
+                        combined_df['delta altitude'] = combined_df['altitude'].diff()
+                        # merge selected columns into a single DataFrame
+                        data_save = combined_df[
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
+                             'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
+                    else:
+                        # merge selected columns into a single DataFrame
+                        data_save = combined_df[
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_volt',
+                             'pack_current', 'Power_IV']].copy()
+
+                    # 저장 경로 생성
+                    parts = root.split(os.sep)  # os.sep은 시스템에 따라 적절한 경로 구분자를 사용합니다.
+                    vehicle_type = parts[-3]  # 차종 정보
+                    device_no = parts[-2].split('_')[0]  # 단말기 번호
+
+                    save_folder = os.path.join(save_path, vehicle_type)
+                    if not os.path.exists(save_folder):
+                        os.makedirs(save_folder)  # 해당 경로가 없다면 생성
+
+                    output_file_name = f'bms_{device_no}_{year_month}.csv'
+                    data_save.to_csv(os.path.join(save_folder, output_file_name), index=False)
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
 
-def process_gps_files(start_path):
+def process_gps_files(start_path, save_path):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="진행 상황", unit="folder") as pbar:
@@ -190,14 +243,22 @@ def process_gps_files(start_path):
                         device_no = parts[1]  # 단말기 번호
                         date_parts = parts[2].split('-')
                         year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
+                        print(device_no, year_month)
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
-                    output_file_name = f'altitude_{device_no}_{year_month}.csv'
-                    # 현재 폴더의 상위 폴더에 파일 저장
-                    parent_folder = os.path.dirname(root)
-                    combined_df.to_csv(os.path.join(parent_folder, output_file_name), index=False)
 
+                    # 저장 경로 생성
+                    parts = root.split(os.sep)  # os.sep은 시스템에 따라 적절한 경로 구분자를 사용합니다.
+                    vehicle_type = parts[-3]  # 차종 정보
+                    device_no = parts[-2].split('_')[0]  # 단말기 번호
+
+                    save_folder = os.path.join(save_path, vehicle_type)
+                    if not os.path.exists(save_folder):
+                        os.makedirs(save_folder)  # 해당 경로가 없다면 생성
+
+                    output_file_name = f'gps_{device_no}_{year_month}.csv'
+                    combined_df.to_csv(os.path.join(save_folder, output_file_name), index=False)
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
@@ -269,7 +330,7 @@ def merge_bms_gps(start_path):
 
     print("Original files deleted.")
 
-def process_bms_altitude_files(start_path):
+def process_bms_altitude_files(start_path, save_path):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="진행 상황", unit="folder") as pbar:
@@ -307,11 +368,62 @@ def process_bms_altitude_files(start_path):
 
                 if dfs and device_no and year_month:
                     combined_df = pd.concat(dfs, ignore_index=True)
-                    output_file_name = f'bms_altitude_{device_no}_{year_month}.csv'
-                    # 현재 폴더의 상위 폴더에 파일 저장
-                    parent_folder = os.path.dirname(root)
-                    combined_df.to_csv(os.path.join(parent_folder, output_file_name), index=False)
 
+                    # calculate time and speed changes
+                    combined_df['time'] = combined_df['time'].str.strip()
+                    combined_df['time'] = pd.to_datetime(df['time'], format='%y-%m-%d %H:%M:%S')
+                    t = pd.to_datetime(combined_df['time'], format='%y-%m-%d %H:%M:%S')
+                    t_diff = t.diff().dt.total_seconds()
+                    combined_df['time_diff'] = t_diff
+                    combined_df['speed'] = combined_df[
+                                               'emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
+
+                    # Calculate speed difference using central differentiation
+                    combined_df['spd_diff'] = combined_df['speed'].rolling(window=3, center=True).apply(
+                        lambda x: x[2] - x[0], raw=True) / 2
+
+                    # calculate acceleration using the speed difference and time difference
+                    combined_df['acceleration'] = combined_df['spd_diff'] / combined_df['time_diff']
+
+                    # Handling edge cases for acceleration (first and last elements)
+                    combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
+                                                        combined_df.at[1, 'time_diff']
+                    combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
+                                                                                len(combined_df) - 1, 'speed'] -
+                                                                            combined_df.at[
+                                                                                len(combined_df) - 2, 'speed']) / \
+                                                                           combined_df.at[
+                                                                               len(combined_df) - 1, 'time_diff']
+
+                    # replace NaN values with 0 or fill with desired values
+                    combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
+
+                    # additional calculations...
+                    combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
+                    if 'altitude' in combined_df.columns:
+                        # 'delta altitude' 열 추가
+                        combined_df['delta altitude'] = combined_df['altitude'].diff()
+                        # merge selected columns into a single DataFrame
+                        data_save = combined_df[
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
+                             'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
+                    else:
+                        # merge selected columns into a single DataFrame
+                        data_save = combined_df[
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_volt',
+                             'pack_current', 'Power_IV']].copy()
+
+                    # 저장 경로 생성
+                    parts = root.split(os.sep)  # os.sep은 시스템에 따라 적절한 경로 구분자를 사용합니다.
+                    vehicle_type = parts[-3]  # 차종 정보
+                    device_no = parts[-2].split('_')[0]  # 단말기 번호
+
+                    save_folder = os.path.join(save_path, vehicle_type)
+                    if not os.path.exists(save_folder):
+                        os.makedirs(save_folder)  # 해당 경로가 없다면 생성
+
+                    output_file_name = f'bms_altitude_{device_no}_{year_month}.csv'
+                    data_save.to_csv(os.path.join(save_folder, output_file_name), index=False)
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
@@ -404,9 +516,6 @@ def process_files_combined(file_lists, folder_path, save_path):
 
         # Load CSV file into a pandas DataFrame
         df = pd.read_csv(file_path, dtype={'device_no': str, 'measured_month': str})
-
-        # # reverse the DataFrame based on the index
-        # df = df.iloc[::-1].reset_index(drop=True)  # Reset index after reversing to maintain order
 
         # calculate time and speed changes
         df['time'] = df['time'].str.strip()
