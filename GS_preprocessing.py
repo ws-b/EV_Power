@@ -50,7 +50,7 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f]
+                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f and '01241228107' in f]
                 filtered_files.sort()
                 dfs = []
                 device_no, year_month = None, None
@@ -66,8 +66,8 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                             parts = file_path.split(os.sep)
                             file_name = parts[-1]
                             name_parts = file_name.split('_')
-                            device_no = name_parts[2]
-                            date_parts = name_parts[3].split('-')
+                            device_no = name_parts[1]
+                            date_parts = name_parts[2].split('-')
                             year_month = '-'.join(date_parts[:2])
                     else:
                         continue
@@ -290,8 +290,8 @@ def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
                             parts = file_path.split(os.sep)
                             file_name = parts[-1]
                             name_parts = file_name.split('_')
-                            device_no = name_parts[3]
-                            date_parts = name_parts[4].split('-')
+                            device_no = name_parts[2]
+                            date_parts = name_parts[3].split('-')
                             year_month = '-'.join(date_parts[:2])
                     else:
                         continue

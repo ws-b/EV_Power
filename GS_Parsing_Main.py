@@ -70,16 +70,16 @@ def pre_process():
             if data_choice.isdigit() and int(data_choice) in [1, 2, 3, 4]:
                 data_choice = int(data_choice)
                 if data_choice == 1:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/GSmbiz'
-                    save_path = '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/Merged'
+                    start_path = '/Users/wsong/Documents/삼성미래과제/Data/GSmbiz'
+                    save_path = '/Users/wsong/Documents/삼성미래과제/Processed_data/Merged'
                     process_bms_files(start_path, save_path, device_vehicle_mapping)
                 elif data_choice == 2:
                     start_path = '/Users/wsong/Downloads/Data/GSmbiz'
                     save_path = '/Users/wsong/Downloads/processed_data/Merged'
                     process_gps_files(start_path, save_path)
                 elif data_choice == 3:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/GSmbiz'
-                    save_path = '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/Merged'
+                    start_path = '/Users/wsong/Documents/삼성미래과제/Data/GSmbiz'
+                    save_path = '/Users/wsong/Documents/삼성미래과제/Processed_data/Merged'
                     process_bms_altitude_files(start_path, save_path, device_vehicle_mapping)
                 elif data_choice == 4:
                     start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/GSmbiz'
@@ -94,9 +94,9 @@ def pre_process():
                 save_path = os.path.normpath('')
             elif platform.system() == "Darwin":
                 start_path = os.path.normpath(
-                    '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/Merged')
+                    '/Users/wsong/Documents/삼성미래과제/Processed_data/Merged')
                 save_path = os.path.normpath(
-                    '/Volumes/Data/SamsungSTF/Processed_Data/GSmbiz/TripByTrip')
+                    '/Users/wsong/Documents/삼성미래과제/Processed_data/TripByTrip')
             else:
                 print("Unknown system.")
                 return
