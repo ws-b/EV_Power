@@ -18,23 +18,23 @@ class Vehicle:
 
 def select_vehicle(car):
     if car == 1:
-        return Vehicle()
+        return Vehicle(1928, 0, 32.717, -0.19110, 0.023073, 250, 350, 0, 0.9)
     elif car ==2:
-        return Vehicle()
+        print("Bongo3EV Cannot calculate power consumption. Please select another vehicle.")
+        return None
     elif car == 3:
         return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9) # parameters for Ioniq5
     elif car == 4:
-        return Vehicle()
+        return Vehicle(2041.168, 0, 23.958, 0.15007, 0.015929, 250, 350, 0, 0.9) # parameters for Ionic6
     elif car == 5:
         return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV
     elif car == 6:
-        return Vehicle()
+        print("Porter2EV Cannot calculate power consumption. Please select another vehicle.")
+        return None
     elif car == 7:
-        return Vehicle()
+        return Vehicle(2154.564, 0, 36.158, 0.29099, 0.019825, 250, 350, 0 , 0.9) # parameters for EV6
     elif car == 8:
-        return Vehicle()
-    elif car == 9:
-        return Vehicle()
+        return Vehicle(2154.564, 0, 23.290, 0.23788, 0.019822, 250, 350, 0, 0.9) # parameters for GV60
     else:
         print("Invalid choice. Please try again.")
         return None
@@ -67,11 +67,15 @@ def process_files_power(file_lists, folder_path, EV):
 
         for i in range(len(a)):
             if EV.re_brake == 1:
+                if abs(a[i]) < 0.001:  # Threshold for acceleration to avoid division by zero
+                    exp_term = np.exp(0.0411 / 0.001)  # Use the threshold value instead of actual acceleration
+                else:
+                    exp_term = np.exp(0.0411 / abs(a[i]))
+
                 if a[i] >= 0:
                     D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
                 else:
-                    D.append((((1 + inertia) * (EV.mass + EV.load)  * a[i] * v[i] / np.exp(0.0411 / abs(a[i]))))*EV.eff)
-                    #D.append((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]* EV.eff)
+                    D.append((((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i] / exp_term)) * EV.eff)
             else:
                 if a[i] >= 0:
                     D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)

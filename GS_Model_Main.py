@@ -49,45 +49,51 @@ def main():
     if platform.system() == "Windows":
         folder_path = os.path.normpath('')
     elif platform.system() == "Darwin":
-        folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/한국에너지공과대학교_샘플데이터')
+        folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/Processed_data')
     else:
         print("Unknown system.")
         return
-    folder_path = os.path.join(folder_path, 'trip_by_trip')
+    folder_path = os.path.join(folder_path, 'TripByTrip')
     if car == 1:  # niroEV
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(niro_id in file for niro_id in niroEV)]
+        file_lists = [file for file in all_file_lists if any(niro_id in file for niro_id in NiroEV)]
+        print("YOUR CHOICE IS NiroEV")
     elif car == 2:  # bongo3EV
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(bongo3_id in file for bongo3_id in bongo3EV)]
+        file_lists = [file for file in all_file_lists if any(bongo3_id in file for bongo3_id in Bongo3EV)]
+        print("YOUR CHOICE IS Bongo3EV")
     elif car == 3:  # ionic5
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(ionic5_id in file for ionic5_id in ionic5)]
+        file_lists = [file for file in all_file_lists if any(ionic5_id in file for ionic5_id in Ionic5)]
+        print("YOUR CHOICE IS Ionic5")
     elif car == 4: #ionic6
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(ionic6_id in file for ionic6_id in ionic6)]
+        file_lists = [file for file in all_file_lists if any(ionic6_id in file for ionic6_id in Ionic6)]
+        print("YOUR CHOICE IS Ionic6")
     elif car == 5: # konaEV
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(kona_id in file for kona_id in konaEV)]
+        file_lists = [file for file in all_file_lists if any(kona_id in file for kona_id in KonaEV)]
+        print("YOUR CHOICE IS KonaEV")
     elif car == 6: # porter2EV
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(porter2_id in file for porter2_id in porter2EV)]
+        file_lists = [file for file in all_file_lists if any(porter2_id in file for porter2_id in Porter2EV)]
+        print("YOUR CHOICE IS Porter2EV")
     elif car == 7: # EV6
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
         file_lists = [file for file in all_file_lists if any(ev6_id in file for ev6_id in EV6)]
+        print("YOUR CHOICE IS EV6")
     elif car == 8: # GV60
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
         file_lists = [file for file in all_file_lists if any(gv60_id in file for gv60_id in GV60)]
-    elif car == 9:
-        return
+        print("YOUR CHOICE IS GV60")
     elif car == 10:
         print("Quitting the program.")
         return
@@ -98,7 +104,7 @@ def main():
 
     while True:
         print("1: Calculate Power(W) using Model & Filtering Data")
-        print("2: Fitting Model")
+        print("2: ")
         print("3: Plotting Graph (Power & Energy)")
         print("4: Plotting Graph (Scatter, Energy Distribution)")
         print("6: Quitting the program.")
@@ -106,31 +112,6 @@ def main():
 
         if choice == 1:
             process_files_power(file_lists, folder_path, EV)
-            break
-        elif choice == 2:
-            while True:
-                print("1: Fitting Model")
-                print("2: Plotting Energy Distribution")
-                print("3: Plotting Energy/Power Comparison Graph")
-                print("4: Plotting Scatter Graph")
-                print("5: Plotting contour Graph ")
-                print("6: Plotting ")
-                print("7: Plotting ")
-                print("8: Plotting ")
-                print("9: Quitting the program.")
-                choice = int(input("Enter number you want to run: "))
-
-                if choice == 1:
-                    fitting(file_lists, folder_path)
-                    break
-                elif choice == 2:
-                    break
-                elif choice == 9:
-                    print("Quitting the program.")
-                    return
-                else:
-                    print("Invalid choice. Please try again.")
-
             break
         elif choice == 3:
             while True:

@@ -509,9 +509,9 @@ def plot_energy_dis(file_lists, folder_path, Target):
 
         # set x-axis range (from 0 to 25)
         plt.xlim(0, 25)
-        plt.xlabel('Total Distance / Total Model Energy (km/kWh)')
+        plt.xlabel('Total Distance / Total Data Energy (km/kWh)')
         plt.ylabel('Number of trips')
-        plt.title('Total Distance / Total Model Energy Distribution')
+        plt.title('Total Distance / Total Data Energy Distribution')
         plt.grid(False)
         plt.show()
 
