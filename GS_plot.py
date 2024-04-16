@@ -21,7 +21,7 @@ def plot_power(file_lists, folder_path, Target):
         data_power = np.array(data['Power_IV']) / 1000
         model_power = np.array(data['Power']) / 1000
         power_diff = data_power - model_power
-
+        
         if Target == 'stacked':
             A = data['A'] / 1000
             B = data['B'] / 1000
@@ -172,10 +172,13 @@ def plot_energy(file_lists, folder_path, Target):
         data_power = np.array(data['Power_IV'])
         data_energy = data_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
-
-        model_power = np.array(data['Power'])
-        model_energy = model_power * t_diff / 3600 / 1000
-        model_energy_cumulative = model_energy.cumsum()
+        
+        if 'Power' in data.columns:
+            model_power = np.array(data['Power'])
+            model_energy = model_power * t_diff / 3600 / 1000
+            model_energy_cumulative = model_energy.cumsum()
+        else:
+            pass
 
         if Target == 'model':
             # Plot the comparison graph
@@ -291,9 +294,12 @@ def plot_energy_scatter(file_lists, folder_path, Target):
         data_energy = data_power * t_diff / 3600 / 1000
         data_energies.append(data_energy.cumsum()[-1])
 
-        model_power = np.array(data['Power'])
-        model_energy = model_power * t_diff / 3600 / 1000
-        mod_energies.append(model_energy.cumsum()[-1])
+        if 'Power' in data.columns:
+            model_power = np.array(data['Power'])
+            model_energy = model_power * t_diff / 3600 / 1000
+            mod_energies.append(model_energy.cumsum()[-1])
+        else:
+            pass
 
     if Target == 'model':
         # plot the graph
@@ -423,9 +429,12 @@ def plot_energy_dis(file_lists, folder_path, Target):
 
         distance = v * t_diff
         total_distance = distance.cumsum()
-
-        model_power = np.array(data['Power'])
-        model_energy = model_power * t_diff / 3600 / 1000
+        
+        if 'Power' in data.columns:
+            model_power = np.array(data['Power'])
+            model_energy = model_power * t_diff / 3600 / 1000
+        else:
+            pass
 
         data_power = np.array(data['Power_IV'])
         data_energy = data_power * t_diff / 3600 / 1000
@@ -441,13 +450,11 @@ def plot_energy_dis(file_lists, folder_path, Target):
             pass
 
         # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-        dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[
-                                                                                            -1] != 0 else 0
-        dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[
-                                                                                            -1] != 0 else 0
+        if 'Power' in data.columns:
+            dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[-1] != 0 else 0
+            dis_mod_energies.append(dis_mod_energy)
 
-        # collect all distance_per_total_energy values for all files
-        dis_mod_energies.append(dis_mod_energy)
+        dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[-1] != 0 else 0
         dis_data_energies.append(dis_data_energy)
 
         # collect total distances for each file
