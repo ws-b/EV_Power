@@ -50,7 +50,7 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f and '01241228107' in f]
+                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f]
                 filtered_files.sort()
                 dfs = []
                 device_no, year_month = None, None
@@ -59,7 +59,8 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                     df = read_file_with_detected_encoding(file_path)
                     if df is not None:
                         df = df.loc[:, ~df.columns.str.contains('Unnamed')]
-                        df = df.iloc[::-1].reset_index(drop=True)  # 행 순서를 역순으로 뒤집고 인덱스를 리셋
+                        df = df.drop_duplicates(subset='time')
+                        df = df.iloc[::-1].reset_index(drop=True)
                         dfs.append(df)
 
                         if device_no is None or year_month is None:
@@ -283,6 +284,7 @@ def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
                     df = read_file_with_detected_encoding(file_path)
                     if df is not None:
                         df = df.loc[:, ~df.columns.str.contains('Unnamed')]
+                        df = df.drop_duplicates(subset='time')
                         df = df.iloc[::-1].reset_index(drop=True)  # 행 순서를 역순으로 뒤집고 인덱스를 리셋
                         dfs.append(df)
 
