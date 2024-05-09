@@ -90,8 +90,8 @@ def pre_process():
 
         elif choice == 3:
             if platform.system() == "Windows":
-                start_path = os.path.normpath('')
-                save_path = os.path.normpath('')
+                start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
+                save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip')
             elif platform.system() == "Darwin":
                 start_path = os.path.normpath(
                     '/Users/wsong/Documents/삼성미래과제/Processed_data/Merged')

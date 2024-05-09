@@ -429,6 +429,7 @@ def process_files_trip_by_trip(file_lists, start_path, save_path):
                             else:
                                 filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
                             # Save to file
+                            os.makedirs(save_path, exist_ok=True)
                             trip.to_csv(os.path.join(save_path, filename), index=False)
                             trip_counter += 1
 
@@ -444,6 +445,7 @@ def process_files_trip_by_trip(file_lists, start_path, save_path):
                                 filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
                             else:
                                 filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
+                            os.makedirs(save_path, exist_ok=True)
                             trip.to_csv(os.path.join(save_path, filename), index=False)
     print("Done")
 
