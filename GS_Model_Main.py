@@ -3,7 +3,6 @@ import platform
 from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
-from GS_Fitting import fitting
 def main():
     NiroEV = ['01241228149', '01241228151', '01241228153', '01241228154', '01241228155']
     Bongo3EV = ['01241228162', '01241228179', '01241248642', '01241248723', '01241248829']
@@ -47,7 +46,7 @@ def main():
     print("10: Quitting the program.")
     car = int(input("Select Car you want to calculate: "))
     if platform.system() == "Windows":
-        folder_path = os.path.normpath('')
+        folder_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data')
     elif platform.system() == "Darwin":
         folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/Processed_data')
     else:
