@@ -5,10 +5,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from xgboost import XGBRegressor
+import xgboost as xgb
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.preprocessing import StandardScaler
+"""
 def load_and_split_data(base_dir, vehicle_dict, test_ratio=0.2):
     train_files = []
     test_files = []
@@ -28,6 +28,8 @@ def load_and_split_data(base_dir, vehicle_dict, test_ratio=0.2):
             train_files += files[:split_index]
             test_files += files[split_index:]
     return train_files, test_files
+"""
+
 
 def process_files(files):
     df_list = []
@@ -37,7 +39,7 @@ def process_files(files):
             data['Residual'] = data['Power_IV'] - data['Power']
             df_list.append(data[['speed', 'acceleration', 'Residual']])
     full_data = pd.concat(df_list, ignore_index=True)
-    scaler = MinMaxScaler()
+    scaler = StandardScaler()
     full_data[['speed', 'acceleration']] = scaler.fit_transform(full_data[['speed', 'acceleration']])
     return full_data
 
@@ -84,19 +86,36 @@ def main():
     train_data = process_files(train_files)
     test_data = process_files(test_files)
 
+    # Prepare data for XGBoost
     X_train = train_data[['speed', 'acceleration']].to_numpy()
     y_train = train_data['Residual'].to_numpy()
     X_test = test_data[['speed', 'acceleration']].to_numpy()
     y_test = test_data['Residual'].to_numpy()
 
-    model = XGBRegressor(tree_method='gpu_hist', random_state=42)
-    model.fit(X_train, y_train)
+    # Initialize DMatrix for XGBoost
+    dtrain = xgb.DMatrix(X_train, label=y_train)
+    dtest = xgb.DMatrix(X_test, label=y_test)
 
-    y_pred = model.predict(X_test)
+    # XGBoost model parameters
+    params = {
+        'tree_method': 'hist',
+        'device': 'cuda',
+        'eval_metric': 'rmse',
+        'objective': 'reg:squarederror'
+    }
+
+    # Training with GPU
+    evals = [(dtrain, 'train'), (dtest, 'test')]
+    model = xgb.train(params, dtrain, num_boost_round=100, evals=evals)
+
+    # Predictions
+    y_pred = model.predict(dtest)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     print(f"Test RMSE for Residual Prediction: {rmse}")
 
+    # Plot results
     plot_3d(X_test, y_test, y_pred)
+
 
 if __name__ == "__main__":
     main()
