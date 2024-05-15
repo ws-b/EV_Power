@@ -413,7 +413,7 @@ def plot_energy_dis(file_lists, folder_path, Target):
     print('Put Target: model, data, fitting')
     dis_mod_energies = []
     dis_data_energies = []
-    dis_fitmod_energies = []
+    dis_predicted_energies = []
     total_distances = []
 
     for file in tqdm(file_lists):
@@ -439,19 +439,19 @@ def plot_energy_dis(file_lists, folder_path, Target):
         data_power = np.array(data['Power_IV'])
         data_energy = data_power * t_diff / 3600 / 1000
 
-        if 'Power_fit' in data.columns:
-            modfit_power = data['Power_fit']
-            modfit_power = np.array(modfit_power)
-            modfit_energy = modfit_power * t_diff / 3600 / 1000
-            dis_fitmod_energy = ((total_distance[-1] / 1000) / (modfit_energy.cumsum()[-1])) if modfit_energy.cumsum()[
+        if 'Predicted_Power' in data.columns:
+            predicted_power = data['Predicted_Power']
+            predicted_power = np.array(predicted_power)
+            predicted_energy = predicted_power * t_diff / 3600 / 1000
+            dis_predicted_energy = ((total_distance[-1] / 1000) / (predicted_energy.cumsum()[-1])) if predicted_energy.cumsum()[
                                                                                                     -1] != 0 else 0
-            dis_fitmod_energies.append(dis_fitmod_energy)
+            dis_predicted_energies.append(dis_predicted_energy)
         else:
             pass
 
         # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
         if 'Power' in data.columns:
-            dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[-1] != 0 else 0
+            dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if predicted_energy.cumsum()[-1] != 0 else 0
             dis_mod_energies.append(dis_mod_energy)
 
         dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[-1] != 0 else 0
@@ -522,12 +522,12 @@ def plot_energy_dis(file_lists, folder_path, Target):
         plt.grid(False)
         plt.show()
 
-    elif Target == 'fitting' and 'Power_fit' in data.columns:
+    elif Target == 'fitting' and 'Predicted_Power' in data.columns:
         # compute weighted mean using total distances as weights
-        weighted_mean = np.dot(dis_fitmod_energies, total_distances) / sum(total_distances)
+        weighted_mean = np.dot(dis_predicted_energies, total_distances) / sum(total_distances)
 
         # plot histogram for all files
-        hist_data = sns.histplot(dis_fitmod_energies, bins='auto', color='gray', kde=False)
+        hist_data = sns.histplot(dis_predicted_energies, bins='auto', color='gray', kde=False)
 
         # plot vertical line for weighted mean value
         plt.axvline(weighted_mean, color='red', linestyle='--')
@@ -535,21 +535,21 @@ def plot_energy_dis(file_lists, folder_path, Target):
                  color='red', fontsize=12)
 
         # plot vertical line for median value
-        median_value = np.median(dis_fitmod_energies)
+        median_value = np.median(dis_predicted_energies)
         plt.axvline(median_value, color='blue', linestyle='--')
         plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
                  fontsize=12)
 
         # display total number of samples at top right
-        total_samples = len(dis_fitmod_energies)
+        total_samples = len(dis_predicted_energies)
         plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
                  verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
         # set x-axis range (from 0 to 25)
         plt.xlim(0, 25)
-        plt.xlabel('Total Distance / Total Fitted Model Energy (km/kWh)')
+        plt.xlabel('Total Distance / Total Trained Model Energy (km/kWh)')
         plt.ylabel('Number of trips')
-        plt.title('Total Distance / Total Fitted Model Energy Distribution')
+        plt.title('Total Distance / Total Trained Model Energy Distribution')
         plt.grid(False)
         plt.show()
 
