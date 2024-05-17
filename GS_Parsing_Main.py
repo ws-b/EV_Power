@@ -53,8 +53,8 @@ def pre_process():
         choice = int(choice)
 
         if choice == 1:
-            source_paths = "/Users/wsong/Downloads/bms_altitude"
-            destination_root = "/Users/wsong/Documents/삼성미래과제/Data/GSmbiz/BMS_Data"
+            source_paths = r"D:\SamsungSTF\Data\GSmbiz\bms_altitude\bms"
+            destination_root = r"D:\SamsungSTF\Data\GSmbiz\BMS_Data"
 
             process_device_folders(source_paths, destination_root)
             break
