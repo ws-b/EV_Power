@@ -26,6 +26,7 @@ def read_file_with_detected_encoding(file_path):
             except Exception as e:
                 print(f"Failed to read file {file_path} with Python engine due to: {e}")
                 return None
+            
 def process_device_folders(source_paths, destination_root):
     for year_month in os.listdir(source_paths):
         year_month_path = os.path.join(source_paths, year_month)
@@ -134,141 +135,6 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
 
-def process_gps_files(start_path, save_path):
-    total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
-
-    with tqdm(total=total_folders, desc="진행 상황", unit="folder") as pbar:
-        for root, dirs, files in os.walk(start_path):
-            if not dirs:
-                filtered_files = [file for file in files if 'gps' in file and file.endswith('.csv') and 'bms' not in file]
-                filtered_files.sort()  # 파일 이름으로 정렬
-                dfs = []  # 각 파일의 DataFrame을 저장할 리스트
-                device_no, year_month = None, None
-                for file in filtered_files:
-                    file_path = os.path.join(root, file)
-                    try:
-                        df = pd.read_csv(file_path, header=0, encoding='utf-8')
-                    except UnicodeDecodeError:
-                        df = pd.read_csv(file_path, header=0, encoding='cp949')
-
-                    # 'Unnamed'으로 시작하는 컬럼과 컬럼명이 비어있는 컬럼 제거
-                    df = df.loc[:, ~df.columns.str.contains('Unnamed')]
-                    df = df.loc[:, df.columns != '']  # 빈 컬럼명 제거
-
-                    # 첫 행을 제외하고 역순으로 정렬
-                    df = df.iloc[1:][::-1]
-                    dfs.append(df)
-
-                    if device_no is None or year_month is None:
-                        parts = file.split('_')
-                        device_no = parts[1]  # 단말기 번호
-                        date_parts = parts[2].split('-')
-                        year_month = '-'.join(date_parts[:2])  # 연월 (YYYY-MM 형식)
-                        print(device_no, year_month)
-
-                if dfs and device_no and year_month:
-                    combined_df = pd.concat(dfs, ignore_index=True)
-
-                    # 저장 경로 생성
-                    parts = root.split(os.sep)  # os.sep은 시스템에 따라 적절한 경로 구분자를 사용합니다.
-                    vehicle_type = parts[-3]  # 차종 정보
-                    device_no = parts[-2].split('_')[0]  # 단말기 번호
-
-                    save_folder = os.path.join(save_path, vehicle_type)
-                    if not os.path.exists(save_folder):
-                        os.makedirs(save_folder)  # 해당 경로가 없다면 생성
-
-                    output_file_name = f'gps_{device_no}_{year_month}.csv'
-                    combined_df.to_csv(os.path.join(save_folder, output_file_name), index=False)
-                pbar.update(1)
-
-    print("모든 폴더의 파일 처리가 완료되었습니다.")
-
-def merge_bms_gps(start_path):
-    def extract_device_date_from_filename(filename):
-        # 파일명에서 "단말기번호_연-월" 부분을 추출
-        parts = filename.split('_')
-        device_date = '_'.join(parts[1:2])
-        return device_date
-    def match_closest_bms_time(bms_df, altitude_time):
-        time_diff = bms_df['time'] - altitude_time
-        closest_bms_index = time_diff.abs().idxmin()
-        if time_diff.abs().min() > timedelta(seconds=3):
-            return None
-        return closest_bms_index
-
-    def find_matching_bms_file(altitude_file, bms_files):
-        device_date = extract_device_date_from_filename(altitude_file)
-        for bms_file in bms_files:
-            if device_date in bms_file:
-                return bms_file
-        return None
-    def process_files(altitude_files, bms_files):
-        for altitude_file, bms_file in zip(altitude_files, bms_files):
-            altitude_df = read_file_with_detected_encoding(altitude_file)
-            bms_df = read_file_with_detected_encoding(bms_file)
-
-            if altitude_df is not None and bms_df is not None:
-                bms_df['time'] = pd.to_datetime(bms_df['time'], format="%Y-%m-%d %H:%M:%S")
-                altitude_df['time'] = pd.to_datetime(altitude_df['time'], format="%Y-%m-%d %H:%M:%S")
-
-                # 초기에 NA로 설정
-                bms_df['altitude'] = pd.NA
-                bms_df['lat'] = pd.NA
-                bms_df['lng'] = pd.NA
-
-                for index in altitude_df.index:
-                    closest_bms_index = match_closest_bms_time(bms_df, altitude_df.at[index, 'time'])
-                    if closest_bms_index is not None:
-                        bms_df.at[closest_bms_index, 'altitude'] = altitude_df.at[index, 'altitude']
-                        bms_df.at[closest_bms_index, 'lat'] = altitude_df.at[index, 'lat']
-                        bms_df.at[closest_bms_index, 'lng'] = altitude_df.at[index, 'lng']
-
-                # # 고도에 대한 선형 보간
-                # bms_df['altitude'] = pd.to_numeric(bms_df['altitude'], errors='coerce').interpolate(method='linear', limit_direction='both')
-                # # 위도와 경도에 대한 forward fill 방식 적용
-                # bms_df['lat'] = bms_df['lat'].ffill()
-                # bms_df['lng'] = bms_df['lng'].ffill()
-
-                return bms_df
-        return None
-    files_to_process = []
-
-    # 모든 파일을 순회하며 매칭되는 파일 쌍을 찾음
-    for root, _, files in os.walk(start_path):
-        altitude_files = [file for file in files if file.startswith('gps') and file.endswith('.csv')]
-        bms_files = [file for file in files if file.startswith('bms') and file.endswith('.csv') and 'altitude' not in file]
-
-        for altitude_file in altitude_files:
-            matching_bms_file = find_matching_bms_file(altitude_file, bms_files)
-            if matching_bms_file:
-                files_to_process.append((os.path.join(root, altitude_file), os.path.join(root, matching_bms_file)))
-
-    total_files = len(files_to_process)
-
-    with tqdm(total=total_files, desc="Processing", unit="file") as pbar:
-        for altitude_file, bms_file in files_to_process:
-            # 이전과 동일한 데이터 처리 로직을 사용하여 파일 처리
-            merged_df = process_files([altitude_file], [bms_file])
-            if merged_df is not None:
-                output_file_path = os.path.join(os.path.dirname(altitude_file),
-                                                f"bms_altitude_{os.path.basename(altitude_file)[9:]}")
-                merged_df.to_csv(output_file_path, index=False)
-            pbar.update(1)
-
-    print("All folders processed.")
-
-    # 원본 파일 삭제 로직 추가
-    for altitude_file, bms_file in files_to_process:
-        try:
-            os.remove(altitude_file)
-            os.remove(bms_file)
-            print(f"Deleted: {altitude_file} and {bms_file}")
-        except Exception as e:
-            print(f"Error deleting file: {e}")
-
-    print("Original files deleted.")
-
 def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
@@ -358,6 +224,7 @@ def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
+
 def process_files_trip_by_trip(file_lists, start_path, save_path):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 

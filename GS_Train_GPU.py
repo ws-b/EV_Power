@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.interpolate import griddata
 
 
-def load_and_split_data(base_dir, vehicle_dict, train_count=4000, test_count=1000, test_ratio=0.2):
+def load_and_split_data(base_dir, vehicle_dict, train_count=2000, test_count=500, test_ratio=0.2):
     all_files = []
 
     for vehicle, ids in vehicle_dict.items():
@@ -30,7 +30,7 @@ def load_and_split_data(base_dir, vehicle_dict, train_count=4000, test_count=100
         split_index = int(len(all_files) * (1 - test_ratio))
         train_files = all_files[:split_index]
         test_files = all_files[split_index:]
-        print(int(len(all_files)))
+        print(f"Total files: {len(all_files)}")
     else:
         train_files = all_files[:train_count]
         test_files = all_files[train_count:train_count + test_count]
@@ -44,6 +44,10 @@ def process_files(files):
         try:
             data = pd.read_csv(file)
             if 'Power' in data.columns and 'Power_IV' in data.columns:
+                out_of_range = data[(data['acceleration'].abs() > 9.8)]
+                if not out_of_range.empty:
+                    print(f"Out-of-range values detected in file: {file}")
+                    print(out_of_range[['speed', 'acceleration', 'Residual']])
                 data['Residual'] = data['Power_IV'] - data['Power']
                 df_list.append(data[['speed', 'acceleration', 'Residual']])
         except Exception as e:
@@ -58,14 +62,32 @@ def mean_absolute_percentage_error(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.mean(np.abs((y_true - y_pred) / (y_true + np.finfo(float).eps))) * 100
 
-
 def plot_3d(X, y_true, y_pred):
     # Check data shapes and types
     print(f"X shape: {X.shape}, y_true shape: {y_true.shape}, y_pred shape: {y_pred.shape}")
+    
+    if not isinstance(X, np.ndarray) or not isinstance(y_true, np.ndarray) or not isinstance(y_pred, np.ndarray):
+        print("Error: X, y_true, or y_pred is not a numpy array.")
+        return
+    
+    if X.shape[1] != 2:
+        print("Error: X should have 2 columns.")
+        return
+
+    # Ensure that the data used for interpolation does not have extreme values
+    print(f"Acceleration range before filtering: {X[:, 1].min()} to {X[:, 1].max()}")
+    assert X[:, 1].min() >= -9.8 and X[:, 1].max() <= 9.8, "Acceleration values out of range detected!"
+
+    # Randomly sample 1000 points or less if there are fewer rows
+    sample_size = min(1000, X.shape[0])
+    sample_indices = np.random.choice(X.shape[0], sample_size, replace=False)
+    X_sampled = X[sample_indices]
+    y_true_sampled = y_true[sample_indices]
+    y_pred_sampled = y_pred[sample_indices]
 
     # Create the scatter plot for actual residuals
     trace1 = go.Scatter3d(
-        x=X[:, 0], y=X[:, 1], z=y_true,
+        x=X_sampled[:, 0], y=X_sampled[:, 1], z=y_true_sampled,
         mode='markers',
         marker=dict(size=5, color='blue', opacity=0.8),
         name='Actual Residual'
@@ -73,7 +95,7 @@ def plot_3d(X, y_true, y_pred):
 
     # Create the scatter plot for predicted residuals
     trace2 = go.Scatter3d(
-        x=X[:, 0], y=X[:, 1], z=y_pred,
+        x=X_sampled[:, 0], y=X_sampled[:, 1], z=y_pred_sampled,
         mode='markers',
         marker=dict(size=5, color='red', opacity=0.8),
         name='Predicted Residual'
@@ -84,14 +106,10 @@ def plot_3d(X, y_true, y_pred):
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
 
     # Perform griddata interpolation
-    grid_z = griddata((X[:, 0], X[:, 1]), y_pred, (grid_x, grid_y), method='nearest')
-
-    # Check for NaN values in the interpolated grid
-    if np.isnan(grid_z).any():
-        print("Warning: NaN values detected in grid_z after interpolation.")
-        # Fill NaN values using nearest neighbor interpolation
-        mask = np.isnan(grid_z)
-        grid_z[mask] = griddata((X[:, 0], X[:, 1]), y_pred, (grid_x[mask], grid_y[mask]), method='nearest')
+    grid_z = griddata((X[:, 0], X[:, 1]), y_pred, (grid_x, grid_y), method='linear')
+    
+    # Ensure no values in grid_z exceed expected range
+    print(f"Interpolated Z values range: {grid_z.min()} to {grid_z.max()}")
 
     # Create a surface plot for predicted residuals
     surface_trace = go.Surface(
@@ -116,7 +134,6 @@ def plot_3d(X, y_true, y_pred):
 
     fig = go.Figure(data=data, layout=layout)
     fig.show()
-
 
 def plot_full_time_series(data, y_pred, file_name):
     data['time'] = pd.to_datetime(data['time'])
@@ -184,21 +201,23 @@ def main():
                    '01241321944'],
         'Ionic6': ['01241248713', '01241592904', '01241597763', '01241597804'],
         'KonaEV': ['01241228102', '01241228122', '01241228123', '01241228156', '01241228197', '01241228203',
-                   '01241228204',
-                   '01241248726', '01241248727', '01241364621', '01241124056'],
-        'EV6': ['01241225206', '01241228048', '01241228049', '01241228050', '01241228051', '01241228053', '01241228054',
-                '01241228055', '01241228057', '01241228059', '01241228073', '01241228075', '01241228076', '01241228082',
-                '01241228084', '01241228085', '01241228086', '01241228087', '01241228090', '01241228091', '01241228092',
-                '01241228094', '01241228095', '01241228097', '01241228098', '01241228099', '01241228103', '01241228104',
-                '01241228106', '01241228107', '01241228114', '01241228124', '01241228132', '01241228134', '01241248679',
-                '01241248818', '01241248831', '01241248833', '01241248842', '01241248843', '01241248850', '01241248860',
-                '01241248876', '01241248877', '01241248882', '01241248891', '01241248892', '01241248900', '01241248903',
-                '01241248908', '01241248912', '01241248913', '01241248921', '01241248924', '01241248926', '01241248927',
-                '01241248929', '01241248932', '01241248933', '01241248934', '01241321943', '01241321947', '01241364554',
-                '01241364575', '01241364592', '01241364627', '01241364638', '01241364714'],
+                   '01241228204', '01241248726', '01241248727', '01241364621', '01241124056'],
+        'EV6': ['01241225206', '01241228048', '01241228049', '01241228050', '01241228051', '01241228053',
+                '01241228054', '01241228055', '01241228057', '01241228059', '01241228073', '01241228075',
+                '01241228076', '01241228082', '01241228084', '01241228085', '01241228086', '01241228087',
+                '01241228090', '01241228091', '01241228092', '01241228094', '01241228095', '01241228097',
+                '01241228098', '01241228099', '01241228103', '01241228104', '01241228106', '01241228107',
+                '01241228114', '01241228124', '01241228132', '01241228134', '01241248679', '01241248818',
+                '01241248831', '01241248833', '01241248842', '01241248843', '01241248850', '01241248860',
+                '01241248876', '01241248877', '01241248882', '01241248891', '01241248892', '01241248900',
+                '01241248903', '01241248908', '01241248912', '01241248913', '01241248921', '01241248924',
+                '01241248926', '01241248927', '01241248929', '01241248932', '01241248933', '01241248934',
+                '01241321943', '01241321947', '01241364554', '01241364575', '01241364592', '01241364627',
+                '01241364638', '01241364714'],
         'GV60': ['01241228108', '01241228130', '01241228131', '01241228136', '01241228137', '01241228138']
     }
 
+    # Load and process data
     train_files, test_files = load_and_split_data(base_dir, vehicle_dict)
     train_data = process_files(train_files)
     test_data = process_files(test_files)
@@ -209,19 +228,22 @@ def main():
     X_test = test_data[['speed', 'acceleration']].to_numpy()
     y_test = test_data['Residual'].to_numpy()
 
+    # Add speed as a feature
+    X_train = np.column_stack((train_data['speed'].to_numpy(), X_train))
+    X_test = np.column_stack((test_data['speed'].to_numpy(), X_test))
+
     # Initialize DMatrix for XGBoost
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dtest = xgb.DMatrix(X_test, label=y_test)
 
-    # XGBoost model parameters
+    # Define XGBoost parameters
     params = {
         'tree_method': 'hist',
         'device': 'cuda',
-        'eval_metric': 'rmse',
-        'objective': 'reg:squarederror'
+        'eval_metric': 'rmse'
     }
 
-    # Training with GPU
+    # Training with custom objective function
     evals = [(dtrain, 'train'), (dtest, 'test')]
     model = xgb.train(params, dtrain, num_boost_round=100, evals=evals)
 
@@ -236,24 +258,24 @@ def main():
     print(f"Test RMSE for Residual Prediction: {rmse}")
 
     # Plot results
-    plot_3d(X_test, y_test, y_pred)
+    plot_3d(X_test[:, 1:], y_test, y_pred)  # Exclude the speed feature for plotting
 
+    """
     # Plot results for a specific file
-    for i in range(9):
+    for i in range(min(9, len(test_files))):
         specific_file = test_files[i]
         specific_file_name = os.path.basename(specific_file)
         specific_data = pd.read_csv(specific_file)
         specific_features = specific_data[['speed', 'acceleration']]
         scaler = StandardScaler()
         specific_features_scaled = scaler.fit_transform(specific_features)
-        specific_dtest = xgb.DMatrix(specific_features_scaled)
+        specific_dtest = xgb.DMatrix(np.column_stack((specific_data['speed'].to_numpy(), specific_features_scaled)))
         specific_y_pred = model.predict(specific_dtest)
         plot_full_time_series(specific_data, specific_y_pred, specific_file_name)
 
     # Save model
     parent_dir = os.path.dirname(base_dir)
     model.save_model(os.path.join(parent_dir, 'Power_model_XGBoost.json'))
-
-
+    """
 if __name__ == "__main__":
     main()

@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import random
 from scipy.stats import linregress
 from tqdm import tqdm
 
@@ -281,8 +282,13 @@ def plot_energy_scatter(file_lists, folder_path, Target):
     print('Put Target: model, fitting')
     data_energies = []
     mod_energies = []
-    fitmod_energies = []
-    for file in tqdm(file_lists):
+    predicted_energies = []
+
+    # 랜덤으로 1000개의 파일을 선택
+    sample_size = min(1000, len(file_lists))
+    sampled_files = random.sample(file_lists, sample_size)
+
+    for file in tqdm(sampled_files):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
 
@@ -298,82 +304,71 @@ def plot_energy_scatter(file_lists, folder_path, Target):
             model_power = np.array(data['Power'])
             model_energy = model_power * t_diff / 3600 / 1000
             mod_energies.append(model_energy.cumsum()[-1])
-        else:
-            pass
+
+        if 'Predicted_Power' in data.columns:
+            predicted_power = np.array(data['Predicted_Power'])
+            predicted_energy = predicted_power * t_diff / 3600 / 1000
+            predicted_energies.append(predicted_energy.cumsum()[-1])
 
     if Target == 'model':
-        # plot the graph
         fig, ax = plt.subplots(figsize=(6, 6))
-
-        # Color map
         colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
 
         ax.set_xlabel('Data Energy (kWh)')
         ax.set_ylabel('Model Energy (kWh)')
 
-        # Scatter for before fitting data
         for i in range(len(mod_energies)):
             ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
                        edgecolors=colors[i], label='Model Energy' if i == 0 else "")
 
-        # Add trendline for final_energy_original and data_energies
         slope_original, intercept_original, _, _, _ = linregress(data_energies, mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
                 color='lightblue', label='Trendline')
 
-        # Create y=x line
         lims = [
-            np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-            np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+            np.min([ax.get_xlim(), ax.get_ylim()]),
+            np.max([ax.get_xlim(), ax.get_ylim()]),
         ]
         ax.plot(lims, lims, 'r-', alpha=0.75, zorder=0)
         ax.set_aspect('equal')
-        ax.set_xlim(lims)
-        ax.set_ylim(lims)
+        ax.set_xlim(0, None)
+        ax.set_ylim(0, None)
 
         plt.legend()
         plt.title("All trip's BMS Energy vs. Model Energy over Time")
         plt.show()
 
     elif Target == 'fitting':
-        # plot the graph
         fig, ax = plt.subplots(figsize=(6, 6))
-
-        # Color map
         colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
 
         ax.set_xlabel('Data Energy (kWh)')
-        ax.set_ylabel('Model Energy (kWh)')
+        ax.set_ylabel('Predicted Energy (kWh)')
 
-        # Scatter for before fitting data
         for i in range(len(data_energies)):
             ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
                        edgecolors=colors[i], label='Before fitting' if i == 0 else "")
 
-        # Scatter for after fitting data
         for i in range(len(data_energies)):
-            ax.scatter(data_energies[i], fitmod_energies[i], color=colors[i],
+            ax.scatter(data_energies[i], predicted_energies[i], color=colors[i],
                        label='After fitting' if i == 0 else "")
 
-        # Add trendline for final_energy_original and data_energies
         slope_original, intercept_original, _, _, _ = linregress(data_energies, mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
                 color='lightblue', label='Trend (before fitting)')
 
-        # Add trendline for after fitting
-        slope, intercept, _, _, _ = linregress(data_energies, fitmod_energies)
+        slope, intercept, _, _, _ = linregress(data_energies, predicted_energies)
         ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b',
                 label='Trend (after fitting)')
 
-        # Create y=x line
         lims = [
-            np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-            np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+            np.min([ax.get_xlim(), ax.get_ylim()]),
+            np.max([ax.get_xlim(), ax.get_ylim()]),
         ]
         ax.plot(lims, lims, 'r-', alpha=0.75, zorder=0)
         ax.set_aspect('equal')
-        ax.set_xlim(lims)
-        ax.set_ylim(lims)
+        ax.set_xlim(0, None)
+        ax.set_ylim(0, None)
 
         plt.legend()
         plt.title("All trip's BMS Energy vs. Model Energy over Time")

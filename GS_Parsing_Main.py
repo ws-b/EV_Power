@@ -76,14 +76,7 @@ def pre_process():
                 elif data_choice == 2:
                     start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
                     save_path = r'D:\SamsungSTF\Processed_Data/Merged'
-                    process_gps_files(start_path, save_path)
-                elif data_choice == 3:
-                    start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-                    save_path = r'D:\SamsungSTF\Processed_Data/Merged'
                     process_bms_altitude_files(start_path, save_path, device_vehicle_mapping)
-                elif data_choice == 4:
-                    start_path = '/Volumes/Data/SamsungSTF/Data/GSmbiz/GSmbiz'
-                    merge_bms_gps(start_path)
             else:
                 print("Invalid choice for data processing.")
             break

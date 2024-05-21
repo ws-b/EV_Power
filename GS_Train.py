@@ -9,7 +9,26 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
+def load_and_split_data(base_dir, vehicle_dict, train_count=400, test_count=100):
+    all_files = []
 
+    # 모든 파일 수집
+    for vehicle, ids in vehicle_dict.items():
+        for vid in ids:
+            patterns = [
+                os.path.join(base_dir, f"**/bms_{vid}-*"),
+                os.path.join(base_dir, f"**/bms_altitude_{vid}-*")
+            ]
+            for pattern in patterns:
+                all_files += glob.glob(pattern, recursive=True)
+
+    # 전체 파일에서 랜덤하게 샘플링
+    random.shuffle(all_files)
+    train_files = all_files[:train_count]
+    test_files = all_files[train_count:train_count + test_count]
+
+    return train_files, test_files
+"""
 def load_and_split_data(base_dir, vehicle_dict, test_ratio = 0.2):
     train_files = []
     test_files = []
@@ -31,7 +50,7 @@ def load_and_split_data(base_dir, vehicle_dict, test_ratio = 0.2):
             train_files += files[:split_index]
             test_files += files[split_index:]
     return train_files, test_files
-
+"""
 
 def process_files(files):
     df_list = []
@@ -45,6 +64,7 @@ def process_files(files):
     scaler = MinMaxScaler()
     full_data[['speed', 'acceleration']] = scaler.fit_transform(full_data[['speed', 'acceleration']])
     return full_data
+
 def plot_3d(X, y_true, y_pred):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
@@ -98,7 +118,7 @@ def main():
         'GV60' : ['01241228108', '01241228130', '01241228131', '01241228136', '01241228137', '01241228138']
     }
 
-    train_files, test_files = load_and_split_data(base_dir, vehicle_dict, test_ratio=0.2)
+    train_files, test_files = load_and_split_data(base_dir, vehicle_dict)
     train_data = process_files(train_files)
     test_data = process_files(test_files)
 
