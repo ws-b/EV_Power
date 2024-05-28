@@ -1,8 +1,7 @@
 import os
 import platform
 from GS_preprocessing import (get_file_list, process_device_folders,process_files_trip_by_trip,
-                              process_bms_files, process_gps_files, process_bms_altitude_files,
-                              merge_bms_gps)
+                              process_bms_files, process_bms_altitude_files)
 
 device_vehicle_mapping = {
     **{device: 'NiroEV' for device in ['01241228149', '01241228151', '01241228153', '01241228154', '01241228155']},
@@ -62,9 +61,8 @@ def pre_process():
         elif choice == 2:
             print("Select the data type to process:")
             print("1: Process BMS data only")
-            print("2: Process GPS data only")
-            print("3: Process BMS and Altitude data")
-            print("4: Merge BMS and GPS data")
+            print("2: Process BMS and Altitude data")
+
             data_choice = input("Enter your choice: ")
 
             if data_choice.isdigit() and int(data_choice) in [1, 2, 3, 4]:
