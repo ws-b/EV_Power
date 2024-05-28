@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import shutil
 import chardet
+from multiprocessing import Pool, cpu_count
 from datetime import datetime, timedelta
 from tqdm import tqdm
 
@@ -57,6 +58,27 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                 device_no, year_month = None, None
                 for file in filtered_files:
                     file_path = os.path.join(root, file)
+                    
+                    # Extract device number and year-month before processing the file
+                    parts = file_path.split(os.sep)
+                    file_name = parts[-1]
+                    name_parts = file_name.split('_')
+                    device_no = name_parts[1]
+                    date_parts = name_parts[2].split('-')
+                    year_month = '-'.join(date_parts[:2])
+
+                    vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
+                    save_folder = os.path.join(save_path, vehicle_type)
+                    if not os.path.exists(save_folder):
+                        os.makedirs(save_folder)
+
+                    output_file_name = f"bms_{device_no}_{year_month}.csv"
+                    output_file_path = os.path.join(save_folder, output_file_name)
+
+                    if os.path.exists(output_file_path):
+                        print(f"File {output_file_name} already exists in {save_folder}. Skipping...")
+                        break
+
                     df = read_file_with_detected_encoding(file_path)
                     if df is not None:
                         df = df.loc[:, ~df.columns.str.contains('Unnamed')]
@@ -64,19 +86,9 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                         df = df.iloc[::-1].reset_index(drop=True)
                         dfs.append(df)
 
-                        if device_no is None or year_month is None:
-                            parts = file_path.split(os.sep)
-                            file_name = parts[-1]
-                            name_parts = file_name.split('_')
-                            device_no = name_parts[1]
-                            date_parts = name_parts[2].split('-')
-                            year_month = '-'.join(date_parts[:2])
-                    else:
-                        continue
-
-                if dfs and device_no and year_month:
+                if dfs and device_no and year_month and not os.path.exists(output_file_path):
                     combined_df = pd.concat(dfs, ignore_index=True)
-                    print(f"Processing file: {file_path}")  # 현재 처리 중인 파일 경로 출력
+                    print(f"Processing file: {file_path}")
 
                     # calculate time and speed changes
                     combined_df['time'] = combined_df['time'].str.strip()
@@ -123,17 +135,12 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                             ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_volt',
                              'pack_current', 'Power_IV']].copy()
 
-                    vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
-                    save_folder = os.path.join(save_path, vehicle_type)
-                    if not os.path.exists(save_folder):
-                        os.makedirs(save_folder)
-
-                    output_file_name = f"bms_{device_no}_{year_month}.csv"
-                    data_save.to_csv(os.path.join(save_folder, output_file_name), index=False)
+                    data_save.to_csv(output_file_path, index=False)
 
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
+
 
 def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
@@ -147,26 +154,37 @@ def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
                 device_no, year_month = None, None
                 for file in filtered_files:
                     file_path = os.path.join(root, file)
+                    
+                    # Extract device number and year-month before processing the file
+                    parts = file_path.split(os.sep)
+                    file_name = parts[-1]
+                    name_parts = file_name.split('_')
+                    device_no = name_parts[2]
+                    date_parts = name_parts[3].split('-')
+                    year_month = '-'.join(date_parts[:2])
+
+                    vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
+                    save_folder = os.path.join(save_path, vehicle_type)
+                    if not os.path.exists(save_folder):
+                        os.makedirs(save_folder)
+
+                    output_file_name = f"bms_altitude_{device_no}_{year_month}.csv"
+                    output_file_path = os.path.join(save_folder, output_file_name)
+
+                    if os.path.exists(output_file_path):
+                        print(f"File {output_file_name} already exists in {save_folder}. Skipping...")
+                        break
+
                     df = read_file_with_detected_encoding(file_path)
                     if df is not None:
                         df = df.loc[:, ~df.columns.str.contains('Unnamed')]
                         df = df.drop_duplicates(subset='time')
-                        df = df.iloc[::-1].reset_index(drop=True)  # 행 순서를 역순으로 뒤집고 인덱스를 리셋
+                        df = df.iloc[::-1].reset_index(drop=True)
                         dfs.append(df)
 
-                        if device_no is None or year_month is None:
-                            parts = file_path.split(os.sep)
-                            file_name = parts[-1]
-                            name_parts = file_name.split('_')
-                            device_no = name_parts[2]
-                            date_parts = name_parts[3].split('-')
-                            year_month = '-'.join(date_parts[:2])
-                    else:
-                        continue
-
-                if dfs and device_no and year_month:
+                if dfs and device_no and year_month and not os.path.exists(output_file_path):
                     combined_df = pd.concat(dfs, ignore_index=True)
-                    print(f"Processing file: {file_path}")  # 현재 처리 중인 파일 경로 출력
+                    print(f"Processing file: {file_path}")
 
                     # calculate time and speed changes
                     combined_df['time'] = combined_df['time'].str.strip()
@@ -213,114 +231,85 @@ def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
                             ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_volt',
                              'pack_current', 'Power_IV']].copy()
 
-                    vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
-                    save_folder = os.path.join(save_path, vehicle_type)
-                    if not os.path.exists(save_folder):
-                        os.makedirs(save_folder)
-
-                    output_file_name = f"bms_altitude_{device_no}_{year_month}.csv"
-                    data_save.to_csv(os.path.join(save_folder, output_file_name), index=False)
+                    data_save.to_csv(output_file_path, index=False)
 
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
+    
+def process_file(file_path, save_path):
+    data = pd.read_csv(file_path)
+    if 'altitude' in data.columns:
+        parts = file_path.split(os.sep)
+        file_name = parts[-1]
+        name_parts = file_name.split('_')
+        device_no = name_parts[2]
+        year_month = name_parts[3][:7]
+    else:
+        parts = file_path.split(os.sep)
+        file_name = parts[-1]
+        name_parts = file_name.split('_')
+        device_no = name_parts[1]
+        year_month = name_parts[2][:7]
 
-def process_files_trip_by_trip(file_lists, start_path, save_path):
-    total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
+    cut = []
+    if data.loc[0, 'chrg_cable_conn'] == 0:
+        cut.append(0)
+    for i in range(len(data) - 1):
+        if data.loc[i, 'chrg_cable_conn'] != data.loc[i + 1, 'chrg_cable_conn']:
+            cut.append(i + 1)
+    if data.loc[len(data) - 1, 'chrg_cable_conn'] == 0:
+        cut.append(len(data) - 1)
 
-    with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
-        for root, dirs, files in os.walk(start_path):
-            if not dirs:
-                all_files = [f for f in files if f.endswith('.csv')]
-                all_files.sort()
+    cut_time = pd.Timedelta(seconds=300)
+    try:
+        data['time'] = pd.to_datetime(data['time'], format='%y-%m-%d %H:%M:%S')
+    except ValueError:
+        try:
+            data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        except ValueError as e:
+            print(f"Date format error: {e}")
+            return
 
-                for file in all_files:
-                    file_path = os.path.join(root, file)
-                    print(file_path.split(os.sep)[-1])
-                    data = pd.read_csv(file_path)
-                    if 'altitude' in data.columns:
-                        parts = file_path.split(os.sep)
-                        file_name = parts[-1]
-                        name_parts = file_name.split('_')
-                        device_no = name_parts[2]
-                        year_month = name_parts[3][:7]
-                    else:
-                        parts = file_path.split(os.sep)
-                        file_name = parts[-1]
-                        name_parts = file_name.split('_')
-                        device_no = name_parts[1]
-                        year_month = name_parts[2][:7]
+    for i in range(len(data) - 1):
+        if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
+            cut.append(i + 1)
 
-                    cut = []
+    cut = list(set(cut))
+    cut.sort()
 
-                    # Parse Trip by cable connection status
-                    if data.loc[0, 'chrg_cable_conn'] == 0:
-                        cut.append(0)
-                    for i in range(len(data) - 1):
-                        if data.loc[i, 'chrg_cable_conn'] != data.loc[i + 1, 'chrg_cable_conn']:
-                            cut.append(i + 1)
-                    if data.loc[len(data) - 1, 'chrg_cable_conn'] == 0:
-                        cut.append(len(data) - 1)
+    trips = []
+    trip_counter = 1
+    for i in range(len(cut) - 1):
+        if data.loc[cut[i], 'chrg_cable_conn'] == 0:
+            trip = data.loc[cut[i]:cut[i + 1] - 1, :]
+            if check_trip_conditions(trip):
+                trips.append((trip, trip_counter))
+                trip_counter += 1
 
-                    # Parse Trip by Time difference
-                    cut_time = pd.Timedelta(seconds=300)  # 300sec 이상 차이 날 경우 다른 Trip으로 인식
-                    try:
-                        data['time'] = pd.to_datetime(data['time'], format='%y-%m-%d %H:%M:%S')
-                    except ValueError:
-                        try:
-                            data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-                        except ValueError as e:
-                            print(f"Date format error: {e}")
-                            continue
+    if check_trip_conditions(data.loc[cut[-1]:, :]):
+        trips.append((data.loc[cut[-1]:, :], trip_counter))
 
-                    for i in range(len(data) - 1):
-                        if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
-                            cut.append(i + 1)
+    save_trips(trips, device_no, year_month, 'altitude' in data.columns, save_path)
 
-                    cut = list(set(cut))
-                    cut.sort()
-
-                    trip_counter = 1  # Start trip number from 1 for each file
-                    for i in range(len(cut) - 1):
-                        if data.loc[cut[i], 'chrg_cable_conn'] == 0:
-                            trip = data.loc[cut[i]:cut[i + 1] - 1, :]
-
-                            # Check if the trip meets the conditions from the first function
-                            if not check_trip_conditions(trip):
-                                continue
-
-                            # Formulate the filename based on the given rule
-                            month = trip['time'].iloc[0].month
-                            if 'altitude' in data.columns:
-                                filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
-                            else:
-                                filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
-                            # Save to file
-                            os.makedirs(save_path, exist_ok=True)
-                            trip.to_csv(os.path.join(save_path, filename), index=False)
-                            trip_counter += 1
-
-                    # for the last trip
-                    trip = data.loc[cut[-1]:, :]
-
-                    # Check if the last trip meets the conditions from the first function
-                    if check_trip_conditions(trip):
-                        duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-                        if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
-                            month = trip['time'].iloc[0].month
-                            if 'altitude' in data.columns:
-                                filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
-                            else:
-                                filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
-                            os.makedirs(save_path, exist_ok=True)
-                            trip.to_csv(os.path.join(save_path, filename), index=False)
-    print("Done")
+def save_trips(trips, device_no, year_month, has_altitude, save_path):
+    for trip, trip_counter in trips:
+        month = trip['time'].iloc[0].month
+        if has_altitude:
+            filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
+        else:
+            filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
+        # 파일이 이미 존재하는지 확인
+        if os.path.exists(os.path.join(save_path, filename)):
+            continue
+        
+        os.makedirs(save_path, exist_ok=True)
+        trip.to_csv(os.path.join(save_path, filename), index=False)
 
 def check_trip_conditions(trip):
     if trip.empty:
         return False
 
-    # Calculate conditions from the first function for the trip
     v = trip['speed']
     t = pd.to_datetime(trip['time'], format='%Y-%m-%d %H:%M:%S')
     t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -333,7 +322,6 @@ def check_trip_conditions(trip):
     data_energy = data_power * t_diff / 3600 / 1000
     data_energy_cumulative = data_energy.cumsum().iloc[-1]
 
-    # Check if any of the conditions are met for the trip
     time_limit = 300
     distance_limit = 3000
     Energy_limit = 1.0
@@ -341,3 +329,11 @@ def check_trip_conditions(trip):
         return False
 
     return True
+
+def process_files_trip_by_trip(file_lists, start_path, save_path):
+    # process_file 함수를 호출할 때 추가 인자를 전달할 수 있도록 래핑
+    def process_file_wrapper(file_path):
+        return process_file(file_path, save_path)
+    
+    with Pool(cpu_count()) as pool:
+        pool.map(process_file_wrapper, file_lists)
