@@ -14,14 +14,14 @@ def get_file_list(folder_path, file_extension='.csv'):
 
 def read_file_with_detected_encoding(file_path):
     try:
-        # 우선 C 엔진으로 시도
+        # First, try to read the file with the C engine and UTF-8 encoding
         return pd.read_csv(file_path, encoding='utf-8')
     except UnicodeDecodeError:
-        # C 엔진 실패 시 ISO-8859-1 인코딩으로 재시도
+        # If C engine fails, try ISO-8859-1 encoding
         try:
             return pd.read_csv(file_path, encoding='iso-8859-1')
         except Exception as e:
-            # ISO-8859-1도 실패할 경우 Python 엔진으로 시도
+            # If both C and ISO-8859-1 engines fail, try to detect the encoding
             try:
                 return pd.read_csv(file_path, encoding='utf-8', engine='python')
             except Exception as e:
@@ -31,19 +31,19 @@ def read_file_with_detected_encoding(file_path):
 def process_device_folders(source_paths, destination_root):
     for year_month in os.listdir(source_paths):
         year_month_path = os.path.join(source_paths, year_month)
-        if os.path.isdir(year_month_path):  # 년-월 폴더 확인
+        if os.path.isdir(year_month_path):  # check year-month folder
             for device_number in os.listdir(year_month_path):
                 device_number_path = os.path.join(year_month_path, device_number)
-                if os.path.isdir(device_number_path):  # 단말기 번호 폴더 확인
-                    # 대상 폴더 경로 생성 (단말기번호/년-월)
+                if os.path.isdir(device_number_path): # check device number folder
+                    # Create destination folder
                     destination_path = os.path.join(destination_root, device_number, year_month)
-                    os.makedirs(destination_path, exist_ok=True)  # 폴더가 없다면 생성
+                    os.makedirs(destination_path, exist_ok=True)  # If the folder does not exist, create it
 
-                    # 파일 이동
+                    # Move files
                     for file in os.listdir(device_number_path):
                         source_file_path = os.path.join(device_number_path, file)
                         destination_file_path = os.path.join(destination_path, file)
-                        shutil.move(source_file_path, destination_file_path)  # 파일 이동
+                        shutil.move(source_file_path, destination_file_path) 
                         print(f"Moved {file} to {destination_path}")
 
 def process_bms_files(start_path, save_path, device_vehicle_mapping):
