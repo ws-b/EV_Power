@@ -1,7 +1,7 @@
 import os
 import platform
 from GS_preprocessing import (get_file_list, process_device_folders,process_files_trip_by_trip,
-                              process_bms_files, process_bms_altitude_files)
+                              process_files)
 from GS_vehicle_dict import vehicle_dict
 
 device_vehicle_mapping = {device: model for model, devices in vehicle_dict.items() for device in devices}
@@ -9,7 +9,7 @@ device_vehicle_mapping = {device: model for model, devices in vehicle_dict.items
 def pre_process():
     while True:
         print("1: Move device folders based on device number and type (New Files Only)")
-        print("2: Process specific data type (BMS, GPS, Merge BMS and GPS)")
+        print("2: Pre-Process BMS Files")
         print("3: Trip by Trip Parsing")
         print("4: Quitting the program.")
         choice = input("Enter the number you want to run: ")
@@ -28,24 +28,11 @@ def pre_process():
             break
 
         elif choice == 2:
-            print("Select the data type to process:")
-            print("1: Process BMS data only")
-            print("2: Process BMS and Altitude data")
+            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
+            save_path = r'D:\SamsungSTF\Processed_Data/Merged'
 
-            data_choice = input("Enter your choice: ")
-
-            if data_choice.isdigit() and int(data_choice) in [1, 2, 3, 4]:
-                data_choice = int(data_choice)
-                if data_choice == 1:
-                    start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-                    save_path = r'D:\SamsungSTF\Processed_Data/Merged'
-                    process_bms_files(start_path, save_path, device_vehicle_mapping)
-                elif data_choice == 2:
-                    start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-                    save_path = r'D:\SamsungSTF\Processed_Data/Merged'
-                    process_bms_altitude_files(start_path, save_path, device_vehicle_mapping)
-            else:
-                print("Invalid choice for data processing.")
+            process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
+            process_files(start_path, save_path, device_vehicle_mapping, altitude=True)
             break
 
         elif choice == 3:

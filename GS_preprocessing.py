@@ -2,9 +2,6 @@ import os
 import pandas as pd
 import numpy as np
 import shutil
-import chardet
-from multiprocessing import Pool, cpu_count
-from datetime import datetime, timedelta
 from tqdm import tqdm
 
 def get_file_list(folder_path, file_extension='.csv'):
@@ -45,26 +42,27 @@ def process_device_folders(source_paths, destination_root):
                         destination_file_path = os.path.join(destination_path, file)
                         shutil.move(source_file_path, destination_file_path) 
                         print(f"Moved {file} to {destination_path}")
-
-def process_bms_files(start_path, save_path, device_vehicle_mapping):
+def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f]
+                if altitude:
+                    filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
+                else:
+                    filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f]
                 filtered_files.sort()
                 dfs = []
                 device_no, year_month = None, None
                 for file in filtered_files:
                     file_path = os.path.join(root, file)
-                    
-                    # Extract device number and year-month before processing the file
+
                     parts = file_path.split(os.sep)
                     file_name = parts[-1]
                     name_parts = file_name.split('_')
-                    device_no = name_parts[1]
-                    date_parts = name_parts[2].split('-')
+                    device_no = name_parts[1] if not altitude else name_parts[2]
+                    date_parts = name_parts[2].split('-') if not altitude else name_parts[3].split('-')
                     year_month = '-'.join(date_parts[:2])
 
                     vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
@@ -72,7 +70,7 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                     if not os.path.exists(save_folder):
                         os.makedirs(save_folder)
 
-                    output_file_name = f"bms_{device_no}_{year_month}.csv"
+                    output_file_name = f"{'bms_altitude' if altitude else 'bms'}_{device_no}_{year_month}.csv"
                     output_file_path = os.path.join(save_folder, output_file_name)
 
                     if os.path.exists(output_file_path):
@@ -90,7 +88,6 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                     combined_df = pd.concat(dfs, ignore_index=True)
                     print(f"Processing file: {file_path}")
 
-                    # calculate time and speed changes
                     combined_df['time'] = combined_df['time'].str.strip()
                     try:
                         t = pd.to_datetime(combined_df['time'], format='%y-%m-%d %H:%M:%S')
@@ -102,130 +99,37 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                             continue
                     t_diff = t.diff().dt.total_seconds()
                     combined_df['time_diff'] = t_diff
-                    combined_df['speed'] = combined_df['emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
+                    combined_df['speed'] = combined_df[
+                                               'emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
 
-                    # Calculate speed difference using central differentiation
                     combined_df['spd_diff'] = combined_df['speed'].rolling(window=3, center=True).apply(
                         lambda x: x[2] - x[0], raw=True) / 2
 
-                    # calculate acceleration using the speed difference and time difference
                     combined_df['acceleration'] = combined_df['spd_diff'] / combined_df['time_diff']
 
-                    # Handling edge cases for acceleration (first and last elements)
                     combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
                                                         combined_df.at[1, 'time_diff']
-                    combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[len(combined_df) - 1, 'speed'] - combined_df.at[len(combined_df) - 2, 'speed']) / \
-                                                                           combined_df.at[len(combined_df) - 1, 'time_diff']
+                    combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
+                                                                                len(combined_df) - 1, 'speed'] -
+                                                                            combined_df.at[
+                                                                                len(combined_df) - 2, 'speed']) / \
+                                                                           combined_df.at[
+                                                                               len(combined_df) - 1, 'time_diff']
 
-                    # replace NaN values with 0 or fill with desired values
                     combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
 
-                    # additional calculations...
                     combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
                     if 'altitude' in combined_df.columns:
-                        # 'delta altitude' 열 추가
                         combined_df['delta altitude'] = combined_df['altitude'].diff()
-                        # merge selected columns into a single DataFrame
                         data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh','cumul_pw_chrgd', 'cumul_pw_dischrgd', 'chrg_cable_conn',
-                            'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
-                    else:
-                        # merge selected columns into a single DataFrame
-                        data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh','cumul_pw_chrgd', 'cumul_pw_dischrgd', 'chrg_cable_conn',
-                            'pack_volt', 'pack_current', 'Power_IV']].copy()
-
-                    data_save.to_csv(output_file_path, index=False)
-
-                pbar.update(1)
-
-    print("모든 폴더의 파일 처리가 완료되었습니다.")
-
-
-
-def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
-    total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
-
-    with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
-        for root, dirs, files in os.walk(start_path):
-            if not dirs:
-                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
-                filtered_files.sort()
-                dfs = []
-                device_no, year_month = None, None
-                for file in filtered_files:
-                    file_path = os.path.join(root, file)
-                    
-                    # Extract device number and year-month before processing the file
-                    parts = file_path.split(os.sep)
-                    file_name = parts[-1]
-                    name_parts = file_name.split('_')
-                    device_no = name_parts[2]
-                    date_parts = name_parts[3].split('-')
-                    year_month = '-'.join(date_parts[:2])
-
-                    vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
-                    save_folder = os.path.join(save_path, vehicle_type)
-                    if not os.path.exists(save_folder):
-                        os.makedirs(save_folder)
-
-                    output_file_name = f"bms_altitude_{device_no}_{year_month}.csv"
-                    output_file_path = os.path.join(save_folder, output_file_name)
-
-                    if os.path.exists(output_file_path):
-                        print(f"File {output_file_name} already exists in {save_folder}. Skipping...")
-                        break
-
-                    df = read_file_with_detected_encoding(file_path)
-                    if df is not None:
-                        df = df.loc[:, ~df.columns.str.contains('Unnamed')]
-                        df = df.drop_duplicates(subset='time')
-                        df = df.iloc[::-1].reset_index(drop=True)
-                        dfs.append(df)
-
-                if dfs and device_no and year_month and not os.path.exists(output_file_path):
-                    combined_df = pd.concat(dfs, ignore_index=True)
-                    print(f"Processing file: {file_path}")
-
-                    # calculate time and speed changes
-                    combined_df['time'] = combined_df['time'].str.strip()
-                    try:
-                        t = pd.to_datetime(combined_df['time'], format='%y-%m-%d %H:%M:%S')
-                    except ValueError:
-                        try:
-                            t = pd.to_datetime(combined_df['time'], format='%Y-%m-%d %H:%M:%S')
-                        except ValueError as e:
-                            print(f"Date format error: {e}")
-                            continue
-                    t_diff = t.diff().dt.total_seconds()
-                    combined_df['time_diff'] = t_diff
-                    combined_df['speed'] = combined_df['emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
-
-                    # Calculate speed difference using standard differentiation
-                    combined_df['spd_diff'] = combined_df['speed'].diff()
-                    combined_df['spd_diff'].iloc[0] = combined_df['speed'].iloc[1] - combined_df['speed'].iloc[0]  # First element
-                    combined_df['spd_diff'].iloc[-1] = combined_df['speed'].iloc[-1] - combined_df['speed'].iloc[-2]  # Last element
-
-                    # calculate acceleration using the speed difference and time difference
-                    combined_df['acceleration'] = combined_df['spd_diff'] / combined_df['time_diff']
-
-                    # replace NaN values with 0 or fill with desired values
-                    combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
-
-                    # additional calculations...
-                    combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
-                    if 'altitude' in combined_df.columns:
-                        # 'delta altitude' 열 추가
-                        combined_df['delta altitude'] = combined_df['altitude'].diff()
-                        # merge selected columns into a single DataFrame
-                        data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'cumul_pw_chrgd',
+                             'cumul_pw_dischrgd', 'chrg_cable_conn',
                              'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
                     else:
-                        # merge selected columns into a single DataFrame
                         data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_volt',
-                             'pack_current', 'Power_IV']].copy()
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'cumul_pw_chrgd',
+                             'cumul_pw_dischrgd', 'chrg_cable_conn',
+                             'pack_volt', 'pack_current', 'Power_IV']].copy()
 
                     data_save.to_csv(output_file_path, index=False)
 
@@ -337,7 +241,6 @@ def check_trip_conditions(trip):
     if trip.empty:
         return False
 
-    # Calculate conditions from the first function for the trip
     v = trip['speed']
     t = pd.to_datetime(trip['time'], format='%Y-%m-%d %H:%M:%S')
     t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -350,11 +253,20 @@ def check_trip_conditions(trip):
     data_energy = data_power * t_diff / 3600 / 1000
     data_energy_cumulative = data_energy.cumsum().iloc[-1]
 
-    # Check if any of the conditions are met for the trip
     time_limit = 300
     distance_limit = 3000
     Energy_limit = 1.0
-    if time_range.total_seconds() < time_limit or total_distance < distance_limit or data_energy_cumulative < Energy_limit or (trip['acceleration'].abs() > 9.8).any():
+    if time_range.total_seconds() < time_limit or total_distance < distance_limit or data_energy_cumulative < Energy_limit:
         return False
+
+    # Check for segments where speed is 0 for 5 minutes or more
+    zero_speed_duration = 0
+    for i in range(len(trip) - 1):
+        if trip['speed'].iloc[i] == 0:
+            zero_speed_duration += (t.iloc[i + 1] - t.iloc[i]).total_seconds()
+            if zero_speed_duration >= time_limit:
+                return False
+        else:
+            zero_speed_duration = 0
 
     return True
