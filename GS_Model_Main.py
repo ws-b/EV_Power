@@ -3,48 +3,32 @@ import platform
 from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
-def main():
-    NiroEV = ['01241228149', '01241228151', '01241228153', '01241228154', '01241228155']
-    Bongo3EV = ['01241228162', '01241228179', '01241248642', '01241248723', '01241248829']
-    Ionic5 = [
-        '01241227999', '01241228003', '01241228005', '01241228007', '01241228009', '01241228014', '01241228016',
-        '01241228020', '01241228024', '01241228025', '01241228026', '01241228030', '01241228037', '01241228044',
-        '01241228046', '01241228047', '01241248780', '01241248782', '01241248790', '01241248811', '01241248815',
-        '01241248817', '01241248820', '01241248827', '01241364543', '01241364560', '01241364570', '01241364581',
-        '01241592867', '01241592868', '01241592878', '01241592896', '01241592907', '01241597801', '01241597802',
-        '01241248919', '01241321944'
-    ]
-    Ionic6 = ['01241248713', '01241592904', '01241597763', '01241597804']
-    KonaEV = [
-        '01241228102', '01241228122', '01241228123', '01241228156', '01241228197', '01241228203', '01241228204',
-        '01241248726', '01241248727', '01241364621', '01241124056'
-    ]
-    Porter2EV = ['01241228144', '01241228160', '01241228177', '01241228188', '01241228192', '01241228171']
-    EV6 = [
-        '01241225206', '01241228048', '01241228049', '01241228050', '01241228051', '01241228053', '01241228054',
-        '01241228055', '01241228057', '01241228059', '01241228073', '01241228075', '01241228076', '01241228082',
-        '01241228084', '01241228085', '01241228086', '01241228087', '01241228090', '01241228091', '01241228092',
-        '01241228094', '01241228095', '01241228097', '01241228098', '01241228099', '01241228103', '01241228104',
-        '01241228106', '01241228107', '01241228114', '01241228124', '01241228132', '01241228134', '01241248679',
-        '01241248818', '01241248831', '01241248833', '01241248842', '01241248843', '01241248850', '01241248860',
-        '01241248876', '01241248877', '01241248882', '01241248891', '01241248892', '01241248900', '01241248903',
-        '01241248908', '01241248912', '01241248913', '01241248921', '01241248924', '01241248926', '01241248927',
-        '01241248929', '01241248932', '01241248933', '01241248934', '01241321943', '01241321947', '01241364554',
-        '01241364575', '01241364592', '01241364627', '01241364638', '01241364714'
-    ]
-    GV60 = ['01241228108', '01241228130', '01241228131', '01241228136', '01241228137', '01241228138']
+from GS_vehicle_dict import vehicle_dict
 
+def main():
     # Select car
-    print("1: 니로EV")
-    print("2: 봉고3EV")
-    print("3: 아이오닉5")
-    print("4: 아이오닉6")
-    print("5: 코나EV")
-    print("6: 포터2EV")
-    print("7: EV6")
-    print("8: GV60")
+    print("1: NiroEV")
+    print("2: Ionic5")
+    print("3: Ionic5")
+    print("4: KonaEV")
+    print("5: EV6")
+    print("6: GV60")
+    print("7: Bongo3EV")
+    print("8: Porter2EV")
     print("10: Quitting the program.")
     car = int(input("Select Car you want to calculate: "))
+
+    car_options = {
+        1: 'NiroEV',
+        2: 'Ionic5',
+        3: 'Ionic6',
+        4: 'KonaEV',
+        5: 'EV6',
+        6: 'GV60',
+        7: 'Bongo3EV',
+        8: 'Porter2EV',
+    }
+
     if platform.system() == "Windows":
         folder_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data')
     elif platform.system() == "Darwin":
@@ -52,58 +36,25 @@ def main():
     else:
         print("Unknown system.")
         return
+
     folder_path = os.path.join(folder_path, 'TripByTrip')
-    if car == 1:  # niroEV
+    if car in car_options:
+        selected_car = car_options[car]
         EV = select_vehicle(car)
         all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(niro_id in file for niro_id in NiroEV)]
-        print("YOUR CHOICE IS NiroEV")
-    elif car == 2:  # bongo3EV
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(bongo3_id in file for bongo3_id in Bongo3EV)]
-        print("YOUR CHOICE IS Bongo3EV")
-    elif car == 3:  # ionic5
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(ionic5_id in file for ionic5_id in Ionic5)]
-        print("YOUR CHOICE IS Ionic5")
-    elif car == 4: #ionic6
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(ionic6_id in file for ionic6_id in Ionic6)]
-        print("YOUR CHOICE IS Ionic6")
-    elif car == 5: # konaEV
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(kona_id in file for kona_id in KonaEV)]
-        print("YOUR CHOICE IS KonaEV")
-    elif car == 6: # porter2EV
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(porter2_id in file for porter2_id in Porter2EV)]
-        print("YOUR CHOICE IS Porter2EV")
-    elif car == 7: # EV6
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(ev6_id in file for ev6_id in EV6)]
-        print("YOUR CHOICE IS EV6")
-    elif car == 8: # GV60
-        EV = select_vehicle(car)
-        all_file_lists = get_file_list(folder_path)
-        file_lists = [file for file in all_file_lists if any(gv60_id in file for gv60_id in GV60)]
-        print("YOUR CHOICE IS GV60")
+        file_lists = [file for file in all_file_lists if any(vehicle_id in file for vehicle_id in vehicle_dict[selected_car])]
+        print(f"YOUR CHOICE IS {selected_car}")
     elif car == 10:
         print("Quitting the program.")
         return
     else:
         print("Invalid choice. Please try again.")
+        return
 
     file_lists.sort()
 
     while True:
         print("1: Calculate Power(W) using Model & Filtering Data")
-        print("2: ")
         print("3: Plotting Graph (Power & Energy)")
         print("4: Plotting Graph (Scatter, Energy Distribution)")
         print("6: Quitting the program.")
@@ -111,7 +62,6 @@ def main():
 
         if choice == 1:
             process_files_power(file_lists, folder_path, EV)
-            break
         elif choice == 3:
             while True:
                 print("1: Plotting Stacked Power Plot Term by Term")
@@ -133,34 +83,24 @@ def main():
                     plot = int(selection.strip())
                     if plot == 1:
                         plot_power(file_lists, folder_path, 'stacked')
-                        break
                     elif plot == 2:
                         plot_power(file_lists, folder_path, 'model')
-                        break
                     elif plot == 3:
                         plot_power(file_lists, folder_path, 'data')
-                        break
                     elif plot == 4:
                         plot_power(file_lists, folder_path, 'comparison')
-                        break
                     elif plot == 5:
                         plot_power(file_lists, folder_path, 'difference')
-                        break
                     elif plot == 6:
                         plot_power(file_lists, folder_path, 'd_altitude')
-                        break
                     elif plot == 7:
                         plot_energy(file_lists, folder_path, 'model')
-                        break
                     elif plot == 8:
                         plot_energy(file_lists, folder_path, 'data')
-                        break
                     elif plot == 9:
                         plot_energy(file_lists, folder_path, 'comparison')
-                        break
                     elif plot == 10:
                         plot_energy(file_lists, folder_path, 'altitude')
-                        break
                     elif plot == 11:
                         print("Quitting the program.")
                         return
