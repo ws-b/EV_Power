@@ -127,19 +127,20 @@ def process_bms_files(start_path, save_path, device_vehicle_mapping):
                         combined_df['delta altitude'] = combined_df['altitude'].diff()
                         # merge selected columns into a single DataFrame
                         data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                             'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh','cumul_pw_chrgd', 'cumul_pw_dischrgd', 'chrg_cable_conn',
+                            'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
                     else:
                         # merge selected columns into a single DataFrame
                         data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn', 'pack_volt',
-                             'pack_current', 'Power_IV']].copy()
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh','cumul_pw_chrgd', 'cumul_pw_dischrgd', 'chrg_cable_conn',
+                            'pack_volt', 'pack_current', 'Power_IV']].copy()
 
                     data_save.to_csv(output_file_path, index=False)
 
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
+
 
 
 def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
@@ -200,18 +201,13 @@ def process_bms_altitude_files(start_path, save_path, device_vehicle_mapping):
                     combined_df['time_diff'] = t_diff
                     combined_df['speed'] = combined_df['emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
 
-                    # Calculate speed difference using central differentiation
-                    combined_df['spd_diff'] = combined_df['speed'].rolling(window=3, center=True).apply(
-                        lambda x: x[2] - x[0], raw=True) / 2
+                    # Calculate speed difference using standard differentiation
+                    combined_df['spd_diff'] = combined_df['speed'].diff()
+                    combined_df['spd_diff'].iloc[0] = combined_df['speed'].iloc[1] - combined_df['speed'].iloc[0]  # First element
+                    combined_df['spd_diff'].iloc[-1] = combined_df['speed'].iloc[-1] - combined_df['speed'].iloc[-2]  # Last element
 
                     # calculate acceleration using the speed difference and time difference
                     combined_df['acceleration'] = combined_df['spd_diff'] / combined_df['time_diff']
-
-                    # Handling edge cases for acceleration (first and last elements)
-                    combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
-                                                        combined_df.at[1, 'time_diff']
-                    combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[len(combined_df) - 1, 'speed'] - combined_df.at[len(combined_df) - 2, 'speed']) / \
-                                                                           combined_df.at[len(combined_df) - 1, 'time_diff']
 
                     # replace NaN values with 0 or fill with desired values
                     combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
