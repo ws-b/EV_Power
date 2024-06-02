@@ -99,22 +99,21 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
                             continue
                     t_diff = t.diff().dt.total_seconds()
                     combined_df['time_diff'] = t_diff
-                    combined_df['speed'] = combined_df[
-                                               'emobility_spd'] * 0.27778  # convert speed to m/s if originally in km/h
+                    combined_df['speed'] = combined_df['emobility_spd'] * 0.27778
 
-                    combined_df['spd_diff'] = combined_df['speed'].rolling(window=3, center=True).apply(
-                        lambda x: x[2] - x[0], raw=True) / 2
+                    # Calculate acceleration using forward and backward differences
+                    combined_df['acceleration'] = combined_df['speed'].diff() / combined_df['time_diff']
 
-                    combined_df['acceleration'] = combined_df['spd_diff'] / combined_df['time_diff']
-
-                    combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
-                                                        combined_df.at[1, 'time_diff']
-                    combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
-                                                                                len(combined_df) - 1, 'speed'] -
-                                                                            combined_df.at[
-                                                                                len(combined_df) - 2, 'speed']) / \
-                                                                           combined_df.at[
-                                                                               len(combined_df) - 1, 'time_diff']
+                    # Handle first and last row separately to avoid NaN values
+                    if len(combined_df) > 1:
+                        combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
+                                                            combined_df.at[1, 'time_diff']
+                        combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
+                                                                                    len(combined_df) - 1, 'speed'] -
+                                                                                combined_df.at[
+                                                                                    len(combined_df) - 2, 'speed']) / \
+                                                                               combined_df.at[
+                                                                                   len(combined_df) - 1, 'time_diff']
 
                     combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
 
@@ -122,13 +121,11 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
                     if 'altitude' in combined_df.columns:
                         combined_df['delta altitude'] = combined_df['altitude'].diff()
                         data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'cumul_pw_chrgd',
-                             'cumul_pw_dischrgd', 'chrg_cable_conn',
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
                              'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
                     else:
                         data_save = combined_df[
-                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'cumul_pw_chrgd',
-                             'cumul_pw_dischrgd', 'chrg_cable_conn',
+                            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
                              'pack_volt', 'pack_current', 'Power_IV']].copy()
 
                     data_save.to_csv(output_file_path, index=False)
