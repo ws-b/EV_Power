@@ -42,6 +42,36 @@ def process_device_folders(source_paths, destination_root):
                         destination_file_path = os.path.join(destination_path, file)
                         shutil.move(source_file_path, destination_file_path) 
                         print(f"Moved {file} to {destination_path}")
+
+def interpolate_outliers(df, flags, window=8):
+    df_interpolated = df.copy()
+    df_interpolated['flag'] = False  # Add flag column to indicate interpolation
+
+    # Handle consecutive zeros in speed
+    zero_flags = (df['speed'] == 0)
+
+    # Mark sequences of consecutive zeros
+    consecutive_zero_counts = zero_flags.astype(int).groupby(zero_flags.ne(zero_flags.shift()).cumsum()).cumsum()
+    zero_flags_consecutive = consecutive_zero_counts >= 3
+
+    combined_flags = flags | zero_flags_consecutive
+
+    for i in range(len(df)):
+        if combined_flags[i]:
+            # Determine the window for surrounding values
+            start = max(i - window, 0)
+            end = min(i + window + 1, len(df))
+
+            # Calculate the mean and standard deviation of the surrounding values, ignoring zeros
+            surrounding_values = df['speed'][start:end][df['speed'][start:end] != 0]
+            surrounding_mean = surrounding_values.mean()
+
+            # Interpolate the value
+            df_interpolated.loc[i, 'speed'] = surrounding_mean
+            df_interpolated.loc[i, 'flag'] = True  # Mark as interpolated
+
+    return df_interpolated
+
 def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
@@ -117,16 +147,43 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
 
                     combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
 
+                    # Flagging acceleration spikes
+                    acceleration_threshold = 9.0
+                    flags = combined_df['acceleration'].abs() > acceleration_threshold
+
+                    # Interpolating speed values for flagged rows
+                    combined_df = interpolate_outliers(combined_df, flags)
+                    # Only recalculate the acceleration for flagged rows and their surrounding rows (8 before and 8 after)
+                    recalc_indices = flags[flags].index
+                    for idx in recalc_indices:
+                        start = max(idx - 8, 0)
+                        end = min(idx + 8 + 1, len(combined_df))
+                        combined_df.loc[start:end, 'speed_diff'] = combined_df.loc[start:end, 'speed'].diff()
+                        combined_df.loc[start:end, 'acceleration'] = combined_df.loc[start:end, 'speed_diff'] / combined_df.loc[start:end, 'time_diff']
+
+                    # Handle first and last row separately to avoid NaN values
+                    if len(combined_df) > 1:
+                        combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
+                                                            combined_df.at[1, 'time_diff']
+                        combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
+                                                                                    len(combined_df) - 1, 'speed'] -
+                                                                                combined_df.at[
+                                                                                    len(combined_df) - 2, 'speed']) / \
+                                                                               combined_df.at[
+                                                                                   len(combined_df) - 1, 'time_diff']
+
+                    combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
+
                     combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
                     if 'altitude' in combined_df.columns:
                         combined_df['delta altitude'] = combined_df['altitude'].diff()
                         data_save = combined_df[
                             ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                             'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
+                             'altitude', 'pack_volt', 'pack_current', 'Power_IV', 'flag']].copy()
                     else:
                         data_save = combined_df[
                             ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                             'pack_volt', 'pack_current', 'Power_IV']].copy()
+                             'pack_volt', 'pack_current', 'Power_IV', 'flag']].copy()
 
                     data_save.to_csv(output_file_path, index=False)
 
