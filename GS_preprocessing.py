@@ -43,35 +43,43 @@ def process_device_folders(source_paths, destination_root):
                         shutil.move(source_file_path, destination_file_path) 
                         print(f"Moved {file} to {destination_path}")
 
+
 def interpolate_outliers(df, flags, window=8):
+    """
+    Interpolates the outliers in the dataframe based on the given flags.
+
+    Parameters:
+    df (pd.DataFrame): DataFrame containing the data.
+    flags (pd.Series): Boolean series indicating the outliers.
+    window (int): Window size to consider for surrounding values.
+
+    Returns:
+    pd.DataFrame: DataFrame with interpolated outliers.
+    """
     df_interpolated = df.copy()
-    df_interpolated['flag'] = False  # Add flag column to indicate interpolation
-
-    # Handle consecutive zeros in speed
-    zero_flags = (df['speed'] == 0)
-
-    # Mark sequences of consecutive zeros
-    consecutive_zero_counts = zero_flags.astype(int).groupby(zero_flags.ne(zero_flags.shift()).cumsum()).cumsum()
-    zero_flags_consecutive = consecutive_zero_counts >= 3
-
-    combined_flags = flags | zero_flags_consecutive
+    df_interpolated['flag'] = flags
 
     for i in range(len(df)):
-        if combined_flags[i]:
+        if flags[i]:
             # Determine the window for surrounding values
             start = max(i - window, 0)
             end = min(i + window + 1, len(df))
 
-            # Calculate the mean and standard deviation of the surrounding values, ignoring zeros
-            surrounding_values = df['speed'][start:end][df['speed'][start:end] != 0]
+            # Calculate the mean of the surrounding values, ignoring zeros and flagged values
+            surrounding_values = df['speed'][start:end][~flags[start:end] & (df['speed'][start:end] != 0)]
             surrounding_mean = surrounding_values.mean()
+
+            # Handle consecutive flagged outliers and zeros
+            j = i + 1
+            while j < len(df) and (flags[j] or df.loc[j, 'speed'] == 0):
+                df_interpolated.loc[j, 'speed'] = surrounding_mean
+                df_interpolated.loc[j, 'flag'] = True
+                j += 1
 
             # Interpolate the value
             df_interpolated.loc[i, 'speed'] = surrounding_mean
-            df_interpolated.loc[i, 'flag'] = True  # Mark as interpolated
 
     return df_interpolated
-
 def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
