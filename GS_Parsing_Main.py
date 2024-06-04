@@ -28,7 +28,7 @@ def pre_process():
             break
 
         elif choice == 2:
-            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
+            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Sample'
             save_path = r'D:\SamsungSTF\Processed_Data/Merged'
 
             process_files(start_path, save_path, device_vehicle_mapping, altitude=False)

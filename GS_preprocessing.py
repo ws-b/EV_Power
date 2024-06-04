@@ -45,19 +45,7 @@ def process_device_folders(source_paths, destination_root):
 
 
 def interpolate_outliers(df, flags, window=8):
-    """
-    Interpolates the outliers in the dataframe based on the given flags.
-
-    Parameters:
-    df (pd.DataFrame): DataFrame containing the data.
-    flags (pd.Series): Boolean series indicating the outliers.
-    window (int): Window size to consider for surrounding values.
-
-    Returns:
-    pd.DataFrame: DataFrame with interpolated outliers.
-    """
     df_interpolated = df.copy()
-    df_interpolated['flag'] = flags
 
     for i in range(len(df)):
         if flags[i]:
@@ -71,15 +59,15 @@ def interpolate_outliers(df, flags, window=8):
 
             # Handle consecutive flagged outliers and zeros
             j = i + 1
-            while j < len(df) and (flags[j] or df.loc[j, 'speed'] == 0):
+            while j < len(df) and df.loc[j, 'speed'] == 0:
                 df_interpolated.loc[j, 'speed'] = surrounding_mean
-                df_interpolated.loc[j, 'flag'] = True
                 j += 1
 
             # Interpolate the value
             df_interpolated.loc[i, 'speed'] = surrounding_mean
 
     return df_interpolated
+
 def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
@@ -187,11 +175,11 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
                         combined_df['delta altitude'] = combined_df['altitude'].diff()
                         data_save = combined_df[
                             ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                             'altitude', 'pack_volt', 'pack_current', 'Power_IV', 'flag']].copy()
+                             'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
                     else:
                         data_save = combined_df[
                             ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                             'pack_volt', 'pack_current', 'Power_IV', 'flag']].copy()
+                             'pack_volt', 'pack_current', 'Power_IV']].copy()
 
                     data_save.to_csv(output_file_path, index=False)
 
@@ -200,12 +188,19 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
     print("모든 폴더의 파일 처리가 완료되었습니다.")
     
 def process_files_trip_by_trip(file_lists, start_path, save_path):
+    file_numbers = [
+        "01241124056", "01241228122", "01241228130", "01241228151", "01241228154",
+        "01241228156", "01241228197", "01241228203", "01241228204", "01241248727",
+        "01241228123", "01241228149", "01241228153", "01241228155", "01241248726",
+        "01241364621", "01241592904"
+    ]
+
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                all_files = [f for f in files if f.endswith('.csv')]
+                all_files = [f for f in files if f.endswith('.csv') and any(number in f for number in file_numbers)]
                 all_files.sort()
 
                 for file in all_files:
