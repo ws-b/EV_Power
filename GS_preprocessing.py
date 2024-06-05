@@ -44,14 +44,14 @@ def process_device_folders(source_paths, destination_root):
                         print(f"Moved {file} to {destination_path}")
 
 
-def interpolate_outliers(df, flags, window=8):
+def interpolate_outliers(df, flags):
     df_interpolated = df.copy()
 
     for i in range(len(df)):
         if flags[i]:
             # Determine the window for surrounding values
-            start = max(i - window, 0)
-            end = min(i + window + 1, len(df))
+            start = max(i - 1, 0)
+            end = min(i + 1 + 1, len(df))
 
             # Calculate the mean of the surrounding values, ignoring zeros and flagged values
             surrounding_values = df['speed'][start:end][~flags[start:end] & (df['speed'][start:end] != 0)]
