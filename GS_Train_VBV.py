@@ -57,7 +57,7 @@ def process_files(files):
     return full_data
 
 
-def cross_validate_and_save_best_model(vehicle_files, selected_vehicle, n_splits=5, save_dir="models"):
+def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -218,7 +218,7 @@ def main():
         print(f"No files found for the selected vehicle: {selected_vehicle}")
         return
 
-    results = cross_validate_and_save_best_model(vehicle_files, selected_vehicle, save_dir=save_dir)
+    results = cross_validate(vehicle_files, selected_vehicle, save_dir=save_dir)
 
     # Print overall results
     if results:
