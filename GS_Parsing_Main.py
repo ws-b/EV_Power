@@ -28,7 +28,7 @@ def pre_process():
             break
 
         elif choice == 2:
-            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Sample'
+            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
             save_path = r'D:\SamsungSTF\Processed_Data/Merged'
 
             process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
@@ -47,9 +47,9 @@ def pre_process():
             else:
                 print("Unknown system.")
                 return
-
-            file_list = get_file_list(start_path)
-            process_files_trip_by_trip(file_list, start_path, save_path)
+            if not os.path.exists(save_path):
+                os.makedirs(save_path, exist_ok=True)
+            process_files_trip_by_trip(start_path, save_path)
             break
 
         elif choice == 4:
