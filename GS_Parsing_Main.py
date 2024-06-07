@@ -30,7 +30,9 @@ def pre_process():
         elif choice == 2:
             start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
             save_path = r'D:\SamsungSTF\Processed_Data/Merged'
-
+            if not os.path.exists(save_path):
+                os.makedirs(save_path, exist_ok=True)
+                
             process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
             process_files(start_path, save_path, device_vehicle_mapping, altitude=True)
             break
