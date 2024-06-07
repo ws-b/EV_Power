@@ -137,13 +137,15 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
                 pbar.update(1)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
-    
-def process_files_trip_by_trip(start_path, save_path):
-    total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
-    with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
+
+def process_files_trip_by_trip(start_path, save_path):
+    # Calculate the total number of CSV files
+    total_files = sum([len(files) for _, _, files in os.walk(start_path) if any(f.endswith('.csv') for f in files)])
+
+    with tqdm(total=total_files, desc="Processing files", unit="file") as pbar:
         for root, dirs, files in os.walk(start_path):
-            if not dirs:
+            if files:
                 all_files = [f for f in files if f.endswith('.csv')]
                 all_files.sort()
 
@@ -242,6 +244,7 @@ def process_files_trip_by_trip(start_path, save_path):
                                 print(f"Files {device_no} and {year_month} successfully processed.")
                                 os.makedirs(save_path, exist_ok=True)
                                 trip.to_csv(os.path.join(save_path, filename), index=False)
+                    pbar.update(1)
     print("Done")
 
 def check_trip_conditions(trip):
