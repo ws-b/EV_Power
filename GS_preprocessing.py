@@ -43,31 +43,6 @@ def process_device_folders(source_paths, destination_root):
                         shutil.move(source_file_path, destination_file_path) 
                         print(f"Moved {file} to {destination_path}")
 
-
-def interpolate_outliers(df, flags):
-    df_interpolated = df.copy()
-
-    for i in range(len(df)):
-        if flags[i]:
-            # Determine the window for surrounding values
-            start = max(i - 1, 0)
-            end = min(i + 1 + 1, len(df))
-
-            # Calculate the mean of the surrounding values, ignoring zeros and flagged values
-            surrounding_values = df['speed'][start:end][~flags[start:end] & (df['speed'][start:end] != 0)]
-            surrounding_mean = surrounding_values.mean()
-
-            # Handle consecutive flagged outliers and zeros
-            j = i + 1
-            while j < len(df) and df.loc[j, 'speed'] == 0:
-                df_interpolated.loc[j, 'speed'] = surrounding_mean
-                j += 1
-
-            # Interpolate the value
-            df_interpolated.loc[i, 'speed'] = surrounding_mean
-
-    return df_interpolated
-
 def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
@@ -115,14 +90,18 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
                     print(f"Processing file: {file_path}")
 
                     combined_df['time'] = combined_df['time'].str.strip()
-                    try:
-                        t = pd.to_datetime(combined_df['time'], format='%y-%m-%d %H:%M:%S')
-                    except ValueError:
+                    date_formats = ['%y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']
+                    for date_format in date_formats:
                         try:
-                            t = pd.to_datetime(combined_df['time'], format='%Y-%m-%d %H:%M:%S')
+                            t = pd.to_datetime(combined_df['time'], format=date_format)
+                            break
                         except ValueError as e:
                             print(f"Date format error: {e}")
                             continue
+                    else:
+                        print(f"Date format error for file {file_path}")
+                        return None
+
                     t_diff = t.diff().dt.total_seconds()
                     combined_df['time_diff'] = t_diff
                     combined_df['speed'] = combined_df['emobility_spd'] * 0.27778
@@ -142,34 +121,6 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
                                                                                    len(combined_df) - 1, 'time_diff']
 
                     combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
-
-                    # Flagging acceleration spikes
-                    acceleration_threshold = 9.0
-                    flags = combined_df['acceleration'].abs() > acceleration_threshold
-
-                    # Interpolating speed values for flagged rows
-                    combined_df = interpolate_outliers(combined_df, flags)
-                    # Only recalculate the acceleration for flagged rows and their surrounding rows (8 before and 8 after)
-                    recalc_indices = flags[flags].index
-                    for idx in recalc_indices:
-                        start = max(idx - 8, 0)
-                        end = min(idx + 8 + 1, len(combined_df))
-                        combined_df.loc[start:end, 'speed_diff'] = combined_df.loc[start:end, 'speed'].diff()
-                        combined_df.loc[start:end, 'acceleration'] = combined_df.loc[start:end, 'speed_diff'] / combined_df.loc[start:end, 'time_diff']
-
-                    # Handle first and last row separately to avoid NaN values
-                    if len(combined_df) > 1:
-                        combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
-                                                            combined_df.at[1, 'time_diff']
-                        combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
-                                                                                    len(combined_df) - 1, 'speed'] -
-                                                                                combined_df.at[
-                                                                                    len(combined_df) - 2, 'speed']) / \
-                                                                               combined_df.at[
-                                                                                   len(combined_df) - 1, 'time_diff']
-
-                    combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
-
                     combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
                     if 'altitude' in combined_df.columns:
                         combined_df['delta altitude'] = combined_df['altitude'].diff()
@@ -187,20 +138,13 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
     
-def process_files_trip_by_trip(file_lists, start_path, save_path):
-    file_numbers = [
-        "01241124056", "01241228122", "01241228130", "01241228151", "01241228154",
-        "01241228156", "01241228197", "01241228203", "01241228204", "01241248727",
-        "01241228123", "01241228149", "01241228153", "01241228155", "01241248726",
-        "01241364621", "01241592904"
-    ]
-
+def process_files_trip_by_trip(start_path, save_path):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
         for root, dirs, files in os.walk(start_path):
             if not dirs:
-                all_files = [f for f in files if f.endswith('.csv') and any(number in f for number in file_numbers)]
+                all_files = [f for f in files if f.endswith('.csv')]
                 all_files.sort()
 
                 for file in all_files:
@@ -257,7 +201,12 @@ def process_files_trip_by_trip(file_lists, start_path, save_path):
                     cut = list(set(cut))
                     cut.sort()
 
+                    if not cut:
+                        print(f"No cuts found in file: {file_path}")
+                        return None
+
                     trip_counter = 1  # Start trip number from 1 for each file
+
                     for i in range(len(cut) - 1):
                         if data.loc[cut[i], 'chrg_cable_conn'] == 0:
                             trip = data.loc[cut[i]:cut[i + 1] - 1, :]
@@ -277,51 +226,63 @@ def process_files_trip_by_trip(file_lists, start_path, save_path):
                             trip.to_csv(os.path.join(save_path, filename), index=False)
                             trip_counter += 1
 
-                    # for the last trip
-                    trip = data.loc[cut[-1]:, :]
+                    if cut:
+                        # for the last trip
+                        trip = data.loc[cut[-1]:, :]
 
-                    # Check if the last trip meets the conditions from the first function
-                    if check_trip_conditions(trip):
-                        duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-                        if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
-                            month = trip['time'].iloc[0].month
-                            if 'altitude' in data.columns:
-                                filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
-                            else:
-                                filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
-                            print(f"Files {device_no} and {year_month} successfully processed.")
-                            os.makedirs(save_path, exist_ok=True)
-                            trip.to_csv(os.path.join(save_path, filename), index=False)
+                        # Check if the last trip meets the conditions from the first function
+                        if check_trip_conditions(trip):
+                            duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
+                            if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
+                                month = trip['time'].iloc[0].month
+                                if 'altitude' in data.columns:
+                                    filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
+                                else:
+                                    filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
+                                print(f"Files {device_no} and {year_month} successfully processed.")
+                                os.makedirs(save_path, exist_ok=True)
+                                trip.to_csv(os.path.join(save_path, filename), index=False)
     print("Done")
 
 def check_trip_conditions(trip):
     if trip.empty:
         return False
 
+    if (trip['acceleration'] > 9.0).any():
+        return False
+
     v = trip['speed']
-    t = pd.to_datetime(trip['time'], format='%Y-%m-%d %H:%M:%S')
+    date_formats = ['%y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']
+
+    for date_format in date_formats:
+        try:
+            t = pd.to_datetime(trip['time'], format=date_format)
+            break
+        except ValueError:
+            continue
+    else:
+        print("Date format error in trip conditions")
+        return False
+
     t_diff = t.diff().dt.total_seconds().fillna(0)
-    v = np.array(v)
-    distance = v * t_diff
-    total_distance = distance.cumsum().iloc[-1]
-    time_range = t.iloc[-1] - t.iloc[0]
-    data_power = trip['Power_IV']
-    data_power = np.array(data_power)
-    data_energy = data_power * t_diff / 3600 / 1000
-    data_energy_cumulative = data_energy.cumsum().iloc[-1]
+    distance = (v * t_diff).cumsum().iloc[-1]
 
     time_limit = 300
     distance_limit = 3000
-    Energy_limit = 1.0
-    if time_range.total_seconds() < time_limit or total_distance < distance_limit or data_energy_cumulative < Energy_limit:
+    energy_limit = 1.0
+
+    if (t.iloc[-1] - t.iloc[0]).total_seconds() < time_limit or distance < distance_limit:
         return False
 
-    # Check for segments where speed is 0 for 5 minutes or more
+    data_energy = (trip['Power_IV'] * t_diff / 3600 / 1000).cumsum().iloc[-1]
+    if data_energy < energy_limit:
+        return False
+
     zero_speed_duration = 0
     for i in range(len(trip) - 1):
         if trip['speed'].iloc[i] == 0:
             zero_speed_duration += (t.iloc[i + 1] - t.iloc[i]).total_seconds()
-            if zero_speed_duration >= time_limit:
+            if zero_speed_duration >= 300:
                 return False
         else:
             zero_speed_duration = 0
