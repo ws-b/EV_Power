@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
 from scipy.interpolate import griddata
 
-def load_and_split_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle):
+def load_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle):
     vehicle_files = {}
     if selected_vehicle not in vehicle_dict:
         print(f"Selected vehicle '{selected_vehicle}' not found in vehicle_dict.")
@@ -100,11 +100,6 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
             best_rmse = rmse
             best_model = model
 
-        # Plot full time series for random samples
-        for i in np.random.choice(test_index, 3, replace=False):
-            file_name = files[i % len(files)]
-            plot_full_time_series(data.iloc[test_index], y_pred, file_name)
-
     # Save the best model
     if best_model:
         model_file = os.path.join(save_dir, f"best_model_{selected_vehicle}.json")
@@ -163,60 +158,13 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle):
     fig = go.Figure(data=data, layout=layout)
     fig.show()
 
-def plot_full_time_series(data, y_pred, file_name):
-    data['time'] = pd.to_datetime(data['time'])
-    predicted_power = data['Power_IV'] - y_pred
-    interval = (data['time'].diff().dt.total_seconds().fillna(0) / 3600)
-    Actual_Energy = np.cumsum(data['Power_IV'] / 1000 * interval)
-    Model_Energy = np.cumsum(data['Power'] / 1000 * interval)
-    Predicted_Energy = np.cumsum(predicted_power / 1000 * interval)
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    ax1.set_title('Actual vs Predicted Power over Time')
-    ax1.plot(data['time'], data['Power_IV'] / 1000, label='Actual Power_IV (kW)', color='blue')
-    ax1.plot(data['time'], data['Predicted_Power'] / 1000, label='Predicted Power (kW)', color='red')
-    ax1.plot(data['time'], data['Power'] / 1000, label='Model Power (kW)', color='green')
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel('Power (kW)')
-    ax1.legend(loc='upper left', bbox_to_anchor=(0, 0.95))
-    ax1.grid(True)
-    date = data['time'].iloc[0].strftime('%Y-%m-%d')
-    ax1.text(0.99, 0.98, date, transform=ax1.transAxes, fontsize=12, verticalalignment='top',
-             horizontalalignment='right', color='black')
-    ax1.text(0.01, 0.98, f'File: {file_name}', transform=ax1.transAxes, fontsize=10, verticalalignment='top',
-             horizontalalignment='left', color='black')
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    ax2.set_title('Actual vs Predicted Energy over Time')
-    ax2.plot(data['time'], Actual_Energy, label='Actual Energy (kWh)', color='blue')
-    ax2.plot(data['time'], Predicted_Energy, label='Predicted Energy (kWh)', color='red')
-    ax2.plot(data['time'], Model_Energy, label='Model Energy (kWh)', color='green')
-    ax2.set_xlabel('Time')
-    ax2.set_ylabel('Energy (kWh)')
-    ax2.legend(loc='upper left', bbox_to_anchor=(0, 0.95))
-    ax2.grid(True)
-    ax2.text(0.99, 0.98, date, transform(ax2.transAxes, fontsize=12, verticalalignment='top',
-                                         horizontalalignment='right', color='black'))
-    ax2.text(0.01, 0.98, f'File: {file_name}', transform=ax2.transAxes, fontsize=10, verticalalignment='top',
-             horizontalalignment='left', color='black')
-    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    if 'altitude' in data.columns:
-        data.set_index('time', inplace=True)
-    data_resampled = data.resample('1T').mean()
-    ax2_alt = ax2.twinx()
-    ax2_alt.set_ylabel('Altitude (m)')
-    ax2_alt.plot(data_resampled.index, data_resampled['altitude'], label='Altitude (m)', color='tab:orange',
-                 linestyle='-')
-    ax2_alt.legend(loc='upper right', bbox_to_anchor=(1, 0.97))
-    data.reset_index(inplace=True)
-    plt.tight_layout()
-    plt.show()
-
 def main():
     base_dir = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip')
     save_dir = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Models')
 
     selected_vehicle = 'Ionic5'
 
-    vehicle_files = load_and_split_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle)
+    vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle)
     if not vehicle_files:
         print(f"No files found for the selected vehicle: {selected_vehicle}")
         return
