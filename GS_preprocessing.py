@@ -1,14 +1,27 @@
 import os
+import glob
 import pandas as pd
 import shutil
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
+def load_data_by_vehicle(folder_path, vehicle_dict, selected_car):
+    vehicle_files = {}
+    if selected_car not in vehicle_dict:
+        print(f"Selected vehicle '{selected_car}' not found in vehicle_dict.")
+        return vehicle_files
 
-def get_file_list(folder_path, file_extension='.csv'):
-    file_lists = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith(file_extension)]
-    file_lists.sort()
-    return file_lists
+    ids = vehicle_dict[selected_car]
+    all_files = []
+    for vid in ids:
+        patterns = [
+            os.path.join(folder_path, f"**/bms_{vid}-*"),
+            os.path.join(folder_path, f"**/bms_altitude_{vid}-*")
+        ]
+        for pattern in patterns:
+            all_files += glob.glob(pattern, recursive=True)
+    vehicle_files[selected_car] = all_files
 
+    return vehicle_files
 def process_device_folders(source_paths, destination_root):
     for year_month in os.listdir(source_paths):
         year_month_path = os.path.join(source_paths, year_month)

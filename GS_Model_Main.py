@@ -1,10 +1,10 @@
 import os
 import platform
-from GS_preprocessing import get_file_list
+from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
 from GS_vehicle_dict import vehicle_dict
-from GS_Train import cross_validate, load_data_by_vehicle, add_predicted_power_column
+from GS_Train import cross_validate, add_predicted_power_column
 
 def main():
     while True:
@@ -43,8 +43,10 @@ def main():
         if car in car_options:
             selected_car = car_options[car]
             EV = select_vehicle(car)
-            all_file_lists = get_file_list(folder_path)
-            file_lists = [file for file in all_file_lists if any(vehicle_id in file for vehicle_id in vehicle_dict[selected_car])]
+            vehicle_files = load_data_by_vehicle(folder_path, vehicle_dict, selected_car)
+            vehicle_file_lists = vehicle_files.get(selected_car, [])
+            vehicle_file_lists.sort()
+
             print(f"YOUR CHOICE IS {selected_car}")
         elif car == 10:
             print("Quitting the program.")
@@ -53,11 +55,9 @@ def main():
             print("Invalid choice. Please try again.")
             continue
 
-        file_lists.sort()
-
         while True:
             print("1: Calculate Power(W)")
-            print("2: Train Model")
+            print("2: Train Model using XGBoost")
             print("3: Predicted Power(W) using Trained Model")
             print("4: Plotting Graph (Power & Energy)")
             print("5: Plotting Graph (Scatter, Energy Distribution)")
@@ -66,12 +66,10 @@ def main():
             choice = int(input("Enter number you want to run: "))
 
             if choice == 1:
-                process_files_power(file_lists, folder_path, EV)
+                process_files_power(vehicle_file_lists, folder_path, EV)
             elif choice == 2:
-                base_dir = folder_path
                 save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
 
-                vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
                 if not vehicle_files:
                     print(f"No files found for the selected vehicle: {selected_car}")
                     return
@@ -84,20 +82,18 @@ def main():
                 else:
                     print(f"No results for the selected vehicle: {selected_car}")
             elif choice == 3:
-                base_dir = folder_path
                 model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'best_model_{selected_car}.json')
 
-                vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
+                vehicle_files = load_data_by_vehicle(folder_path, vehicle_dict, selected_car)
                 if not vehicle_files:
                     print(f"No files found for the selected vehicle: {selected_car}")
                     return
 
-                files = vehicle_files.get(selected_car, [])
-                if not files:
+                if not vehicle_file_lists:
                     print(f"No files to process for the selected vehicle: {selected_car}")
                     return
 
-                add_predicted_power_column(files, model_path)
+                add_predicted_power_column(vehicle_file_lists, model_path)
             elif choice == 4:
                 while True:
                     print("1: Plotting Stacked Power Plot Term by Term")
@@ -118,25 +114,25 @@ def main():
                     for selection in selections_list:
                         plot = int(selection.strip())
                         if plot == 1:
-                            plot_power(file_lists, folder_path, 'stacked')
+                            plot_power(vehicle_file_lists, folder_path, 'stacked')
                         elif plot == 2:
-                            plot_power(file_lists, folder_path, 'model')
+                            plot_power(vehicle_file_lists, folder_path, 'model')
                         elif plot == 3:
-                            plot_power(file_lists, folder_path, 'data')
+                            plot_power(vehicle_file_lists, folder_path, 'data')
                         elif plot == 4:
-                            plot_power(file_lists, folder_path, 'comparison')
+                            plot_power(vehicle_file_lists, folder_path, 'comparison')
                         elif plot == 5:
-                            plot_power(file_lists, folder_path, 'difference')
+                            plot_power(vehicle_file_lists, folder_path, 'difference')
                         elif plot == 6:
-                            plot_power(file_lists, folder_path, 'd_altitude')
+                            plot_power(vehicle_file_lists, folder_path, 'd_altitude')
                         elif plot == 7:
-                            plot_energy(file_lists, folder_path, 'model')
+                            plot_energy(vehicle_file_lists, folder_path, 'model')
                         elif plot == 8:
-                            plot_energy(file_lists, folder_path, 'data')
+                            plot_energy(vehicle_file_lists, folder_path, 'data')
                         elif plot == 9:
-                            plot_energy(file_lists, folder_path, 'comparison')
+                            plot_energy(vehicle_file_lists, folder_path, 'comparison')
                         elif plot == 10:
-                            plot_energy(file_lists, folder_path, 'altitude')
+                            plot_energy(vehicle_file_lists, folder_path, 'altitude')
                         elif plot == 11:
                             break
                         else:
@@ -160,19 +156,19 @@ def main():
                     for selection in selections_list:
                         plot = int(selection.strip())
                         if plot == 1:
-                            plot_energy_scatter(file_lists, folder_path, 'model')
+                            plot_energy_scatter(vehicle_file_lists, folder_path, 'model')
                         elif plot == 2:
-                            plot_energy_scatter(file_lists, folder_path, 'fitting')
+                            plot_energy_scatter(vehicle_file_lists, folder_path, 'fitting')
                         elif plot == 3:
-                            plot_power_scatter(file_lists, folder_path)
+                            plot_power_scatter(vehicle_file_lists, folder_path)
                         elif plot == 4:
                             break
                         elif plot == 5:
-                            plot_energy_dis(file_lists, folder_path, 'model')
+                            plot_energy_dis(vehicle_file_lists, folder_path, 'model')
                         elif plot == 6:
-                            plot_energy_dis(file_lists, folder_path, 'data')
+                            plot_energy_dis(vehicle_file_lists, folder_path, 'data')
                         elif plot == 7:
-                            plot_energy_dis(file_lists, folder_path, 'fitting')
+                            plot_energy_dis(vehicle_file_lists, folder_path, 'fitting')
                         elif plot == 10:
                             print("Quitting the program.")
                             return
