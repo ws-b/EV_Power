@@ -1,7 +1,6 @@
 import os
 import platform
-from GS_preprocessing import (get_file_list, process_device_folders,process_files_trip_by_trip,
-                              process_files)
+from GS_preprocessing import (process_device_folders,process_files_trip_by_trip, process_files)
 from GS_vehicle_dict import vehicle_dict
 
 device_vehicle_mapping = {device: model for model, devices in vehicle_dict.items() for device in devices}
@@ -11,7 +10,8 @@ def pre_process():
         print("1: Move device folders based on device number and type (New Files Only)")
         print("2: Pre-Process BMS Files")
         print("3: Trip by Trip Parsing")
-        print("4: Quitting the program.")
+        print("4: Return to previous menu")
+        print("5: Quitting the program.")
         choice = input("Enter the number you want to run: ")
 
         if not choice.isdigit():
@@ -29,7 +29,7 @@ def pre_process():
 
         elif choice == 2:
             start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-            save_path = r'D:\SamsungSTF\Processed_Data/Merged'
+            save_path = r'D:\SamsungSTF\Processed_Data/Multi_Merged'
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
@@ -39,8 +39,8 @@ def pre_process():
 
         elif choice == 3:
             if platform.system() == "Windows":
-                start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
-                save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip')
+                start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Multi_Merged')
+                save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Multi_TripByTrip')
             elif platform.system() == "Darwin":
                 start_path = os.path.normpath(
                     '/Users/wsong/Documents/삼성미래과제/Processed_data/Merged')
@@ -55,6 +55,8 @@ def pre_process():
             break
 
         elif choice == 4:
+            break
+        elif choice == 5:
             print("Quitting the program.")
             return
 

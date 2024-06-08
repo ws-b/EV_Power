@@ -31,7 +31,6 @@ def load_and_split_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle):
 
     return vehicle_files
 
-
 def process_files(files):
     df_list = []
     for file in files:
@@ -55,7 +54,6 @@ def process_files(files):
     print(f"Acceleration range after scaling: {full_data['acceleration'].min()} to {full_data['acceleration'].max()}")
 
     return full_data
-
 
 def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models"):
     if not os.path.exists(save_dir):
@@ -208,10 +206,10 @@ def plot_full_time_series(data, y_pred, file_name):
     plt.show()
 
 def main():
-    base_dir = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip')
+    base_dir = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Multi_TripByTrip')
     save_dir = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Models')
 
-    selected_vehicle = 'NiroEV'  # 학습할 차종 지정
+    selected_vehicle = 'NiroEV'
 
     vehicle_files = load_and_split_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle)
     if not vehicle_files:
