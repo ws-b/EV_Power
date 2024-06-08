@@ -34,7 +34,7 @@ def main():
         if platform.system() == "Windows":
             folder_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data')
         elif platform.system() == "Darwin":
-            folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/Processed_data')
+            folder_path = os.path.normpath('')
         else:
             print("Unknown system.")
             return
@@ -78,7 +78,6 @@ def main():
 
                 results = cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
-                # Print overall results
                 if results:
                     for fold_num, rmse in results:
                         print(f"Fold: {fold_num}, RMSE: {rmse}")
@@ -143,9 +142,7 @@ def main():
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                     else:
-                        # continue the inner loop if break wasn't hit
                         continue
-                    # break the inner loop if break was hit
                     break
             elif choice == 5:
                 while True:
@@ -182,9 +179,7 @@ def main():
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                     else:
-                        # continue the inner loop if break wasn't hit
                         continue
-                    # break the inner loop if break was hit
                     break
             elif choice == 6:
                 break
