@@ -4,7 +4,7 @@ from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
 from GS_vehicle_dict import vehicle_dict
-from GS_Trained_VBV import add_predicted_power_column, load_data_by_vehicle
+from GS_Train import cross_validate, load_data_by_vehicle, add_predicted_power_column
 
 def main():
     while True:
@@ -57,17 +57,35 @@ def main():
 
         while True:
             print("1: Calculate Power(W)")
-            print("2: Predicted Power(W) using Trained Model")
-            print("3: Plotting Graph (Power & Energy)")
-            print("4: Plotting Graph (Scatter, Energy Distribution)")
-            print("5: Return to previous menu")
-            print("6: Quitting the program.")
+            print("2: Train Model")
+            print("3: Predicted Power(W) using Trained Model")
+            print("4: Plotting Graph (Power & Energy)")
+            print("5: Plotting Graph (Scatter, Energy Distribution)")
+            print("6: Return to previous menu")
+            print("7: Quitting the program.")
             choice = int(input("Enter number you want to run: "))
 
             if choice == 1:
                 process_files_power(file_lists, folder_path, EV)
             elif choice == 2:
-                base_dir = folder_path  # 이미 TripByTrip 디렉토리를 포함하고 있음
+                base_dir = folder_path
+                save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
+
+                vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
+                if not vehicle_files:
+                    print(f"No files found for the selected vehicle: {selected_car}")
+                    return
+
+                results = cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+
+                # Print overall results
+                if results:
+                    for fold_num, rmse in results:
+                        print(f"Fold: {fold_num}, RMSE: {rmse}")
+                else:
+                    print(f"No results for the selected vehicle: {selected_car}")
+            elif choice == 3:
+                base_dir = folder_path
                 model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'best_model_{selected_car}.json')
 
                 vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
@@ -81,7 +99,7 @@ def main():
                     return
 
                 add_predicted_power_column(files, model_path)
-            elif choice == 3:
+            elif choice == 4:
                 while True:
                     print("1: Plotting Stacked Power Plot Term by Term")
                     print("2: Plotting Model's Power Graph")
@@ -129,7 +147,7 @@ def main():
                         continue
                     # break the inner loop if break was hit
                     break
-            elif choice == 4:
+            elif choice == 5:
                 while True:
                     print("1: Plotting Energy Scatter Graph")
                     print("2: Plotting Fitting Scatter Graph")
@@ -168,9 +186,9 @@ def main():
                         continue
                     # break the inner loop if break was hit
                     break
-            elif choice == 5:
-                break
             elif choice == 6:
+                break
+            elif choice == 7:
                 print("Quitting the program.")
                 return
             else:
