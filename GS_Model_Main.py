@@ -4,6 +4,7 @@ from GS_preprocessing import get_file_list
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
 from GS_vehicle_dict import vehicle_dict
+from GS_Trained_VBV import add_predicted_power_column, load_data_by_vehicle
 
 def main():
     while True:
@@ -38,7 +39,7 @@ def main():
             print("Unknown system.")
             return
 
-        folder_path = os.path.join(folder_path, 'Multi_TripByTrip')
+        folder_path = os.path.join(folder_path, 'TripByTrip')
         if car in car_options:
             selected_car = car_options[car]
             EV = select_vehicle(car)
@@ -55,7 +56,8 @@ def main():
         file_lists.sort()
 
         while True:
-            print("1: Calculate Power(W) using Model & Filtering Data")
+            print("1: Calculate Power(W)")
+            print("2: Predicted Power(W) using Trained Model")
             print("3: Plotting Graph (Power & Energy)")
             print("4: Plotting Graph (Scatter, Energy Distribution)")
             print("5: Return to previous menu")
@@ -64,6 +66,21 @@ def main():
 
             if choice == 1:
                 process_files_power(file_lists, folder_path, EV)
+            elif choice == 2:
+                base_dir = folder_path  # 이미 TripByTrip 디렉토리를 포함하고 있음
+                model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'best_model_{selected_car}.json')
+
+                vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
+                if not vehicle_files:
+                    print(f"No files found for the selected vehicle: {selected_car}")
+                    return
+
+                files = vehicle_files.get(selected_car, [])
+                if not files:
+                    print(f"No files to process for the selected vehicle: {selected_car}")
+                    return
+
+                add_predicted_power_column(files, model_path)
             elif choice == 3:
                 while True:
                     print("1: Plotting Stacked Power Plot Term by Term")

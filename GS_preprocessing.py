@@ -43,11 +43,11 @@ def read_file_with_detected_encoding(file_path):
                 print(f"Failed to read file {file_path} with Python engine due to: {e}")
                 return None
 
-def process_files(start_path, save_path, device_vehicle_mapping, altitude=False, max_workers=16):
+def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        with ProcessPoolExecutor() as executor:
             futures = []
             for root, dirs, files in os.walk(start_path):
                 if not dirs:  # Only process leaf folders
@@ -151,7 +151,7 @@ def process_folder(root, files, save_path, device_vehicle_mapping, altitude):
 
         data_save.to_csv(output_file_path, index=False)
 
-def process_files_trip_by_trip(start_path, save_path, max_workers=16):
+def process_files_trip_by_trip(start_path, save_path):
     # Calculate the total number of CSV files
     csv_files = [os.path.join(root, file)
                  for root, _, files in os.walk(start_path)
@@ -161,7 +161,7 @@ def process_files_trip_by_trip(start_path, save_path, max_workers=16):
     # Progress bar setup
     with tqdm(total=total_files, desc="Processing files", unit="file") as pbar:
         # Process files in parallel using ProcessPoolExecutor
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        with ProcessPoolExecutor() as executor:
             futures = [executor.submit(process_wrapper, file_path, save_path) for file_path in csv_files]
             for future in as_completed(futures):
                 try:
