@@ -29,7 +29,7 @@ def pre_process():
 
         elif choice == 2:
             start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-            save_path = r'D:\SamsungSTF\Processed_Data/Multi_Merged'
+            save_path = r'D:\SamsungSTF\Processed_Data/Merged'
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
@@ -39,8 +39,8 @@ def pre_process():
 
         elif choice == 3:
             if platform.system() == "Windows":
-                start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Multi_Merged')
-                save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Multi_TripByTrip')
+                start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
+                save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip')
             elif platform.system() == "Darwin":
                 start_path = os.path.normpath(
                     '/Users/wsong/Documents/삼성미래과제/Processed_data/Merged')
