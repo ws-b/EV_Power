@@ -100,6 +100,11 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
             best_rmse = rmse
             best_model = model
 
+        # Plot full time series for random samples
+        for i in np.random.choice(test_index, 3, replace=False):
+            file_name = files[i % len(files)]
+            plot_full_time_series(data.iloc[test_index], y_pred, file_name)
+
     # Save the best model
     if best_model:
         model_file = os.path.join(save_dir, f"best_model_{selected_vehicle}.json")
