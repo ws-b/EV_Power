@@ -112,6 +112,7 @@ def main():
                     print("9: Plotting Energy Comparison Graph")
                     print("10: Plotting Altitude and Energy Graph")
                     print("11: Return to previous menu")
+                    print("12: Quitting the program.")
 
                     selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
                     selections_list = selections.split(',')
@@ -140,6 +141,9 @@ def main():
                             plot_energy(file_lists, folder_path, 'altitude')
                         elif plot == 11:
                             break
+                        elif plot == 12:
+                            print("Quitting the program.")
+                            return
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                     else:
@@ -152,10 +156,12 @@ def main():
                     print("1: Plotting Energy Scatter Graph")
                     print("2: Plotting Fitting Scatter Graph")
                     print("3: Plotting Power and Delta_altitude Graph")
-                    print("4: Return to previous menu")
+                    print("4: ")
                     print("5: Plotting Model Energy Distribution Graph")
                     print("6: Plotting Data Energy Distribution Graph")
                     print("7: Plotting Fitting Energy Distribution Graph")
+                    print("8: ")
+                    print("9: Return to previous menu.")
                     print("10: Quitting the program.")
 
                     selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
@@ -163,9 +169,9 @@ def main():
                     for selection in selections_list:
                         plot = int(selection.strip())
                         if plot == 1:
-                            plot_energy_scatter(file_lists, folder_path, 'model')
+                            plot_energy_scatter(file_lists, folder_path, selected_car, 'model')
                         elif plot == 2:
-                            plot_energy_scatter(file_lists, folder_path, 'fitting')
+                            plot_energy_scatter(file_lists, folder_path, selected_car, 'fitting')
                         elif plot == 3:
                             plot_power_scatter(file_lists, folder_path)
                         elif plot == 4:
@@ -176,6 +182,10 @@ def main():
                             plot_energy_dis(file_lists, folder_path, 'data')
                         elif plot == 7:
                             plot_energy_dis(file_lists, folder_path, 'fitting')
+                        elif plot == 8:
+                            break
+                        elif plot == 9:
+                            break
                         elif plot == 10:
                             print("Quitting the program.")
                             return

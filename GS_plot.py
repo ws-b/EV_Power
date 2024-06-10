@@ -278,7 +278,7 @@ def plot_energy(file_lists, folder_path, Target):
             return
 
 
-def plot_energy_scatter(file_lists, folder_path, Target):
+def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
     print('Put Target: model, fitting')
     data_energies = []
     mod_energies = []
@@ -335,7 +335,7 @@ def plot_energy_scatter(file_lists, folder_path, Target):
         ax.set_ylim(0, None)
 
         plt.legend()
-        plt.title("All trip's BMS Energy vs. Model Energy over Time")
+        plt.title(f"{selected_car} : All trip's BMS Energy vs. Model Energy over Time")
         plt.show()
 
     elif Target == 'fitting':
@@ -371,7 +371,7 @@ def plot_energy_scatter(file_lists, folder_path, Target):
         ax.set_ylim(0, None)
 
         plt.legend()
-        plt.title("All trip's BMS Energy vs. Model Energy over Time")
+        plt.title(f"{selected_car} : All trip's BMS Energy vs. Model Energy over Time")
         plt.show()
 
     else:
@@ -404,7 +404,7 @@ def plot_power_scatter(file_lists, folder_path):
         plt.grid(True)
         plt.show()
 
-def plot_energy_dis(file_lists, folder_path, Target):
+def plot_energy_dis(file_lists, folder_path, selected_car, Target):
     print('Put Target: model, data, fitting')
     dis_mod_energies = []
     dis_data_energies = []
@@ -482,7 +482,7 @@ def plot_energy_dis(file_lists, folder_path, Target):
         plt.xlim(0, 25)
         plt.xlabel('Total Distance / Total Model Energy (km/kWh)')
         plt.ylabel('Number of trips')
-        plt.title('Total Distance / Total Model Energy Distribution')
+        plt.title(f"{selected_car} : Total Distance / Total Model Energy Distribution")
         plt.grid(False)
         plt.show()
 
@@ -513,7 +513,7 @@ def plot_energy_dis(file_lists, folder_path, Target):
         plt.xlim(0, 25)
         plt.xlabel('Total Distance / Total Data Energy (km/kWh)')
         plt.ylabel('Number of trips')
-        plt.title('Total Distance / Total Data Energy Distribution')
+        plt.title(f"{selected_car} : Total Distance / Total Data Energy Distribution")
         plt.grid(False)
         plt.show()
 
@@ -544,7 +544,7 @@ def plot_energy_dis(file_lists, folder_path, Target):
         plt.xlim(0, 25)
         plt.xlabel('Total Distance / Total Trained Model Energy (km/kWh)')
         plt.ylabel('Number of trips')
-        plt.title('Total Distance / Total Trained Model Energy Distribution')
+        plt.title(f"{selected_car} : Total Distance / Total Trained Model Energy Distribution")
         plt.grid(False)
         plt.show()
 
