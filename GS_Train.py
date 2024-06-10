@@ -1,5 +1,4 @@
 import os
-import glob
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,25 +9,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
 from concurrent.futures import ProcessPoolExecutor, as_completed
-
-def load_data_by_vehicle(base_dir, vehicle_dict, selected_vehicle):
-    vehicle_files = {}
-    if selected_vehicle not in vehicle_dict:
-        print(f"Selected vehicle '{selected_vehicle}' not found in vehicle_dict.")
-        return vehicle_files
-
-    ids = vehicle_dict[selected_vehicle]
-    all_files = []
-    for vid in ids:
-        patterns = [
-            os.path.join(base_dir, f"**/bms_{vid}-*"),
-            os.path.join(base_dir, f"**/bms_altitude_{vid}-*")
-        ]
-        for pattern in patterns:
-            all_files += glob.glob(pattern, recursive=True)
-    vehicle_files[selected_vehicle] = all_files
-
-    return vehicle_files
+from GS_preprocessing import load_data_by_vehicle
 
 def process_files(files):
     df_list = []
