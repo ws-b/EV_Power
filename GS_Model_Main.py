@@ -1,5 +1,6 @@
 import os
 import platform
+import random
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
@@ -125,11 +126,11 @@ def main():
                         elif plot == 6:
                             plot_power(vehicle_file_lists, folder_path, 'd_altitude')
                         elif plot == 7:
-                            plot_energy(vehicle_file_lists, folder_path, 'model')
+                            plot_energy(random.sample(vehicle_file_lists, 5), folder_path, 'model')
                         elif plot == 8:
-                            plot_energy(vehicle_file_lists, folder_path, 'data')
+                            plot_energy(random.sample(vehicle_file_lists, 5), folder_path, 'data')
                         elif plot == 9:
-                            plot_energy(vehicle_file_lists, folder_path, 'comparison')
+                            plot_energy(random.sample(vehicle_file_lists, 5), folder_path, 'comparison')
                         elif plot == 10:
                             plot_energy(vehicle_file_lists, folder_path, 'altitude')
                         elif plot == 11:
@@ -140,9 +141,7 @@ def main():
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                     else:
-                        # continue the inner loop if break wasn't hit
                         continue
-                    # break the inner loop if break was hit
                     break
             elif choice == 5:
                 while True:
@@ -185,9 +184,7 @@ def main():
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                     else:
-                        # continue the inner loop if break wasn't hit
                         continue
-                    # break the inner loop if break was hit
                     break
             elif choice == 6:
                 break
@@ -196,6 +193,7 @@ def main():
                 return
             else:
                 print("Invalid choice. Please try again.")
+                continue
 
 if __name__ == "__main__":
     main()

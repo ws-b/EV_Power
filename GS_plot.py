@@ -22,6 +22,9 @@ def plot_power(file_lists, folder_path, Target):
         data_power = np.array(data['Power_IV']) / 1000
         model_power = np.array(data['Power']) / 1000
         power_diff = data_power - model_power
+
+        if 'Predicted_Power' in data.columns:
+            predicted_power = np.array(data['Predicted_Power']) / 1000
         
         if Target == 'stacked':
             A = data['A'] / 1000
@@ -88,6 +91,7 @@ def plot_power(file_lists, folder_path, Target):
             plt.ylabel('Data Power and Model Power (kW)')
             plt.plot(t_min, data_power, label='Data Power (kW)', color='tab:blue')
             plt.plot(t_min, model_power, label='model Power (kW)', color='tab:red')
+            plt.plot(t_min, predicted_power, label='Predicted Power (kW)', color='tab:green')
             plt.ylim([-100, 100])
 
             # Add date and file name
@@ -160,7 +164,7 @@ def plot_power(file_lists, folder_path, Target):
             return
 
 def plot_energy(file_lists, folder_path, Target):
-    print("Plotting Energy, Put Target : model, data, comparison, altitude, d_altitude")
+    print("Plotting Energy, Put Target : model, data, fitting, comparison, altitude, d_altitude")
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
@@ -178,6 +182,12 @@ def plot_energy(file_lists, folder_path, Target):
             model_power = np.array(data['Power'])
             model_energy = model_power * t_diff / 3600 / 1000
             model_energy_cumulative = model_energy.cumsum()
+
+        if 'Predicted_Power' in data.columns:
+            predicted_power = np.array(data['Predicted_Power'])
+            predicted_energy = predicted_power * t_diff / 3600 / 1000
+            predicted_energy_cumulative = predicted_energy.cumsum()
+
         else:
             pass
 
@@ -219,6 +229,26 @@ def plot_energy(file_lists, folder_path, Target):
             plt.tight_layout()
             plt.show()
 
+        elif Target == 'fitting':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('Trained Model Energy (kWh)')
+            plt.plot(t_min, predicted_energy_cumulative, label='Trained Model Energy (kWh)', color='tab:blue')
+
+            # Add date and file name
+            date = t.iloc[0].strftime('%Y-%m-%d')
+            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Train Model Energy')
+            plt.tight_layout()
+            plt.show()
+
+
         elif Target == 'comparison':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
@@ -226,6 +256,7 @@ def plot_energy(file_lists, folder_path, Target):
             plt.ylabel('BMS Energy and Model Energy (kWh)')
             plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
             plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            plt.plot(t_min, predicted_energy_cumulative, label='Trained Model Energy (kWh)', color='tab:green')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -405,7 +436,7 @@ def plot_power_scatter(file_lists, folder_path):
         plt.show()
 
 def plot_energy_dis(file_lists, folder_path, selected_car, Target):
-    print('Put Target: model, data, fitting')
+
     dis_mod_energies = []
     dis_data_energies = []
     dis_predicted_energies = []
@@ -457,15 +488,15 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
 
     if Target == 'model':
         # compute weighted mean using total distances as weights
-        weighted_mean = np.dot(dis_mod_energies, total_distances) / sum(total_distances)
+        #weighted_mean = np.dot(dis_mod_energies, total_distances) / sum(total_distances)
 
         # plot histogram for all files
         hist_data = sns.histplot(dis_mod_energies, bins='auto', color='gray', kde=False)
 
-        # plot vertical line for weighted mean value
-        plt.axvline(weighted_mean, color='red', linestyle='--')
-        plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
-                 color='red', fontsize=12)
+        # # plot vertical line for weighted mean value
+        # plt.axvline(weighted_mean, color='red', linestyle='--')
+        # plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
+        #          color='red', fontsize=12)
 
         # plot vertical line for median value
         median_value = np.median(dis_mod_energies)
@@ -488,15 +519,15 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
 
     elif Target == 'data':
         # compute weighted mean using total distances as weights
-        weighted_mean = np.dot(dis_data_energies, total_distances) / sum(total_distances)
+        #weighted_mean = np.dot(dis_data_energies, total_distances) / sum(total_distances)
 
         # plot histogram for all files
         hist_data = sns.histplot(dis_data_energies, bins='auto', color='gray', kde=False)
 
-        # plot vertical line for weighted mean value
-        plt.axvline(weighted_mean, color='red', linestyle='--')
-        plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
-                 color='red', fontsize=12)
+        # # plot vertical line for weighted mean value
+        # plt.axvline(weighted_mean, color='red', linestyle='--')
+        # plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
+        #          color='red', fontsize=12)
 
         # plot vertical line for median value
         median_value = np.median(dis_data_energies)
@@ -519,15 +550,15 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
 
     elif Target == 'fitting' and 'Predicted_Power' in data.columns:
         # compute weighted mean using total distances as weights
-        weighted_mean = np.dot(dis_predicted_energies, total_distances) / sum(total_distances)
+        #weighted_mean = np.dot(dis_predicted_energies, total_distances) / sum(total_distances)
 
         # plot histogram for all files
         hist_data = sns.histplot(dis_predicted_energies, bins='auto', color='gray', kde=False)
 
-        # plot vertical line for weighted mean value
-        plt.axvline(weighted_mean, color='red', linestyle='--')
-        plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
-                 color='red', fontsize=12)
+        # # plot vertical line for weighted mean value
+        # plt.axvline(weighted_mean, color='red', linestyle='--')
+        # plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
+        #          color='red', fontsize=12)
 
         # plot vertical line for median value
         median_value = np.median(dis_predicted_energies)

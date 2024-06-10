@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from scipy.interpolate import griddata
+from sklearn.preprocessing import MinMaxScaler
 
 def process_files(files):
     df_list = []
@@ -16,7 +17,7 @@ def process_files(files):
         try:
             data = pd.read_csv(file)
             if 'Power' in data.columns and 'Power_IV' in data.columns:
-                data['Residual'] = data['Power_IV'] - data['Power']
+                data['Residual'] = data['Power'] - data['Power_IV']
                 df_list.append(data[['speed', 'acceleration', 'Residual']])
         except Exception as e:
             print(f"Error processing file {file}: {e}")
@@ -137,43 +138,37 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle):
     fig = go.Figure(data=data, layout=layout)
     fig.show()
 
-def process_file_with_trained_model(file, model, scaler):
+def process_file_with_trained_model(file, model):
     try:
         data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns:
-            # Standardize speed and acceleration
-            scaled_features = scaler.transform(data[['speed', 'acceleration']])
+        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_IV' in data.columns:
+            # Standardize speed and acceleration for the current file
+            features = data[['speed', 'acceleration']]
+            scaler = StandardScaler()
+            features_scaled = scaler.fit_transform(features)
 
-            dmatrix = xgb.DMatrix(scaled_features)
-            predicted_residuals = model.predict(dmatrix)
+            predicted_residual = model.predict(features_scaled)
 
-            data['Predicted_Power'] = data['Power'] - predicted_residuals
+            data['Predicted_Power'] = data['Power'] - predicted_residual
 
-            # Save the updated file (overwriting the original file)
+            # Save the updated file
             data.to_csv(file, index=False)
 
-            print(f"File saved with predicted power: {file}")
+            print(f"Processed file {file}")
         else:
-            print(f"File {file} does not contain required columns 'speed' and 'acceleration'.")
+            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power_IV'.")
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 
-
 def add_predicted_power_column(files, model_path):
     try:
-        model = xgb.Booster()
+        model = xgb.XGBRegressor()
         model.load_model(model_path)
     except Exception as e:
         print(f"Error loading model: {e}")
         return
 
-    # Prepare a standard scaler based on all the data
-    all_data = pd.concat([pd.read_csv(file)[['speed', 'acceleration']] for file in files if
-                          'speed' in pd.read_csv(file).columns and 'acceleration' in pd.read_csv(file).columns])
-    scaler = StandardScaler()
-    scaler.fit(all_data)
-
     with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_file_with_trained_model, file, model, scaler) for file in files]
+        futures = [executor.submit(process_file_with_trained_model, file, model) for file in files]
         for future in as_completed(futures):
             future.result()
