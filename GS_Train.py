@@ -9,7 +9,6 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from GS_preprocessing import load_data_by_vehicle
 
 def process_files(files):
     df_list = []
