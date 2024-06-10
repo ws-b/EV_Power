@@ -2,13 +2,13 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import plotly.graph_objects as go
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from scipy.interpolate import griddata
 
 def process_files(files):
     df_list = []
@@ -141,15 +141,13 @@ def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
         if 'speed' in data.columns and 'acceleration' in data.columns:
-            original_data = data.copy()
-
             # Standardize speed and acceleration
             scaled_features = scaler.transform(data[['speed', 'acceleration']])
 
             dmatrix = xgb.DMatrix(scaled_features)
             predicted_residuals = model.predict(dmatrix)
 
-            data['Predicted_Power'] = data['Power_IV'] - predicted_residuals
+            data['Predicted_Power'] = data['Power'] - predicted_residuals
 
             # Save the updated file (overwriting the original file)
             data.to_csv(file, index=False)

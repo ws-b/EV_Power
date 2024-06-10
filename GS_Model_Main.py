@@ -87,11 +87,6 @@ def main():
             elif choice == 3:
                 model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'best_model_{selected_car}.json')
 
-                vehicle_files = load_data_by_vehicle(folder_path, vehicle_dict, selected_car)
-                if not vehicle_files:
-                    print(f"No files found for the selected vehicle: {selected_car}")
-                    return
-
                 if not vehicle_file_lists:
                     print(f"No files to process for the selected vehicle: {selected_car}")
                     return
