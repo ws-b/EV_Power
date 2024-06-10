@@ -1,6 +1,7 @@
 import os
 import platform
 import random
+import pickle
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
@@ -77,7 +78,13 @@ def main():
                     print(f"No files found for the selected vehicle: {selected_car}")
                     return
 
-                results = cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+                results, scaler = cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+
+                # Save the scaler
+                scaler_path = os.path.join(save_dir, f'scaler_{selected_car}.pkl')
+                with open(scaler_path, 'wb') as f:
+                    pickle.dump(scaler, f)
+                print(f"Scaler saved at {scaler_path}")
 
                 # Print overall results
                 if results:
@@ -85,14 +92,20 @@ def main():
                         print(f"Fold: {fold_num}, RMSE: {rmse}")
                 else:
                     print(f"No results for the selected vehicle: {selected_car}")
+
             elif choice == 3:
                 model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'best_model_{selected_car}.json')
+                scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'scaler_{selected_car}.pkl')
 
                 if not vehicle_file_lists:
                     print(f"No files to process for the selected vehicle: {selected_car}")
                     return
 
-                add_predicted_power_column(vehicle_file_lists, model_path)
+                # Load the scaler
+                with open(scaler_path, 'rb') as f:
+                    scaler = pickle.load(f)
+
+                add_predicted_power_column(vehicle_file_lists, model_path, scaler)
             elif choice == 4:
                 while True:
                     print("1: Plotting Stacked Power Plot Term by Term")

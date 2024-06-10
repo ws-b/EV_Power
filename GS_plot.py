@@ -435,8 +435,8 @@ def plot_power_scatter(file_lists, folder_path):
         plt.grid(True)
         plt.show()
 
-def plot_energy_dis(file_lists, folder_path, selected_car, Target):
 
+def plot_energy_dis(file_lists, folder_path, selected_car, Target):
     dis_mod_energies = []
     dis_data_energies = []
     dis_predicted_energies = []
@@ -455,12 +455,12 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
 
         distance = v * t_diff
         total_distance = distance.cumsum()
-        
+
         if 'Power' in data.columns:
             model_power = np.array(data['Power'])
             model_energy = model_power * t_diff / 3600 / 1000
         else:
-            pass
+            model_energy = np.zeros_like(t_diff)
 
         data_power = np.array(data['Power_IV'])
         data_energy = data_power * t_diff / 3600 / 1000
@@ -469,34 +469,33 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
             predicted_power = data['Predicted_Power']
             predicted_power = np.array(predicted_power)
             predicted_energy = predicted_power * t_diff / 3600 / 1000
-            dis_predicted_energy = ((total_distance[-1] / 1000) / (predicted_energy.cumsum()[-1])) if predicted_energy.cumsum()[
-                                                                                                    -1] != 0 else 0
+            dis_predicted_energy = ((total_distance[-1] / 1000) / (predicted_energy.cumsum()[-1])) if \
+            predicted_energy.cumsum()[-1] != 0 else 0
             dis_predicted_energies.append(dis_predicted_energy)
-        else:
-            pass
 
         # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-        if 'Power' in data.columns:
-            dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if predicted_energy.cumsum()[-1] != 0 else 0
-            dis_mod_energies.append(dis_mod_energy)
+        dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[
+                                                                                            -1] != 0 else 0
+        dis_mod_energies.append(dis_mod_energy)
 
-        dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[-1] != 0 else 0
+        dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[
+                                                                                            -1] != 0 else 0
         dis_data_energies.append(dis_data_energy)
 
         # collect total distances for each file
         total_distances.append(total_distance[-1])
 
     if Target == 'model':
-        # compute weighted mean using total distances as weights
-        #weighted_mean = np.dot(dis_mod_energies, total_distances) / sum(total_distances)
+        # compute mean value
+        mean_value = np.mean(dis_mod_energies)
 
         # plot histogram for all files
         hist_data = sns.histplot(dis_mod_energies, bins='auto', color='gray', kde=False)
 
-        # # plot vertical line for weighted mean value
-        # plt.axvline(weighted_mean, color='red', linestyle='--')
-        # plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
-        #          color='red', fontsize=12)
+        # plot vertical line for mean value
+        plt.axvline(mean_value, color='red', linestyle='--')
+        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}',
+                 color='red', fontsize=12)
 
         # plot vertical line for median value
         median_value = np.median(dis_mod_energies)
@@ -518,16 +517,16 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
         plt.show()
 
     elif Target == 'data':
-        # compute weighted mean using total distances as weights
-        #weighted_mean = np.dot(dis_data_energies, total_distances) / sum(total_distances)
+        # compute mean value
+        mean_value = np.mean(dis_data_energies)
 
         # plot histogram for all files
         hist_data = sns.histplot(dis_data_energies, bins='auto', color='gray', kde=False)
 
-        # # plot vertical line for weighted mean value
-        # plt.axvline(weighted_mean, color='red', linestyle='--')
-        # plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
-        #          color='red', fontsize=12)
+        # plot vertical line for mean value
+        plt.axvline(mean_value, color='red', linestyle='--')
+        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}',
+                 color='red', fontsize=12)
 
         # plot vertical line for median value
         median_value = np.median(dis_data_energies)
@@ -549,16 +548,16 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
         plt.show()
 
     elif Target == 'fitting' and 'Predicted_Power' in data.columns:
-        # compute weighted mean using total distances as weights
-        #weighted_mean = np.dot(dis_predicted_energies, total_distances) / sum(total_distances)
-
+        # compute mean value
+        mean_value = np.mean(dis_predicted_energies
+                             )
         # plot histogram for all files
         hist_data = sns.histplot(dis_predicted_energies, bins='auto', color='gray', kde=False)
 
-        # # plot vertical line for weighted mean value
-        # plt.axvline(weighted_mean, color='red', linestyle='--')
-        # plt.text(weighted_mean + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Weighted Mean: {weighted_mean:.2f}',
-        #          color='red', fontsize=12)
+        # plot vertical line for mean value
+        plt.axvline(mean_value, color='red', linestyle='--')
+        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}',
+                 color='red', fontsize=12)
 
         # plot vertical line for median value
         median_value = np.median(dis_predicted_energies)

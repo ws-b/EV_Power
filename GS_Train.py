@@ -12,12 +12,19 @@ from scipy.interpolate import griddata
 from sklearn.preprocessing import MinMaxScaler
 
 def process_files(files):
+    # Speed in m/s (160 km/h = 160 / 3.6 m/s)
+    SPEED_MIN = 0 / 3.6
+    SPEED_MAX = 180 / 3.6
+    ACCELERATION_MIN = -15
+    ACCELERATION_MAX = 9
+
     df_list = []
     for file in files:
         try:
             data = pd.read_csv(file)
             if 'Power' in data.columns and 'Power_IV' in data.columns:
                 data['Residual'] = data['Power'] - data['Power_IV']
+                data['speed'] = data['speed']
                 df_list.append(data[['speed', 'acceleration', 'Residual']])
         except Exception as e:
             print(f"Error processing file {file}: {e}")
@@ -27,13 +34,13 @@ def process_files(files):
 
     full_data = pd.concat(df_list, ignore_index=True)
 
-    scaler = StandardScaler()
-    full_data[['speed', 'acceleration']] = scaler.fit_transform(full_data[['speed', 'acceleration']])
+    # Define scaler with the predefined range
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
 
-    # Debug: Check for out-of-range values after scaling
-    print(f"Acceleration range after scaling: {full_data['acceleration'].min()} to {full_data['acceleration'].max()}")
+    full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
 
-    return full_data
+    return full_data, scaler
 
 def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models"):
     if not os.path.exists(save_dir):
@@ -49,7 +56,7 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
         return
 
     files = vehicle_files[selected_vehicle]
-    data = process_files(files)
+    data, scaler = process_files(files)
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
     groups = np.zeros(len(y))  # Dummy groups array as StratifiedKFold doesn't support group_k-fold directly
@@ -74,7 +81,7 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
         results.append((fold_num, rmse))
         print(f"Vehicle: {selected_vehicle}, Fold: {fold_num}, RMSE: {rmse}")
 
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle)
+        plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler)
 
         if rmse < best_rmse:
             best_rmse = rmse
@@ -86,16 +93,22 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
         best_model.save_model(model_file)
         print(f"Best model for {selected_vehicle} saved with RMSE: {best_rmse}")
 
-    return results
+    return results, scaler
 
-def plot_3d(X, y_true, y_pred, fold_num, vehicle):
+def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler):
     if X.shape[1] != 2:
         print("Error: X should have 2 columns.")
         return
 
+    # 역변환하여 원래 범위로 변환
+    X_orig = scaler.inverse_transform(X)
+
+    # Speed를 km/h로 변환
+    X_orig[:, 0] *= 3.6
+
     sample_size = min(1000, X.shape[0])
     sample_indices = np.random.choice(X.shape[0], sample_size, replace=False)
-    X_sampled = X[sample_indices]
+    X_sampled = X_orig[sample_indices]
     y_true_sampled = y_true[sample_indices]
     y_pred_sampled = y_pred[sample_indices]
 
@@ -112,9 +125,9 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle):
         name='Predicted Residual'
     )
 
-    grid_x, grid_y = np.linspace(X[:, 0].min(), X[:, 0].max(), 100), np.linspace(X[:, 1].min(), X[:, 1].max(), 100)
+    grid_x, grid_y = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), 100), np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), 100)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-    grid_z = griddata((X[:, 0], X[:, 1]), y_pred, (grid_x, grid_y), method='linear')
+    grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
 
     surface_trace = go.Surface(
         x=grid_x,
@@ -129,8 +142,8 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle):
     layout = go.Layout(
         margin=dict(l=0, r=0, b=0, t=0),
         scene=dict(
-            xaxis=dict(title='Speed'),
-            yaxis=dict(title='Acceleration'),
+            xaxis=dict(title='Speed (km/h)'),
+            yaxis=dict(title='Acceleration (m/s²)'),
             zaxis=dict(title='Residual'),
         ),
         title=f'3D Plot of Actual vs. Predicted Residuals (Fold {fold_num}, Vehicle: {vehicle})'
@@ -138,14 +151,13 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle):
     fig = go.Figure(data=data, layout=layout)
     fig.show()
 
-def process_file_with_trained_model(file, model):
+def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
         if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_IV' in data.columns:
-            # Standardize speed and acceleration for the current file
+            # Use the provided scaler
             features = data[['speed', 'acceleration']]
-            scaler = StandardScaler()
-            features_scaled = scaler.fit_transform(features)
+            features_scaled = scaler.transform(features)
 
             predicted_residual = model.predict(features_scaled)
 
@@ -160,7 +172,7 @@ def process_file_with_trained_model(file, model):
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 
-def add_predicted_power_column(files, model_path):
+def add_predicted_power_column(files, model_path, scaler):
     try:
         model = xgb.XGBRegressor()
         model.load_model(model_path)
@@ -169,6 +181,6 @@ def add_predicted_power_column(files, model_path):
         return
 
     with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_file_with_trained_model, file, model) for file in files]
+        futures = [executor.submit(process_file_with_trained_model, file, model, scaler) for file in files]
         for future in as_completed(futures):
             future.result()
