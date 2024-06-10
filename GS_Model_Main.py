@@ -177,11 +177,11 @@ def main():
                         elif plot == 4:
                             break
                         elif plot == 5:
-                            plot_energy_dis(file_lists, folder_path, 'model')
+                            plot_energy_dis(file_lists, folder_path, selected_car, 'model')
                         elif plot == 6:
-                            plot_energy_dis(file_lists, folder_path, 'data')
+                            plot_energy_dis(file_lists, folder_path, selected_car, 'data')
                         elif plot == 7:
-                            plot_energy_dis(file_lists, folder_path, 'fitting')
+                            plot_energy_dis(file_lists, folder_path, selected_car, 'fitting')
                         elif plot == 8:
                             break
                         elif plot == 9:
