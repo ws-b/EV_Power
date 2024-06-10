@@ -4,7 +4,7 @@ import random
 import pickle
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis
+from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter
 from GS_vehicle_dict import vehicle_dict
 from GS_Train import cross_validate, add_predicted_power_column
 
@@ -160,8 +160,9 @@ def main():
                 while True:
                     print("1: Plotting Energy Scatter Graph")
                     print("2: Plotting Fitting Scatter Graph")
-                    print("3: Plotting Power and Delta_altitude Graph")
-                    print("4: ")
+                    print("3: Plotting Individual Driver's Scatter Graph")
+                    print("4: Plotting Power and Delta_altitude Graph")
+
                     print("5: Plotting Model Energy Distribution Graph")
                     print("6: Plotting Data Energy Distribution Graph")
                     print("7: Plotting Fitting Energy Distribution Graph")
@@ -178,9 +179,15 @@ def main():
                         elif plot == 2:
                             plot_energy_scatter(vehicle_file_lists, folder_path, selected_car, 'fitting')
                         elif plot == 3:
-                            plot_power_scatter(vehicle_file_lists, folder_path)
+                            sample_ids = random.sample(vehicle_dict[selected_car], 5)
+                            for id in sample_ids:
+                                sample_files = [f for f in vehicle_file_lists if id in f]
+                                if len(sample_files) < 50:
+                                    pass
+                                else:
+                                    plot_driver_energy_scatter(sample_files, folder_path, selected_car, id)
                         elif plot == 4:
-                            break
+                            plot_power_scatter(vehicle_file_lists, folder_path)
                         elif plot == 5:
                             plot_energy_dis(vehicle_file_lists, folder_path, selected_car, 'model')
                         elif plot == 6:

@@ -308,9 +308,7 @@ def plot_energy(file_lists, folder_path, Target):
             print("Invalid Target")
             return
 
-
 def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
-    print('Put Target: model, fitting')
     data_energies = []
     mod_energies = []
     predicted_energies = []
@@ -402,12 +400,80 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
         ax.set_ylim(0, None)
 
         plt.legend()
-        plt.title(f"{selected_car} : All trip's BMS Energy vs. Model Energy over Time")
+        plt.title(f"{selected_car} : All trip's BMS Energy vs. Trained Model Energy over Time")
         plt.show()
 
     else:
         print('Invalid Target')
         return
+
+def plot_driver_energy_scatter(file_lists, folder_path, selected_car, id):
+    data_energies = []
+    mod_energies = []
+    predicted_energies = []
+
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        data_power = np.array(data['Power_IV'])
+        data_energy = data_power * t_diff / 3600 / 1000
+        data_energies.append(data_energy.cumsum()[-1])
+
+        if 'Power' in data.columns:
+            model_power = np.array(data['Power'])
+            model_energy = model_power * t_diff / 3600 / 1000
+            mod_energies.append(model_energy.cumsum()[-1])
+
+        if 'Predicted_Power' in data.columns:
+            predicted_power = np.array(data['Predicted_Power'])
+            predicted_energy = predicted_power * t_diff / 3600 / 1000
+            predicted_energies.append(predicted_energy.cumsum()[-1])
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
+
+    ax.set_xlabel('Data Energy (kWh)')
+    ax.set_ylabel('Predicted Energy (kWh)')
+
+    for i in range(len(data_energies)):
+        ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
+                   edgecolors=colors[i], label='Before fitting' if i == 0 else "")
+
+    for i in range(len(data_energies)):
+        ax.scatter(data_energies[i], predicted_energies[i], color=colors[i],
+                   label='After fitting' if i == 0 else "")
+
+    slope_original, intercept_original, _, _, _ = linregress(data_energies, mod_energies)
+    ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
+            color='lightblue', label='Trend (before fitting)')
+
+    slope, intercept, _, _, _ = linregress(data_energies, predicted_energies)
+    ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b',
+            label='Trend (after fitting)')
+
+    lims = [
+        np.min([ax.get_xlim(), ax.get_ylim()]),
+        np.max([ax.get_xlim(), ax.get_ylim()]),
+    ]
+    ax.plot(lims, lims, 'r-', alpha=0.75, zorder=0)
+    ax.set_aspect('equal')
+    ax.set_xlim(0, None)
+    ax.set_ylim(0, None)
+
+    plt.legend()
+    plt.title(f"{selected_car} : {id} driver \n BMS Energy vs. Trained Model Energy over Time")
+
+    # Add sample size to the plot
+    sample_size = len(data_energies)
+    plt.text(0.95, 0.97, f'Sample size: {sample_size}', horizontalalignment='right',
+             verticalalignment='top', transform=ax.transAxes, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+
+    plt.show()
 
 def plot_power_scatter(file_lists, folder_path):
     for file in tqdm(file_lists):
@@ -482,6 +548,10 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
                                                                                             -1] != 0 else 0
         dis_data_energies.append(dis_data_energy)
 
+        dis_predicted_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if predicted_energy.cumsum()[
+                                                                                            -1] != 0 else 0
+        dis_predicted_energies.append(dis_predicted_energy)
+
         # collect total distances for each file
         total_distances.append(total_distance[-1])
 
@@ -549,8 +619,7 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
 
     elif Target == 'fitting' and 'Predicted_Power' in data.columns:
         # compute mean value
-        mean_value = np.mean(dis_predicted_energies
-                             )
+        mean_value = np.mean(dis_predicted_energies)
         # plot histogram for all files
         hist_data = sns.histplot(dis_predicted_energies, bins='auto', color='gray', kde=False)
 

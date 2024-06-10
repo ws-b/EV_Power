@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from scipy.interpolate import griddata
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 
 def process_files(files):
     # Speed in m/s (160 km/h = 160 / 3.6 m/s)
@@ -42,11 +42,11 @@ def process_files(files):
 
     return full_data, scaler
 
-def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models"):
+def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
     best_rmse = float('inf')
     best_model = None
@@ -59,9 +59,8 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
     data, scaler = process_files(files)
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
-    groups = np.zeros(len(y))  # Dummy groups array as StratifiedKFold doesn't support group_k-fold directly
 
-    for fold_num, (train_index, test_index) in enumerate(skf.split(X, groups), 1):
+    for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
@@ -71,7 +70,8 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
         params = {
             'tree_method': 'hist',
             'device': 'cuda',
-            'eval_metric': 'rmse'
+            'eval_metric': ['rmse', 'mae'],
+            'objective': 'reg:squarederror'
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=100, evals=evals)
@@ -81,7 +81,7 @@ def cross_validate(vehicle_files, selected_vehicle, n_splits=5, save_dir="models
         results.append((fold_num, rmse))
         print(f"Vehicle: {selected_vehicle}, Fold: {fold_num}, RMSE: {rmse}")
 
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler)
+        # plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler)
 
         if rmse < best_rmse:
             best_rmse = rmse
