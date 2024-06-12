@@ -102,7 +102,7 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_IV' in data.columns:
+        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power' in data.columns:
             # Use the provided scaler
             features = data[['speed', 'acceleration']]
             features_scaled = scaler.transform(features)
@@ -116,7 +116,7 @@ def process_file_with_trained_model(file, model, scaler):
 
             print(f"Processed file {file}")
         else:
-            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power_IV'.")
+            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power'.")
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 
