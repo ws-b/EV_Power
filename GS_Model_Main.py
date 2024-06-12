@@ -6,7 +6,8 @@ from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter
 from GS_vehicle_dict import vehicle_dict
-from GS_Train import cross_validate, add_predicted_power_column
+from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
+from GS_Train_RNDFRST import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
 
 def main():
     while True:
@@ -59,7 +60,7 @@ def main():
 
         while True:
             print("1: Calculate Power(W)")
-            print("2: Train Model using XGBoost")
+            print("2: Train Model")
             print("3: Predicted Power(W) using Trained Model")
             print("4: Plotting Graph (Power & Energy)")
             print("5: Plotting Graph (Scatter, Energy Distribution)")
@@ -72,40 +73,94 @@ def main():
             elif choice == 2:
                 base_dir = folder_path
                 save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
-
                 vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
                 if not vehicle_files:
                     print(f"No files found for the selected vehicle: {selected_car}")
                     return
 
-                results, scaler = cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+                while True:
+                    print("1: Train Model using XGBoost")
+                    print("2: Train Model using Random Forest")
+                    print("3: Train Model using SVM")
+                    choice = int(input("Enter number you want to run: "))
+                    if choice == 1:
+                        results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
-                # Save the scaler
-                scaler_path = os.path.join(save_dir, f'scaler_{selected_car}.pkl')
-                with open(scaler_path, 'wb') as f:
-                    pickle.dump(scaler, f)
-                print(f"Scaler saved at {scaler_path}")
+                        # Save the scaler
+                        scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
+                        with open(scaler_path, 'wb') as f:
+                            pickle.dump(scaler, f)
+                        print(f"Scaler saved at {scaler_path}")
 
-                # Print overall results
-                if results:
-                    for fold_num, rmse in results:
-                        print(f"Fold: {fold_num}, RMSE: {rmse}")
-                else:
-                    print(f"No results for the selected vehicle: {selected_car}")
+                        # Print overall results
+                        if results:
+                            for fold_num, rmse, nrmse, percent_rmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
+                    if choice == 2:
+                        results, scaler = rf_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+
+                        # Save the scaler
+                        scaler_path = os.path.join(save_dir, f'RF_scaler_{selected_car}.pkl')
+                        with open(scaler_path, 'wb') as f:
+                            pickle.dump(scaler, f)
+                        print(f"Scaler saved at {scaler_path}")
+
+                        # Print overall results
+                        if results:
+                            for fold_num, rmse, nrmse, percent_rmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
+                    else:
+                        print("Invalid choice. Please try again.")
+                        continue
+                    break
 
             elif choice == 3:
-                model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'best_model_{selected_car}.json')
-                scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'scaler_{selected_car}.pkl')
+                while True:
+                    print("1: XGBoost Model")
+                    print("2: Random Forest Model")
+                    print("3: SVM Model")
+                    choice = int(input("Enter number you want to run: "))
+                    if choice == 1:
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                                  f'XGB_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                                   f'XGB_scaler_{selected_car}.pkl')
 
-                if not vehicle_file_lists:
-                    print(f"No files to process for the selected vehicle: {selected_car}")
-                    return
+                        if not vehicle_file_lists:
+                            print(f"No files to process for the selected vehicle: {selected_car}")
+                            return
 
-                # Load the scaler
-                with open(scaler_path, 'rb') as f:
-                    scaler = pickle.load(f)
+                        # Load the scaler
+                        with open(scaler_path, 'rb') as f:
+                            scaler = pickle.load(f)
 
-                add_predicted_power_column(vehicle_file_lists, model_path, scaler)
+                        xgb_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
+                    elif choice == 2:
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                                  f'RF_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                                   f'RF_scaler_{selected_car}.pkl')
+
+                        if not vehicle_file_lists:
+                            print(f"No files to process for the selected vehicle: {selected_car}")
+                            return
+
+                        # Load the scaler
+                        with open(scaler_path, 'rb') as f:
+                            scaler = pickle.load(f)
+
+                        rf_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
+                    elif choice == 3:
+                        return
+                    else:
+                        print("Invalid choice. Please try again.")
+                        continue
+                    break
+
             elif choice == 4:
                 while True:
                     print("1: Plotting Stacked Power Plot Term by Term")

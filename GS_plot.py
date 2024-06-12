@@ -5,6 +5,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import random
+import plotly.graph_objects as go
+from scipy.interpolate import griddata
 from scipy.stats import linregress
 from tqdm import tqdm
 
@@ -650,3 +652,82 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
     else:
         print("Invalid Target. Please try again.")
         return
+def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples_per_grid=30):
+    if X.shape[1] != 2:
+        print("Error: X should have 2 columns.")
+        return
+
+    # 역변환하여 원래 범위로 변환
+    X_orig = scaler.inverse_transform(X)
+
+    # Speed를 km/h로 변환
+    X_orig[:, 0] *= 3.6
+
+    # 그리드 크기 계산
+    num_grid_sqrt = int(np.sqrt(num_grids))
+    grid_size_x = (X_orig[:, 0].max() - X_orig[:, 0].min()) / num_grid_sqrt
+    grid_size_y = (X_orig[:, 1].max() - X_orig[:, 1].min()) / num_grid_sqrt
+
+    samples = []
+
+    for i in range(num_grid_sqrt):
+        for j in range(num_grid_sqrt):
+            x_min = X_orig[:, 0].min() + i * grid_size_x
+            x_max = x_min + grid_size_x
+            y_min = X_orig[:, 1].min() + j * grid_size_y
+            y_max = y_min + grid_size_y
+
+            # 해당 그리드 내의 데이터 인덱스 선택
+            grid_indices = np.where(
+                (X_orig[:, 0] >= x_min) & (X_orig[:, 0] < x_max) &
+                (X_orig[:, 1] >= y_min) & (X_orig[:, 1] < y_max)
+            )[0]
+
+            if len(grid_indices) > 0:
+                sample_size = min(samples_per_grid, len(grid_indices))
+                sample_indices = np.random.choice(grid_indices, sample_size, replace=False)
+                samples.append(sample_indices)
+
+    samples = np.concatenate(samples)
+    X_sampled = X_orig[samples]
+    y_true_sampled = y_true[samples]
+    y_pred_sampled = y_pred[samples]
+
+    trace1 = go.Scatter3d(
+        x=X_sampled[:, 0], y=X_sampled[:, 1], z=y_true_sampled,
+        mode='markers',
+        marker=dict(size=5, color='blue', opacity=0.8),
+        name='Actual Residual'
+    )
+    trace2 = go.Scatter3d(
+        x=X_sampled[:, 0], y=X_sampled[:, 1], z=y_pred_sampled,
+        mode='markers',
+        marker=dict(size=5, color='red', opacity=0.8),
+        name='Predicted Residual'
+    )
+
+    grid_x, grid_y = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), 100), np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), 100)
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+    grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
+
+    surface_trace = go.Surface(
+        x=grid_x,
+        y=grid_y,
+        z=grid_z,
+        colorscale='Viridis',
+        name='Predicted Residual Surface',
+        opacity=0.7
+    )
+
+    data = [trace1, trace2, surface_trace]
+    layout = go.Layout(
+        margin=dict(l=0, r=0, b=0, t=0),
+        scene=dict(
+            xaxis=dict(title='Speed (km/h)'),
+            yaxis=dict(title='Acceleration (m/s²)'),
+            zaxis=dict(title='Residual'),
+        ),
+        title=f'3D Plot of Actual vs. Predicted Residuals (Fold {fold_num}, Vehicle: {vehicle})'
+    )
+    fig = go.Figure(data=data, layout=layout)
+    fig.show()
