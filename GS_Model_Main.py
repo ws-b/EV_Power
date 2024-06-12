@@ -50,6 +50,9 @@ def main():
             vehicle_file_lists = vehicle_files.get(selected_car, [])
             vehicle_file_lists.sort()
 
+            if not vehicle_files:
+                print(f"No files found for the selected vehicle: {selected_car}")
+
             print(f"YOUR CHOICE IS {selected_car}")
         elif car == 10:
             print("Quitting the program.")
@@ -71,13 +74,7 @@ def main():
             if choice == 1:
                 process_files_power(vehicle_file_lists, folder_path, EV)
             elif choice == 2:
-                base_dir = folder_path
                 save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
-                vehicle_files = load_data_by_vehicle(base_dir, vehicle_dict, selected_car)
-                if not vehicle_files:
-                    print(f"No files found for the selected vehicle: {selected_car}")
-                    return
-
                 while True:
                     print("1: Train Model using XGBoost")
                     print("2: Train Model using Random Forest")
