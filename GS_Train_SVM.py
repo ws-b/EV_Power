@@ -2,11 +2,10 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import xgboost as xgb
+from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
 from GS_plot import plot_3d
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -66,18 +65,9 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        dtest = xgb.DMatrix(X_test, label=y_test)
-
-        params = {
-            'tree_method': 'hist',
-            'device': 'cuda',
-            'eval_metric': ['rmse', 'mae'],
-            'objective': 'reg:squarederror'
-        }
-        evals = [(dtrain, 'train'), (dtest, 'test')]
-        model = xgb.train(params, dtrain, num_boost_round=100, evals=evals)
-        y_pred = model.predict(dtest)
+        model = SVR(kernel='rbf')
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         nrmse = rmse / y_range
@@ -91,9 +81,10 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
 
     # Save the best model
     if best_model:
-        model_file = os.path.join(save_dir, f"XGB_best_model_{selected_vehicle}.json")
-        surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_vehicle}_plot.html")
-        best_model.save_model(model_file)
+        model_file = os.path.join(save_dir, f"SVM_best_model_{selected_vehicle}.pkl")
+        surface_plot = os.path.join(save_dir, f"SVM_best_model_{selected_vehicle}_plot.html")
+        with open(model_file, 'wb') as f:
+            pickle.dump(best_model, f)
         print(f"Best model for {selected_vehicle} saved with RMSE: {best_rmse}")
         plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler, 400, 30,
                 output_file=surface_plot)
@@ -122,8 +113,8 @@ def process_file_with_trained_model(file, model, scaler):
 
 def add_predicted_power_column(files, model_path, scaler):
     try:
-        model = xgb.XGBRegressor()
-        model.load_model(model_path)
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
     except Exception as e:
         print(f"Error loading model: {e}")
         return

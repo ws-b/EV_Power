@@ -32,7 +32,7 @@ for device_number in all_device_numbers:
     collected_periods = 0  # 수집된 기간의 개수 초기화
     for year in range(2023, 2025):  # 2023년부터 2024년까지
         for month in range(1, 13):  # 1월부터 12월까지
-            if year == 2024 and month > 4:
+            if year == 2024 and month > 5:
                 break  # 2024년 4월까지만 포함
 
             year_month = f"{year}-{month:02d}"

@@ -8,6 +8,7 @@ from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_sca
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_RF import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
+from GS_Train_SVM import cross_validate as svm_cross_validate, add_predicted_power_column as svm_add_predicted_power_column
 
 def main():
     while True:
@@ -110,6 +111,21 @@ def main():
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+                    if choice == 3:
+                        results, scaler = svm_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+
+                        # Save the scaler
+                        scaler_path = os.path.join(save_dir, f'SVM_scaler_{selected_car}.pkl')
+                        with open(scaler_path, 'wb') as f:
+                            pickle.dump(scaler, f)
+                        print(f"Scaler saved at {scaler_path}")
+
+                        # Print overall results
+                        if results:
+                            for fold_num, rmse, nrmse, percent_rmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
                     else:
                         print("Invalid choice. Please try again.")
                         continue
@@ -152,7 +168,21 @@ def main():
 
                         rf_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
                     elif choice == 3:
-                        return
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                                  f'SVM_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                                   f'SVM_scaler_{selected_car}.pkl')
+
+                        if not vehicle_file_lists:
+                            print(f"No files to process for the selected vehicle: {selected_car}")
+                            return
+
+                        # Load the scaler
+                        with open(scaler_path, 'rb') as f:
+                            scaler = pickle.load(f)
+
+                        svm_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
+
                     else:
                         print("Invalid choice. Please try again.")
                         continue

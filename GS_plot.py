@@ -652,7 +652,7 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
     else:
         print("Invalid Target. Please try again.")
         return
-def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples_per_grid=30):
+def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples_per_grid=30, output_file=None):
     if X.shape[1] != 2:
         print("Error: X should have 2 columns.")
         return
@@ -730,4 +730,7 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
         title=f'3D Plot of Actual vs. Predicted Residuals (Fold {fold_num}, Vehicle: {vehicle})'
     )
     fig = go.Figure(data=data, layout=layout)
-    fig.show()
+    if output_file:
+        fig.write_html(output_file)
+    else:
+        fig.show()

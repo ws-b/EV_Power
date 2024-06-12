@@ -82,9 +82,11 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
 
     if best_model:
         model_file = os.path.join(save_dir, f"RF_best_model_{selected_vehicle}.pkl")
+        surface_plot = os.path.join(save_dir, f"RF_best_model_{selected_vehicle}_plot.html")
         joblib.dump(best_model, model_file)
         print(f"Best model for {selected_vehicle} saved with RMSE: {best_rmse}")
-
+        plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler, 400, 30,
+                output_file=surface_plot)
     return results, scaler
 
 def process_file_with_trained_model(file, model, scaler):
