@@ -80,8 +80,9 @@ def main():
                     print("1: Train Model using XGBoost")
                     print("2: Train Model using Random Forest")
                     print("3: Train Model using SVM")
-                    choice = int(input("Enter number you want to run: "))
-                    if choice == 1:
+                    print("4: Return to previous menu")
+                    train_choice = int(input("Enter number you want to run: "))
+                    if train_choice == 1:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Save the scaler
@@ -96,7 +97,7 @@ def main():
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if choice == 2:
+                    elif train_choice == 2:
                         results, scaler = rf_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Save the scaler
@@ -111,7 +112,7 @@ def main():
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if choice == 3:
+                    elif train_choice == 3:
                         results, scaler = svm_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Save the scaler
@@ -126,18 +127,20 @@ def main():
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+                    elif train_choice == 4:
+                        break
                     else:
                         print("Invalid choice. Please try again.")
                         continue
-                    break
 
             elif choice == 3:
                 while True:
                     print("1: XGBoost Model")
                     print("2: Random Forest Model")
                     print("3: SVM Model")
-                    choice = int(input("Enter number you want to run: "))
-                    if choice == 1:
+                    print("4: Return to previous menu")
+                    pred_choice = int(input("Enter number you want to run: "))
+                    if pred_choice == 1:
                         model_path = os.path.join(os.path.dirname(folder_path), 'Models',
                                                   f'XGB_best_model_{selected_car}.json')
                         scaler_path = os.path.join(os.path.dirname(folder_path), 'Models',
@@ -152,7 +155,7 @@ def main():
                             scaler = pickle.load(f)
 
                         xgb_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
-                    elif choice == 2:
+                    elif pred_choice == 2:
                         model_path = os.path.join(os.path.dirname(folder_path), 'Models',
                                                   f'RF_best_model_{selected_car}.json')
                         scaler_path = os.path.join(os.path.dirname(folder_path), 'Models',
@@ -167,7 +170,7 @@ def main():
                             scaler = pickle.load(f)
 
                         rf_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
-                    elif choice == 3:
+                    elif pred_choice == 3:
                         model_path = os.path.join(os.path.dirname(folder_path), 'Models',
                                                   f'SVM_best_model_{selected_car}.json')
                         scaler_path = os.path.join(os.path.dirname(folder_path), 'Models',
@@ -182,11 +185,11 @@ def main():
                             scaler = pickle.load(f)
 
                         svm_add_predicted_power_column(vehicle_file_lists, model_path, scaler)
-
+                    elif pred_choice == 4:
+                        break
                     else:
                         print("Invalid choice. Please try again.")
                         continue
-                    break
 
             elif choice == 4:
                 while True:
@@ -238,17 +241,16 @@ def main():
                     else:
                         continue
                     break
+
             elif choice == 5:
                 while True:
                     print("1: Plotting Energy Scatter Graph")
                     print("2: Plotting Fitting Scatter Graph")
                     print("3: Plotting Individual Driver's Scatter Graph")
                     print("4: Plotting Power and Delta_altitude Graph")
-
                     print("5: Plotting Model Energy Distribution Graph")
                     print("6: Plotting Data Energy Distribution Graph")
                     print("7: Plotting Fitting Energy Distribution Graph")
-                    print("8: ")
                     print("9: Return to previous menu.")
                     print("10: Quitting the program.")
 
@@ -276,8 +278,6 @@ def main():
                             plot_energy_dis(vehicle_file_lists, folder_path, selected_car, 'data')
                         elif plot == 7:
                             plot_energy_dis(vehicle_file_lists, folder_path, selected_car, 'fitting')
-                        elif plot == 8:
-                            break
                         elif plot == 9:
                             break
                         elif plot == 10:
@@ -288,6 +288,7 @@ def main():
                     else:
                         continue
                     break
+
             elif choice == 6:
                 break
             elif choice == 7:

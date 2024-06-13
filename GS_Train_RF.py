@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
@@ -8,7 +9,7 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import joblib
-from GS_plot import plot_3d
+from GS_plot import plot_3d, plot_contour
 
 def process_files(files):
     SPEED_MIN = 0 / 3.6
@@ -87,6 +88,7 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
         print(f"Best model for {selected_vehicle} saved with RMSE: {best_rmse}")
         plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler, 400, 30,
                 output_file=surface_plot)
+        plot_contour(X_test, y_pred, scaler, num_grids=400, output_file=None)
     return results, scaler
 
 def process_file_with_trained_model(file, model, scaler):

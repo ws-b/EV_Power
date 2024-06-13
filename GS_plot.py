@@ -734,3 +734,32 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
         fig.write_html(output_file)
     else:
         fig.show()
+
+def plot_contour(X, y_pred, scaler, num_grids=400, output_file=None):
+    if X.shape[1] != 2:
+        print("Error: X should have 2 columns.")
+        return
+
+    # 역변환하여 원래 범위로 변환
+    X_orig = scaler.inverse_transform(X)
+
+    # Speed를 km/h로 변환
+    X_orig[:, 0] *= 3.6
+
+    # 그리드 생성
+    grid_x, grid_y = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), 100), np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), 100)
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+    grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
+
+    # 컨투어 플롯
+    plt.figure(figsize=(10, 8))
+    contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
+    plt.colorbar(contour)
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title('Contour Plot of Predicted Residuals')
+
+    if output_file:
+        plt.savefig(output_file)
+    else:
+        plt.show()
