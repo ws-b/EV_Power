@@ -75,8 +75,6 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
         results.append((fold_num, rmse, nrmse, percent_rmse))
         print(f"Vehicle: {selected_vehicle}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}%")
 
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler, 400, 30)
-
         if rmse < best_rmse:
             best_rmse = rmse
             best_model = model

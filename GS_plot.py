@@ -747,7 +747,7 @@ def plot_contour(X, y_pred, scaler, num_grids=400, output_file=None):
     X_orig[:, 0] *= 3.6
 
     # 그리드 생성
-    grid_x, grid_y = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), 100), np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), 100)
+    grid_x, grid_y = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids), np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
     grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
 
