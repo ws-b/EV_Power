@@ -10,11 +10,16 @@ from scipy.interpolate import griddata
 from scipy.stats import linregress
 from tqdm import tqdm
 
-def plot_power(file_lists, folder_path, Target):
-    print("Plotting Power, Put Target : stacked, model, data, comparison, difference, d_altitude")
+def plot_power(file_lists, folder_path, selected_car, Target):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
+
+        # Device Number 및 Trip Number 추출
+        parts = file_path.split(os.sep)
+        file_name = parts[-1]
+        name_parts = file_name.split('_')
+        trip_info = (name_parts[2] if 'altitude' in name_parts else name_parts[1]).split('.')[0]
 
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -54,12 +59,11 @@ def plot_power(file_lists, folder_path, Target):
             plt.ylabel('Data Power and Model Power (kW)')
             plt.plot(t_min, data_power, label='Data Power (kW)', color='tab:blue')
 
-
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
@@ -76,9 +80,9 @@ def plot_power(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
@@ -98,9 +102,9 @@ def plot_power(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
@@ -117,9 +121,9 @@ def plot_power(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
@@ -151,7 +155,7 @@ def plot_power(file_lists, folder_path, Target):
             # 파일과 날짜 추가
             date = t.iloc[0].strftime('%Y-%m-%d')
             fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
-            fig.text(0.01, 0.99, 'File: ' + file, verticalalignment='top', color='black', fontsize=12)
+            fig.text(0.01, 0.99, f'{selected_car}: ' + trip_info, verticalalignment='top', color='black', fontsize=12)
 
             # 범례와 타이틀
             fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
@@ -165,11 +169,16 @@ def plot_power(file_lists, folder_path, Target):
             print("Invalid Target")
             return
 
-def plot_energy(file_lists, folder_path, Target):
-    print("Plotting Energy, Put Target : model, data, fitting, comparison, altitude, d_altitude")
+def plot_energy(file_lists, folder_path, selected_car, Target):
     for file in tqdm(file_lists):
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
+
+        # Device Number 및 Trip Number 추출
+        parts = file_path.split(os.sep)
+        file_name = parts[-1]
+        name_parts = file_name.split('_')
+        trip_info = (name_parts[2] if 'altitude' in name_parts else name_parts[1]).split('.')[0]
 
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -202,12 +211,12 @@ def plot_energy(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: '+file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
             plt.title('Model Energy')
             plt.tight_layout()
             plt.show()
@@ -221,12 +230,12 @@ def plot_energy(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
             plt.title('Data(BMS) Energy')
             plt.tight_layout()
             plt.show()
@@ -240,12 +249,12 @@ def plot_energy(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
             plt.title('Train Model Energy')
             plt.tight_layout()
             plt.show()
@@ -262,12 +271,12 @@ def plot_energy(file_lists, folder_path, Target):
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(1, 1, date, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0, 1, 'File: ' + file, transform=plt.gca().transAxes, fontsize=12,
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
             plt.title('Model Energy vs. BMS Energy')
             plt.tight_layout()
             plt.show()
@@ -296,7 +305,7 @@ def plot_energy(file_lists, folder_path, Target):
             # 파일과 날짜 추가
             date = t.iloc[0].strftime('%Y-%m-%d')
             fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
-            fig.text(0.01, 0.99, 'File: ' + file, verticalalignment='top', color='black', fontsize=12)
+            fig.text(0.01, 0.99, f'{selected_car}: '+ trip_info, verticalalignment='top', color='black', fontsize=12)
 
             # 범례와 타이틀
             fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
@@ -735,7 +744,7 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
     else:
         fig.show()
 
-def plot_contour(X, y_pred, scaler, num_grids=400, output_file=None):
+def plot_contour(X, y_pred, scaler, selected_car, num_grids=400, output_file=None):
     if X.shape[1] != 2:
         print("Error: X should have 2 columns.")
         return
@@ -757,7 +766,9 @@ def plot_contour(X, y_pred, scaler, num_grids=400, output_file=None):
     plt.colorbar(contour)
     plt.xlabel('Speed (km/h)')
     plt.ylabel('Acceleration (m/s²)')
-    plt.title('Contour Plot of Predicted Residuals')
+    plt.xlim(0, 200)
+    plt.ylim(-15, 9)
+    plt.title(f'{selected_car} : Contour Plot of Predicted Residuals')
 
     if output_file:
         plt.savefig(output_file)

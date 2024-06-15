@@ -11,30 +11,43 @@ from sklearn.preprocessing import StandardScaler
 from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+def process_single_file(file):
+    try:
+        data = pd.read_csv(file)
+        if 'Power' in data.columns and 'Power_IV' in data.columns:
+            data['Residual'] = data['Power'] - data['Power_IV']
+            return data[['speed', 'acceleration', 'Residual']]
+    except Exception as e:
+        print(f"Error processing file {file}: {e}")
+    return None
+
 def process_files(files):
-    # Speed in m/s (160 km/h = 160 / 3.6 m/s)
     SPEED_MIN = 0 / 3.6
     SPEED_MAX = 180 / 3.6
     ACCELERATION_MIN = -15
     ACCELERATION_MAX = 9
 
     df_list = []
-    for file in files:
-        try:
-            data = pd.read_csv(file)
-            if 'Power' in data.columns and 'Power_IV' in data.columns:
-                data['Residual'] = data['Power'] - data['Power_IV']
-                data['speed'] = data['speed']
-                df_list.append(data[['speed', 'acceleration', 'Residual']])
-        except Exception as e:
-            print(f"Error processing file {file}: {e}")
+    with ProcessPoolExecutor() as executor:
+        future_to_file = {executor.submit(process_single_file, file): file for file in files}
+        for future in as_completed(future_to_file):
+            file = future_to_file[future]
+            try:
+                data = future.result()
+                if data is not None:
+                    df_list.append((files.index(file), data))
+            except Exception as e:
+                print(f"Error processing file {file}: {e}")
+
+    # Sort the list by the original file order
+    df_list.sort(key=lambda x: x[0])
+    df_list = [df for _, df in df_list]
 
     if not df_list:
         raise ValueError("No valid data files found. Please check the input files and try again.")
 
     full_data = pd.concat(df_list, ignore_index=True)
 
-    # Define scaler with the predefined range
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
 
@@ -42,7 +55,7 @@ def process_files(files):
 
     return full_data, scaler
 
-def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
+def cross_validate(vehicle_files, selected_car, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -51,11 +64,11 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
     best_rmse = float('inf')
     best_model = None
 
-    if selected_vehicle not in vehicle_files or not vehicle_files[selected_vehicle]:
-        print(f"No files found for the selected vehicle: {selected_vehicle}")
+    if selected_car not in vehicle_files or not vehicle_files[selected_car]:
+        print(f"No files found for the selected vehicle: {selected_car}")
         return
 
-    files = vehicle_files[selected_vehicle]
+    files = vehicle_files[selected_car]
     data, scaler = process_files(files)
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
@@ -84,7 +97,7 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
         nrmse = rmse / y_range
         percent_rmse = (rmse / y_mean) * 100
         results.append((fold_num, rmse, nrmse, percent_rmse))
-        print(f"Vehicle: {selected_vehicle}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}%")
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}%")
 
         if rmse < best_rmse:
             best_rmse = rmse
@@ -92,14 +105,14 @@ def cross_validate(vehicle_files, selected_vehicle, save_dir="models"):
 
     # Save the best model
     if best_model:
-        model_file = os.path.join(save_dir, f"XGB_best_model_{selected_vehicle}.json")
-        surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_vehicle}_plot.html")
+        model_file = os.path.join(save_dir, f"XGB_best_model_{selected_car}.json")
+        surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_car}_plot.html")
         best_model.save_model(model_file)
-        print(f"Best model for {selected_vehicle} saved with RMSE: {best_rmse}")
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_vehicle, scaler, 400, 30,
+        print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
+        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30,
                 output_file=surface_plot)
 
-        plot_contour(X_test, y_pred, scaler, num_grids=400, output_file=None)
+        plot_contour(X_test, y_pred, scaler, selected_car, num_grids=400 ,output_file=None)
     return results, scaler
 
 def process_file_with_trained_model(file, model, scaler):

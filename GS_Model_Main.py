@@ -35,18 +35,10 @@ def main():
             8: 'Porter2EV',
         }
 
-        if platform.system() == "Windows":
-            folder_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data')
-        elif platform.system() == "Darwin":
-            folder_path = os.path.normpath('/Users/wsong/Documents/삼성미래과제/Processed_data')
-        else:
-            print("Unknown system.")
-            return
-
-        folder_path = os.path.join(folder_path, 'TripByTrip')
+        folder_path = os.path.join(os.path.normpath(r'D:\SamsungSTF\Processed_Data'), 'TripByTrip')
         if car in car_options:
             selected_car = car_options[car]
-            EV = select_vehicle(car)
+            EV = select_vehicle(selected_car)
             vehicle_files = load_data_by_vehicle(folder_path, vehicle_dict, selected_car)
             vehicle_file_lists = vehicle_files.get(selected_car, [])
             vehicle_file_lists.sort()
@@ -73,7 +65,7 @@ def main():
             choice = int(input("Enter number you want to run: "))
 
             if choice == 1:
-                process_files_power(vehicle_file_lists, folder_path, EV)
+                process_files_power(vehicle_file_lists, EV)
             elif choice == 2:
                 save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
                 while True:
