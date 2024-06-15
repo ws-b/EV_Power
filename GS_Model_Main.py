@@ -18,7 +18,7 @@ def get_vehicle_files(car_options, folder_path, vehicle_dict):
         for idx, car_name in car_options.items():
             print(f"{idx}: {car_name}")
         print("0: Done selecting cars")
-        car_input = input("Select Cars you want to include (콤마로 구분): ")
+        car_input = input("Select Cars you want to include 콤마로 구분 (e.g.: 1,2,3): ")
 
         try:
             car_list = [int(car.strip()) for car in car_input.split(',')]
@@ -243,7 +243,7 @@ def main():
                         if plot == 1:
                             plot_power(vehicle_files[selected_car], folder_path, selected_car, 'stacked')
                         elif plot == 2:
-                            plot_power(random.sample(vehicle_files[selected_car], 5), folder_path, selected_car, 'model')
+                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'model')
                         elif plot == 3:
                             plot_power(vehicle_files[selected_car], folder_path, selected_car, 'data')
                         elif plot == 4:
