@@ -324,7 +324,34 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
     mod_energies = []
     predicted_energies = []
 
-    # 랜덤으로 1000개의 파일을 선택
+    all_data_energies = []
+    all_mod_energies = []
+    all_predicted_energies = []
+
+    # 전체 데이터에 대한 에너지 계산
+    for file in tqdm(file_lists):
+        file_path = os.path.join(folder_path, file)
+        data = pd.read_csv(file_path)
+
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff.fillna(0))
+
+        data_power = np.array(data['Power_IV'])
+        data_energy = data_power * t_diff / 3600 / 1000
+        all_data_energies.append(data_energy.cumsum()[-1])
+
+        if 'Power' in data.columns:
+            model_power = np.array(data['Power'])
+            model_energy = model_power * t_diff / 3600 / 1000
+            all_mod_energies.append(model_energy.cumsum()[-1])
+
+        if 'Predicted_Power' in data.columns:
+            predicted_power = np.array(data['Predicted_Power'])
+            predicted_energy = predicted_power * t_diff / 3600 / 1000
+            all_predicted_energies.append(predicted_energy.cumsum()[-1])
+
+    # 랜덤으로 1000개의 파일을 선택하여 산점도 그리기
     sample_size = min(1000, len(file_lists))
     sampled_files = random.sample(file_lists, sample_size)
 
@@ -361,7 +388,8 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
             ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
                        edgecolors=colors[i], label='Model Energy' if i == 0 else "")
 
-        slope_original, intercept_original, _, _, _ = linregress(data_energies, mod_energies)
+        # 전체 데이터셋을 사용하여 45도 기준선 계산
+        slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
                 color='lightblue', label='Trendline')
 
@@ -393,11 +421,12 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
             ax.scatter(data_energies[i], predicted_energies[i], color=colors[i],
                        label='After fitting' if i == 0 else "")
 
-        slope_original, intercept_original, _, _, _ = linregress(data_energies, mod_energies)
+        # 전체 데이터셋을 사용하여 45도 기준선 계산
+        slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
                 color='lightblue', label='Trend (before fitting)')
 
-        slope, intercept, _, _, _ = linregress(data_energies, predicted_energies)
+        slope, intercept, _, _, _ = linregress(all_data_energies, all_predicted_energies)
         ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b',
                 label='Trend (after fitting)')
 
@@ -417,72 +446,71 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
     else:
         print('Invalid Target')
         return
+def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
+    data_energies = {}
+    mod_energies = {}
+    predicted_energies = {}
 
-def plot_driver_energy_scatter(file_lists, folder_path, selected_car, id):
-    data_energies = []
-    mod_energies = []
-    predicted_energies = []
+    colors = cm.rainbow(np.linspace(0, 1, len(file_lists_dict)))
+    color_map = {}
 
-    for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
-
-        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        t_diff = t.diff().dt.total_seconds().fillna(0)
-        t_diff = np.array(t_diff.fillna(0))
-
-        data_power = np.array(data['Power_IV'])
-        data_energy = data_power * t_diff / 3600 / 1000
-        data_energies.append(data_energy.cumsum()[-1])
-
-        if 'Power' in data.columns:
-            model_power = np.array(data['Power'])
-            model_energy = model_power * t_diff / 3600 / 1000
-            mod_energies.append(model_energy.cumsum()[-1])
-
-        if 'Predicted_Power' in data.columns:
-            predicted_power = np.array(data['Predicted_Power'])
-            predicted_energy = predicted_power * t_diff / 3600 / 1000
-            predicted_energies.append(predicted_energy.cumsum()[-1])
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
-
+    fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlabel('Data Energy (kWh)')
     ax.set_ylabel('Predicted Energy (kWh)')
 
-    for i in range(len(data_energies)):
-        ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
-                   edgecolors=colors[i], label='Before fitting' if i == 0 else "")
+    for i, (id, files) in enumerate(file_lists_dict.items()):
+        data_energies[id] = []
+        mod_energies[id] = []
+        predicted_energies[id] = []
+        color_map[id] = colors[i]
 
-    for i in range(len(data_energies)):
-        ax.scatter(data_energies[i], predicted_energies[i], color=colors[i],
-                   label='After fitting' if i == 0 else "")
+        for file in tqdm(files, desc=f'Processing {id}'):
+            file_path = os.path.join(folder_path, file)
+            data = pd.read_csv(file_path)
 
-    slope_original, intercept_original, _, _, _ = linregress(data_energies, mod_energies)
-    ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
-            color='lightblue', label='Trend (before fitting)')
+            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            t_diff = t.diff().dt.total_seconds().fillna(0)
+            t_diff = np.array(t_diff.fillna(0))
 
-    slope, intercept, _, _, _ = linregress(data_energies, predicted_energies)
-    ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b',
-            label='Trend (after fitting)')
+            data_power = np.array(data['Power_IV'])
+            data_energy = data_power * t_diff / 3600 / 1000
+            data_energies[id].append(data_energy.cumsum()[-1])
+
+            if 'Power' in data.columns:
+                model_power = np.array(data['Power'])
+                model_energy = model_power * t_diff / 3600 / 1000
+                mod_energies[id].append(model_energy.cumsum()[-1])
+
+            if 'Predicted_Power' in data.columns:
+                predicted_power = np.array(data['Predicted_Power'])
+                predicted_energy = predicted_power * t_diff / 3600 / 1000
+                predicted_energies[id].append(predicted_energy.cumsum()[-1])
+
+        ax.scatter(data_energies[id], mod_energies[id], color=color_map[id], facecolors='none',
+                   edgecolors=color_map[id], label=f'{id} Before fitting')
+
+        ax.scatter(data_energies[id], predicted_energies[id], color=color_map[id],
+                   label=f'{id} After fitting')
+
+        slope_original, intercept_original, _, _, _ = linregress(data_energies[id], mod_energies[id])
+        ax.plot(np.array(data_energies[id]), intercept_original + slope_original * np.array(data_energies[id]),
+                color=color_map[id], linestyle='dashed', label=f'{id} Trend (before fitting)')
+
+        slope, intercept, _, _, _ = linregress(data_energies[id], predicted_energies[id])
+        ax.plot(np.array(data_energies[id]), intercept + slope * np.array(data_energies[id]), color=color_map[id],
+                label=f'{id} Trend (after fitting)')
 
     lims = [
         np.min([ax.get_xlim(), ax.get_ylim()]),
         np.max([ax.get_xlim(), ax.get_ylim()]),
     ]
-    ax.plot(lims, lims, 'r-', alpha=0.75, zorder=0)
+    ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
     ax.set_aspect('equal')
     ax.set_xlim(0, None)
     ax.set_ylim(0, None)
 
     plt.legend()
-    plt.title(f"{selected_car} : {id} driver \n BMS Energy vs. Trained Model Energy over Time")
-
-    # Add sample size to the plot
-    sample_size = len(data_energies)
-    plt.text(0.95, 0.97, f'Sample size: {sample_size}', horizontalalignment='right',
-             verticalalignment='top', transform=ax.transAxes, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+    plt.title(f"{selected_car} : Drivers Energy Comparison\n BMS Energy vs. Trained Model Energy over Time")
 
     plt.show()
 
@@ -558,10 +586,6 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
         dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[
                                                                                             -1] != 0 else 0
         dis_data_energies.append(dis_data_energy)
-
-        dis_predicted_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if predicted_energy.cumsum()[
-                                                                                            -1] != 0 else 0
-        dis_predicted_energies.append(dis_predicted_energy)
 
         # collect total distances for each file
         total_distances.append(total_distance[-1])
@@ -766,11 +790,44 @@ def plot_contour(X, y_pred, scaler, selected_car, num_grids=400, output_file=Non
     plt.colorbar(contour)
     plt.xlabel('Speed (km/h)')
     plt.ylabel('Acceleration (m/s²)')
-    plt.xlim(0, 200)
-    plt.ylim(-15, 9)
     plt.title(f'{selected_car} : Contour Plot of Predicted Residuals')
 
     if output_file:
         plt.savefig(output_file)
     else:
         plt.show()
+
+def plot_contour2(file_lists, selected_car, num_grids=400):
+    all_data = []
+
+    for file in file_lists:
+        data = pd.read_csv(file)
+        all_data.append(data)
+
+    # 데이터 병합
+    merged_data = pd.concat(all_data)
+
+    X = merged_data['speed'] * 3.6
+    Y = merged_data['acceleration']
+    Residual = merged_data['Power'] - merged_data['Power_IV']
+
+    # 결측치 처리
+    mask = ~np.isnan(X) & ~np.isnan(Y) & ~np.isnan(Residual)
+    X = X[mask]
+    Y = Y[mask]
+    Residual = Residual[mask]
+
+    # 그리드 생성
+    grid_x, grid_y = np.linspace(min(X), max(X), num_grids), np.linspace(min(Y), max(Y), num_grids)
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+    grid_z = griddata((X,Y), Residual, (grid_x, grid_y), method='linear')
+
+    # 컨투어 플롯
+    plt.figure(figsize=(10, 8))
+    contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
+    plt.colorbar(contour)
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title(f'{selected_car} : Contour Plot of Residuals')
+
+    plt.show()

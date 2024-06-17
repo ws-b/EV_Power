@@ -4,7 +4,7 @@ import random
 import pickle
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter
+from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_RF import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
@@ -68,6 +68,7 @@ def main():
         print("3: Predicted Power(W) using Trained Model")
         print("4: Plotting Graph (Power & Energy)")
         print("5: Plotting Graph (Scatter, Energy Distribution)")
+        print("6: Plotting Graph (Speed, Acceleration, etc.)")
         print("0: Quitting the program.")
         try:
             task_choice = int(input("Enter number you want to run: "))
@@ -75,7 +76,7 @@ def main():
             print("Invalid input. Please enter a number.")
             continue
 
-        if task_choice in [1, 2, 3, 4, 5]:
+        if task_choice in [1, 2, 3, 4, 5, 6]:
             selected_cars, vehicle_files = get_vehicle_files(car_options, folder_path, vehicle_dict)
             if not selected_cars:
                 print("No cars selected. Returning to main menu.")
@@ -91,8 +92,7 @@ def main():
             while True:
                 print("1: Train Model using XGBoost")
                 print("2: Train Model using Random Forest")
-                print("3: Train Model using SVM")
-                print("4: Return to previous menu")
+                print("3: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -100,7 +100,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 4:
+                if train_choice == 3:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -118,8 +118,8 @@ def main():
 
                         # Print overall results
                         if results:
-                            for fold_num, rmse, nrmse, percent_rmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
+                            for fold_num, rmse, nrmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     elif train_choice == 2:
@@ -137,21 +137,7 @@ def main():
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    elif train_choice == 3:
-                        results, scaler = svm_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
-                        # Save the scaler
-                        scaler_path = os.path.join(save_dir, f'SVM_scaler_{selected_car}.pkl')
-                        with open(scaler_path, 'wb') as f:
-                            pickle.dump(scaler, f)
-                        print(f"Scaler saved at {scaler_path}")
-
-                        # Print overall results
-                        if results:
-                            for fold_num, rmse, nrmse, percent_rmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
-                        else:
-                            print(f"No results for the selected vehicle: {selected_car}")
 
         elif task_choice == 3:
             while True:
@@ -168,7 +154,7 @@ def main():
                 if pred_choice == 3:
                     break
                 elif pred_choice == 0:
-                    pritn("Quitting the program")
+                    print("Quitting the program")
                     return
 
                 for selected_car in selected_cars:
@@ -276,20 +262,25 @@ def main():
                     except ValueError:
                         print(f"Invalid input: {selection}. Please enter a valid number.")
                         continue
-
+                    if plot == 9:
+                        break
+                    elif plot == 0:
+                        print("Quitting the program")
+                        return
                     for selected_car in selected_cars:
                         if plot == 1:
                             plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'model')
                         elif plot == 2:
                             plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'fitting')
                         elif plot == 3:
-                            sample_ids = random.sample(vehicle_dict[selected_car], 5)
-                            for id in sample_ids:
-                                sample_files = [f for f in vehicle_files[selected_car] if id in f]
-                                if len(sample_files) < 50:
-                                    pass
-                                else:
-                                    plot_driver_energy_scatter(sample_files, folder_path, selected_car, id)
+                            if len(vehicle_dict[selected_car]) >=5 :
+                                sample_ids = random.sample(vehicle_dict[selected_car], 5)
+                                sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in sample_ids}
+                                plot_driver_energy_scatter(sample_files_dict, folder_path, selected_car)
+                            else:
+                                sample_ids = random.sample(vehicle_dict[selected_car], len(vehicle_dict[selected_car]))
+                                sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in sample_ids}
+                                plot_driver_energy_scatter(sample_files_dict, folder_path, selected_car)
                         elif plot == 4:
                             plot_power_scatter(vehicle_files[selected_car], folder_path)
                         elif plot == 5:
@@ -298,21 +289,36 @@ def main():
                             plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'data')
                         elif plot == 7:
                             plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'fitting')
-                        elif plot == 9:
-                            break
-                        elif plot == 0:
-                            print("Quitting the program.")
-                            return
+
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                 else:
                     continue
                 break
-
+        elif task_choice == 6:
+            while True:
+                print("1: Plotting Residual Contour Graph")
+                print("3: Return to previous menu.")
+                print("0: Quitting the program.")
+                selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
+                selections_list = selections.split(',')
+                for selection in selections_list:
+                    try:
+                        plot = int(selection.strip())
+                    except ValueError:
+                        print(f"Invalid input: {selection}. Please enter a valid number.")
+                        continue
+                    if plot == 3:
+                        break
+                    elif plot == 0:
+                        print("Quitting the program")
+                        return
+                    for selected_car in selected_cars:
+                        if plot == 1:
+                            plot_contour2(vehicle_files[selected_car], selected_car)
         elif task_choice == 0:
             print("Quitting the program.")
             return
-
         else:
             print("Invalid choice. Please try again.")
             continue

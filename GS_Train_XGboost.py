@@ -23,7 +23,7 @@ def process_single_file(file):
 
 def process_files(files):
     SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 180 / 3.6
+    SPEED_MAX = 230 / 3.6
     ACCELERATION_MIN = -15
     ACCELERATION_MAX = 9
 
@@ -55,6 +55,20 @@ def process_files(files):
 
     return full_data, scaler
 
+
+def custom_obj(preds, dtrain):
+    labels = dtrain.get_label()
+    speed = dtrain.get_weight()  # Use weight to store speed
+
+    grad = preds - labels
+    hess = np.ones_like(grad)
+
+    # speed가 0인 경우 제약 조건 반영
+    mask = (speed == 0)
+    grad[mask] = np.maximum(0, grad[mask])
+
+    return grad, hess
+
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -73,31 +87,28 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
 
-    y_mean = np.mean(y)
-    y_range = np.ptp(y)  # range of the residuals
+    y_range = np.ptp(y)
 
     for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        dtest = xgb.DMatrix(X_test, label=y_test)
+        dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
+        dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
 
         params = {
             'tree_method': 'hist',
             'device': 'cuda',
-            'eval_metric': ['rmse', 'mae'],
-            'objective': 'reg:squarederror'
+            'eval_metric': ['rmse', 'mae']
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
-        model = xgb.train(params, dtrain, num_boost_round=100, evals=evals)
+        model = xgb.train(params, dtrain, num_boost_round=100, evals=evals, obj=custom_obj)
         y_pred = model.predict(dtest)
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         nrmse = rmse / y_range
-        percent_rmse = (rmse / y_mean) * 100
-        results.append((fold_num, rmse, nrmse, percent_rmse))
-        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}%")
+        results.append((fold_num, rmse, nrmse))
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
 
         if rmse < best_rmse:
             best_rmse = rmse
