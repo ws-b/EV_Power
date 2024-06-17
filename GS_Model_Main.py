@@ -8,7 +8,6 @@ from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_sca
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_RF import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
-from GS_Train_SVM import cross_validate as svm_cross_validate, add_predicted_power_column as svm_add_predicted_power_column
 
 def get_vehicle_files(car_options, folder_path, vehicle_dict):
     selected_cars = []
@@ -158,8 +157,7 @@ def main():
             while True:
                 print("1: XGBoost Model")
                 print("2: Random Forest Model")
-                print("3: SVM Model")
-                print("4: Return to previous menu")
+                print("3: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     pred_choice = int(input("Enter number you want to run: "))
@@ -167,7 +165,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if pred_choice == 4:
+                if pred_choice == 3:
                     break
                 elif pred_choice == 0:
                     pritn("Quitting the program")
@@ -200,19 +198,6 @@ def main():
                             scaler = pickle.load(f)
 
                         rf_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
-                    elif pred_choice == 3:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'SVM_best_model_{selected_car}.json')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'SVM_scaler_{selected_car}.pkl')
-
-                        if not vehicle_files[selected_car]:
-                            print(f"No files to process for the selected vehicle: {selected_car}")
-                            continue
-
-                        # Load the scaler
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-
-                        svm_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
 
         elif task_choice == 4:
             while True:
