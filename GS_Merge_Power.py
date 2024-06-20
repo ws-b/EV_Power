@@ -78,8 +78,9 @@ def process_file_power(file, EV):
                 D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
             else:
                 D.append(0)
-
-        E_hvac = abs(22 - int_temp[i]) * EV.hvac  # 22'c is the set temperature
+        Eff_hvac = 0.81 # Auxiliary power efficiency
+        target_int_temp = 22
+        E_hvac = abs(target_int_temp - int_temp[i]) * EV.hvac * Eff_hvac # 22'c is the set temperature
         if v[i] <= 0.5:
             E.append(EV.aux + EV.idle + E_hvac)
         else:
