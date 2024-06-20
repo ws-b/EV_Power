@@ -8,7 +8,8 @@ from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_sca
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_RF import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
-
+from GS_Train_LGB import cross_validate as lg_cross_validate, add_predicted_power_column as lg_add_predicted_power_column
+from GS_Train_CB import cross_validate as cb_cross_validate, add_predicted_power_column as cb_add_predicted_power_column
 def get_vehicle_files(car_options, folder_path, vehicle_dict):
     selected_cars = []
     vehicle_files = {}
@@ -92,7 +93,9 @@ def main():
             while True:
                 print("1: Train Model using XGBoost")
                 print("2: Train Model using Random Forest")
-                print("3: Return to previous menu")
+                print("3: Train Model using LGBM")
+                print("4: Train Model using CatBoost")
+                print("5: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -100,12 +103,15 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 3:
+                if train_choice == 5:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
-
+                XGB_RMSE_CAR = {}
+                RF_RMSE_CAR = {}
+                LGB_RMSE_CAR = {}
+                CB_RMSE_CAR = {}
                 for selected_car in selected_cars:
                     if train_choice == 1:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
@@ -118,8 +124,14 @@ def main():
 
                         # Print overall results
                         if results:
-                            for fold_num, rmse, nrmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+                            min_rmse = float('inf')
+                            for fold_num, rmse, mae in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAE: {mae}")
+                                if rmse < min_rmse:
+                                    min_rmse = rmse
+
+                            # Store the minimum RMSE and MAE in dictionaries
+                            XGB_RMSE_CAR[selected_car] = min_rmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     elif train_choice == 2:
@@ -133,12 +145,59 @@ def main():
 
                         # Print overall results
                         if results:
-                            for fold_num, rmse, nrmse, percent_rmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}, Percent RMSE: {percent_rmse}")
+                            min_rmse = float('inf')
+                            for fold_num, rmse, nrmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+                                if rmse < min_rmse:
+                                    min_rmse = rmse
+
+                            # Store the minimum RMSE and MAE in dictionaries
+                            RF_RMSE_CAR[selected_car] = min_rmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+                    elif train_choice == 3:
+                        results, scaler = lg_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
+                        # Save the scaler
+                        scaler_path = os.path.join(save_dir, f'LGB_scaler_{selected_car}.pkl')
+                        with open(scaler_path, 'wb') as f:
+                            pickle.dump(scaler, f)
+                        print(f"Scaler saved at {scaler_path}")
 
+                        # Print overall results
+                        if results:
+                            min_rmse = float('inf')
+                            for fold_num, rmse, nrmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+                                if rmse < min_rmse:
+                                    min_rmse = rmse
+
+                            # Store the minimum RMSE and MAE in dictionaries
+                            LGB_RMSE_CAR[selected_car] = min_rmse
+
+                    elif train_choice == 4:
+                        results, scaler = cb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+
+                        # Save the scaler
+                        scaler_path = os.path.join(save_dir, f'CB_scaler_{selected_car}.pkl')
+                        with open(scaler_path, 'wb') as f:
+                            pickle.dump(scaler, f)
+                        print(f"Scaler saved at {scaler_path}")
+
+                        # Print overall results
+                        if results:
+                            min_rmse = float('inf')
+                            for fold_num, rmse, nrmse in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+                                if rmse < min_rmse:
+                                    min_rmse = rmse
+
+                            # Store the minimum RMSE and MAE in dictionaries
+                            CB_RMSE_CAR[selected_car] = min_rmse
+                print(f"XGB RMSE: {XGB_RMSE_CAR}")
+                print(f"RF RMSE: {RF_RMSE_CAR}")
+                print(f"LGB RMSE: {LGB_RMSE_CAR}")
+                print(f"CB RMSE: {CB_RMSE_CAR}")
         elif task_choice == 3:
             while True:
                 print("1: XGBoost Model")

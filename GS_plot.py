@@ -770,21 +770,21 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
 
 def plot_contour(X, y_pred, scaler, selected_car, num_grids=400, output_file=None):
     if X.shape[1] != 2:
-        print("Error: X should have 2 columns.")
-        return
+        raise ValueError("Error: X should have 2 columns.")
 
-    # 역변환하여 원래 범위로 변환
+    # Inverse transform to original scale
     X_orig = scaler.inverse_transform(X)
 
-    # Speed를 km/h로 변환
+    # Convert speed to km/h
     X_orig[:, 0] *= 3.6
 
-    # 그리드 생성
-    grid_x, grid_y = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids), np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
+    # Create grid
+    grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
+    grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
     grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
 
-    # 컨투어 플롯
+    # Contour plot
     plt.figure(figsize=(10, 8))
     contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
     plt.colorbar(contour)
@@ -801,28 +801,33 @@ def plot_contour2(file_lists, selected_car, num_grids=400):
     all_data = []
 
     for file in file_lists:
-        data = pd.read_csv(file)
-        all_data.append(data)
+        try:
+            data = pd.read_csv(file)
+            all_data.append(data)
+        except FileNotFoundError:
+            print(f"Error: File {file} not found.")
+            return
 
-    # 데이터 병합
-    merged_data = pd.concat(all_data)
+    # Merge data
+    merged_data = pd.concat(all_data, ignore_index=True)
 
     X = merged_data['speed'] * 3.6
     Y = merged_data['acceleration']
     Residual = merged_data['Power'] - merged_data['Power_IV']
 
-    # 결측치 처리
+    # Handle missing values
     mask = ~np.isnan(X) & ~np.isnan(Y) & ~np.isnan(Residual)
     X = X[mask]
     Y = Y[mask]
     Residual = Residual[mask]
 
-    # 그리드 생성
-    grid_x, grid_y = np.linspace(min(X), max(X), num_grids), np.linspace(min(Y), max(Y), num_grids)
+    # Create grid
+    grid_x = np.linspace(X.min(), X.max(), num_grids)
+    grid_y = np.linspace(Y.min(), Y.max(), num_grids)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-    grid_z = griddata((X,Y), Residual, (grid_x, grid_y), method='linear')
+    grid_z = griddata((X, Y), Residual, (grid_x, grid_y), method='linear')
 
-    # 컨투어 플롯
+    # Contour plot
     plt.figure(figsize=(10, 8))
     contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
     plt.colorbar(contour)
