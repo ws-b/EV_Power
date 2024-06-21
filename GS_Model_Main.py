@@ -4,7 +4,7 @@ import random
 import pickle
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2
+from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_RF import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
@@ -357,7 +357,11 @@ def main():
         elif task_choice == 6:
             while True:
                 print("1: Plotting Residual Contour Graph")
-                print("3: Return to previous menu.")
+                print("2: Plotting Model Energy Efficiency Graph")
+                print("3: Plotting Data Energy Efficiency Graph")
+                print("4: Plotting Predicted Energy Efficiency Graph")
+                print("5: Driver's Energy Efficiency Graph")
+                print("6: Return to previous menu.")
                 print("0: Quitting the program.")
                 selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
                 selections_list = selections.split(',')
@@ -367,7 +371,7 @@ def main():
                     except ValueError:
                         print(f"Invalid input: {selection}. Please enter a valid number.")
                         continue
-                    if plot == 3:
+                    if plot == 6:
                         break
                     elif plot == 0:
                         print("Quitting the program")
@@ -375,6 +379,25 @@ def main():
                     for selected_car in selected_cars:
                         if plot == 1:
                             plot_contour2(vehicle_files[selected_car], selected_car)
+                        elif plot == 2:
+                            plot_2d_histogram(vehicle_files[selected_car], selected_car, 'model')
+                        elif plot == 3:
+                            plot_2d_histogram(vehicle_files[selected_car], selected_car)
+                        elif plot == 4:
+                            plot_2d_histogram(vehicle_files[selected_car], selected_car, 'fitting')
+                        elif plot == 5:
+                            required_files = 300
+                            all_ids = vehicle_dict[selected_car]
+
+                            while True:
+                                sample_ids = random.sample(all_ids, 3)
+                                sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in
+                                                     sample_ids}
+                                total_files = sum(len(files) for files in sample_files_dict.values())
+                                if total_files >= required_files:
+                                    break
+                            plot_2d_histogram(sample_files_dict, selected_car)
+
         elif task_choice == 0:
             print("Quitting the program.")
             return

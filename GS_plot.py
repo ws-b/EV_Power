@@ -836,3 +836,188 @@ def plot_contour2(file_lists, selected_car, num_grids=400):
     plt.title(f'{selected_car} : Contour Plot of Residuals')
 
     plt.show()
+
+def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
+    if isinstance(sample_files_dict, dict):
+        for id, files in tqdm(sample_files_dict.items()):
+            dis_data_energies = []
+            total_distances = []
+            average_speeds = []
+
+            for file in files:
+                data = pd.read_csv(file)
+
+                t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+                t_diff = t.diff().dt.total_seconds().fillna(0)
+                t_diff = np.array(t_diff)
+
+                v = data['speed']
+                v = np.array(v)
+
+                distance = v * t_diff
+                total_distance = distance.cumsum()[-1]
+
+                data_power = np.array(data['Power_IV'])
+                data_energy = data_power * t_diff / 3600 / 1000
+
+                total_energy = data_energy.cumsum()[-1]
+                dis_data_energy = ((total_distance / 1000) / total_energy) if total_energy != 0 else 0
+
+                total_distances.append(total_distance / 1000)  # convert to km
+                dis_data_energies.append(dis_data_energy)
+                average_speed = np.mean(v) * 3.6  # converting m/s to km/h
+                average_speeds.append(average_speed)
+
+            # Create bins
+            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
+            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
+
+            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_data_energies)
+            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
+
+            # Avoid division by zero
+            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
+
+            # Mask the zero values
+            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
+            etamin = 2
+            etamax = 11
+            plt.figure(figsize=(12, 6))
+            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
+            cb = plt.colorbar(label='Average Energy Efficiency (km/kWh)')
+
+            plt.xlabel('Trip Distance (km)')
+            plt.ylabel('Average Speed (km/h)')
+            plt.title(f"{selected_car} ({id}) : Trip Distance vs. Average Speed with Energy Efficiency, {len(files)} files")
+            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+            plt.show()
+
+    elif isinstance(sample_files_dict, list):
+        dis_data_energies = []
+        dis_mod_energies = []
+        dis_predicted_energies = []
+        total_distances = []
+        average_speeds = []
+
+        for file in tqdm(sample_files_dict):
+            data = pd.read_csv(file)
+
+            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            t_diff = t.diff().dt.total_seconds().fillna(0)
+            t_diff = np.array(t_diff)
+
+            v = data['speed']
+            v = np.array(v)
+
+            distance = v * t_diff
+            total_distance = distance.cumsum()[-1]
+
+            if 'Power' in data.columns:
+                model_power = np.array(data['Power'])
+                model_energy = model_power * t_diff / 3600 / 1000
+            else:
+                model_energy = np.zeros_like(t_diff)
+
+            data_power = np.array(data['Power_IV'])
+            data_energy = data_power * t_diff / 3600 / 1000
+
+            if 'Predicted_Power' in data.columns:
+                predicted_power = data['Predicted_Power']
+                predicted_power = np.array(predicted_power)
+                predicted_energy = predicted_power * t_diff / 3600 / 1000
+                dis_predicted_energy = ((total_distance / 1000) / (predicted_energy.cumsum()[-1])) if \
+                    predicted_energy.cumsum()[-1] != 0 else 0
+                dis_predicted_energies.append(dis_predicted_energy)
+
+            # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
+            dis_mod_energy = ((total_distance / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[
+                                                                                                -1] != 0 else 0
+            dis_mod_energies.append(dis_mod_energy)
+
+            dis_data_energy = ((total_distance / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[
+                                                                                                -1] != 0 else 0
+            dis_data_energies.append(dis_data_energy)
+
+            total_distances.append(total_distance / 1000)
+
+            average_speed = np.mean(v) * 3.6  # converting m/s to km/h
+            average_speeds.append(average_speed)
+        if Target == 'model' :
+            # Create bins
+            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
+            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
+
+            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_mod_energies)
+            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
+
+            # Avoid division by zero
+            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
+
+            # Mask the zero values
+            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
+
+            etamin = 2
+            etamax = 11
+            plt.figure(figsize=(12, 6))
+            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
+            cb = plt.colorbar(label='Average Model Energy Efficiency (km/kWh)')
+
+            plt.xlabel('Trip Distance (km)')
+            plt.ylabel('Average Speed (km/h)')
+            plt.title(f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
+            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+            plt.show()
+        elif Target == 'data' :
+            # Create bins
+            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
+            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
+
+            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins],
+                                           weights=dis_data_energies)
+            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
+
+            # Avoid division by zero
+            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
+
+            # Mask the zero values
+            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
+
+            etamin = 2
+            etamax = 11
+            plt.figure(figsize=(12, 6))
+            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
+            cb = plt.colorbar(label='Average Data Energy Efficiency (km/kWh)')
+
+            plt.xlabel('Trip Distance (km)')
+            plt.ylabel('Average Speed (km/h)')
+            plt.title(
+                f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
+            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+            plt.show()
+        elif Target == 'fitting':
+            # Create bins
+            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
+            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
+
+            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins],
+                                           weights=dis_predicted_energies)
+            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
+
+            # Avoid division by zero
+            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
+
+            # Mask the zero values
+            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
+
+            etamin = 2
+            etamax = 11
+            plt.figure(figsize=(12, 6))
+            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
+            cb = plt.colorbar(label='Average Predicted Energy Efficiency (km/kWh)')
+
+            plt.xlabel('Trip Distance (km)')
+            plt.ylabel('Average Speed (km/h)')
+            plt.title(
+                f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
+            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+            plt.show()
