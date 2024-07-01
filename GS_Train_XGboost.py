@@ -1,13 +1,11 @@
 import os
 import pandas as pd
-import numpy as np
 import pickle
-import matplotlib.pyplot as plt
+import numpy as np
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
 from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -120,10 +118,16 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_car}_plot.html")
         best_model.save_model(model_file)
         print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30,
-                output_file=surface_plot)
+        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
         plot_contour(X_test, y_pred, scaler, selected_car, num_grids=400 ,output_file=None)
+
+    # Save the scaler
+    scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
+    with open(scaler_path, 'wb') as f:
+        pickle.dump(scaler, f)
+    print(f"Scaler saved at {scaler_path}")
+
     return results, scaler
 
 def process_file_with_trained_model(file, model, scaler):

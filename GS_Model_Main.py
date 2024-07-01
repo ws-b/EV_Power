@@ -1,15 +1,13 @@
 import os
-import platform
 import random
-import pickle
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
-from GS_Train_RF import cross_validate as rf_cross_validate, add_predicted_power_column as rf_add_predicted_power_column
-from GS_Train_LGB import cross_validate as lg_cross_validate, add_predicted_power_column as lg_add_predicted_power_column
-from GS_Train_CB import cross_validate as cb_cross_validate, add_predicted_power_column as cb_add_predicted_power_column
+from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
+from GS_Train_SVR import cross_validate as svr_cross_validate, add_predicted_power_column as svr_add_predicted_power_column
+
 def get_vehicle_files(car_options, folder_path, vehicle_dict):
     selected_cars = []
     vehicle_files = {}
@@ -92,10 +90,9 @@ def main():
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
             while True:
                 print("1: Train Model using XGBoost")
-                print("2: Train Model using Random Forest")
-                print("3: Train Model using LGBM")
-                print("4: Train Model using CatBoost")
-                print("5: Return to previous menu")
+                print("2: Train Model using Linear Regression")
+                print("3: Train Model using SVM")
+                print("4: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -103,24 +100,17 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 5:
+                if train_choice == 4:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
-                XGB_RMSE_CAR = {}
-                RF_RMSE_CAR = {}
-                LGB_RMSE_CAR = {}
-                CB_RMSE_CAR = {}
+                XGB_RMSE = {}
+                LR_RMSE = {}
+                SVR_RMSE = {}
                 for selected_car in selected_cars:
                     if train_choice == 1:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
-
-                        # Save the scaler
-                        scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
-                        with open(scaler_path, 'wb') as f:
-                            pickle.dump(scaler, f)
-                        print(f"Scaler saved at {scaler_path}")
 
                         # Print overall results
                         if results:
@@ -131,77 +121,48 @@ def main():
                                     min_rmse = rmse
 
                             # Store the minimum RMSE and MAE in dictionaries
-                            XGB_RMSE_CAR[selected_car] = min_rmse
+                            XGB_RMSE[selected_car] = min_rmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    elif train_choice == 2:
-                        results, scaler = rf_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
-
-                        # Save the scaler
-                        scaler_path = os.path.join(save_dir, f'RF_scaler_{selected_car}.pkl')
-                        with open(scaler_path, 'wb') as f:
-                            pickle.dump(scaler, f)
-                        print(f"Scaler saved at {scaler_path}")
+                    if train_choice == 2:
+                        results, scaler = lr_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
                             min_rmse = float('inf')
-                            for fold_num, rmse, nrmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+                            for fold_num, rmse, mae in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAE: {mae}")
                                 if rmse < min_rmse:
                                     min_rmse = rmse
 
                             # Store the minimum RMSE and MAE in dictionaries
-                            RF_RMSE_CAR[selected_car] = min_rmse
+                            LR_RMSE[selected_car] = min_rmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    elif train_choice == 3:
-                        results, scaler = lg_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
-
-                        # Save the scaler
-                        scaler_path = os.path.join(save_dir, f'LGB_scaler_{selected_car}.pkl')
-                        with open(scaler_path, 'wb') as f:
-                            pickle.dump(scaler, f)
-                        print(f"Scaler saved at {scaler_path}")
+                    if train_choice == 3:
+                        results, scaler = svr_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
                             min_rmse = float('inf')
-                            for fold_num, rmse, nrmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+                            for fold_num, rmse, mae in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAE: {mae}")
                                 if rmse < min_rmse:
                                     min_rmse = rmse
 
                             # Store the minimum RMSE and MAE in dictionaries
-                            LGB_RMSE_CAR[selected_car] = min_rmse
+                            SVR_RMSE[selected_car] = min_rmse
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
 
-                    elif train_choice == 4:
-                        results, scaler = cb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+                print(f"XGB RMSE: {XGB_RMSE}")
+                print(f"LR RMSE: {LR_RMSE}")
+                print(f"SVR RMSE: {SVM_RMSE}")
 
-                        # Save the scaler
-                        scaler_path = os.path.join(save_dir, f'CB_scaler_{selected_car}.pkl')
-                        with open(scaler_path, 'wb') as f:
-                            pickle.dump(scaler, f)
-                        print(f"Scaler saved at {scaler_path}")
-
-                        # Print overall results
-                        if results:
-                            min_rmse = float('inf')
-                            for fold_num, rmse, nrmse in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
-                                if rmse < min_rmse:
-                                    min_rmse = rmse
-
-                            # Store the minimum RMSE and MAE in dictionaries
-                            CB_RMSE_CAR[selected_car] = min_rmse
-                print(f"XGB RMSE: {XGB_RMSE_CAR}")
-                print(f"RF RMSE: {RF_RMSE_CAR}")
-                print(f"LGB RMSE: {LGB_RMSE_CAR}")
-                print(f"CB RMSE: {CB_RMSE_CAR}")
         elif task_choice == 3:
             while True:
                 print("1: XGBoost Model")
-                print("2: Random Forest Model")
+                print("2: ")
                 print("3: Return to previous menu")
                 print("0: Quitting the program")
                 try:
@@ -231,8 +192,8 @@ def main():
 
                         xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
                     elif pred_choice == 2:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'RF_best_model_{selected_car}.json')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'RF_scaler_{selected_car}.pkl')
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_scaler_{selected_car}.pkl')
 
                         if not vehicle_files[selected_car]:
                             print(f"No files to process for the selected vehicle: {selected_car}")
@@ -242,7 +203,21 @@ def main():
                         with open(scaler_path, 'rb') as f:
                             scaler = pickle.load(f)
 
-                        rf_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+                        lr_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+                    elif pred_choice == 3:
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'SVR_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'SVR_scaler_{selected_car}.pkl')
+
+                        if not vehicle_files[selected_car]:
+                            print(f"No files to process for the selected vehicle: {selected_car}")
+                            continue
+
+                        # Load the scaler
+                        with open(scaler_path, 'rb') as f:
+                            scaler = pickle.load(f)
+
+                        svr_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+
 
         elif task_choice == 4:
             while True:
@@ -270,26 +245,27 @@ def main():
                         continue
 
                     for selected_car in selected_cars:
+                        sample_files = random.sample(vehicle_files[selected_car] ,5)
                         if plot == 1:
-                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'stacked')
+                            plot_power(sample_files, folder_path, selected_car, 'stacked')
                         elif plot == 2:
-                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'model')
+                            plot_power(sample_files, folder_path, selected_car, 'model')
                         elif plot == 3:
-                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'data')
+                            plot_power(sample_files, folder_path, selected_car, 'data')
                         elif plot == 4:
-                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'comparison')
+                            plot_power(sample_files, folder_path, selected_car, 'comparison')
                         elif plot == 5:
-                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'difference')
+                            plot_power(sample_files, folder_path, selected_car, 'difference')
                         elif plot == 6:
-                            plot_power(vehicle_files[selected_car], folder_path, selected_car, 'd_altitude')
+                            plot_power(sample_files, folder_path, selected_car, 'd_altitude')
                         elif plot == 7:
-                            plot_energy(random.sample(vehicle_files[selected_car], 5), folder_path, selected_car, 'model')
+                            plot_energy(sample_files, folder_path, selected_car, 'model')
                         elif plot == 8:
-                            plot_energy(random.sample(vehicle_files[selected_car], 5), folder_path, selected_car, 'data')
+                            plot_energy(sample_files, folder_path, selected_car, 'data')
                         elif plot == 9:
-                            plot_energy(random.sample(vehicle_files[selected_car], 5), folder_path, selected_car, 'comparison')
+                            plot_energy(sample_files, folder_path, selected_car, 'comparison')
                         elif plot == 10:
-                            plot_energy(vehicle_files[selected_car], folder_path, selected_car, 'altitude')
+                            plot_energy(sample_files, folder_path, selected_car, 'altitude')
                         elif plot == 13:
                             break
                         elif plot == 0:
@@ -304,12 +280,12 @@ def main():
         elif task_choice == 5:
             while True:
                 print("1: Plotting Energy Scatter Graph")
-                print("2: Plotting Fitting Scatter Graph")
+                print("2: Plotting Learning Scatter Graph")
                 print("3: Plotting Individual Driver's Scatter Graph")
                 print("4: Plotting Power and Delta_altitude Graph")
                 print("5: Plotting Model Energy Distribution Graph")
                 print("6: Plotting Data Energy Distribution Graph")
-                print("7: Plotting Fitting Energy Distribution Graph")
+                print("7: Plotting Learning Energy Distribution Graph")
                 print("9: Return to previous menu.")
                 print("0: Quitting the program.")
 
@@ -330,7 +306,7 @@ def main():
                         if plot == 1:
                             plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'model')
                         elif plot == 2:
-                            plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'fitting')
+                            plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'learning')
                         elif plot == 3:
                             if len(vehicle_dict[selected_car]) >=5 :
                                 sample_ids = random.sample(vehicle_dict[selected_car], 5)
@@ -347,7 +323,7 @@ def main():
                         elif plot == 6:
                             plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'data')
                         elif plot == 7:
-                            plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'fitting')
+                            plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'learning')
 
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
@@ -384,7 +360,7 @@ def main():
                         elif plot == 3:
                             plot_2d_histogram(vehicle_files[selected_car], selected_car)
                         elif plot == 4:
-                            plot_2d_histogram(vehicle_files[selected_car], selected_car, 'fitting')
+                            plot_2d_histogram(vehicle_files[selected_car], selected_car, 'learning')
                         elif plot == 5:
                             required_files = 300
                             all_ids = vehicle_dict[selected_car]

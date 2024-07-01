@@ -2,14 +2,13 @@ import os
 import pandas as pd
 import numpy as np
 import pickle
-import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
+from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import joblib
-from GS_plot import plot_3d, plot_contour
 
 def process_single_file(file):
     try:
@@ -23,7 +22,7 @@ def process_single_file(file):
 
 def process_files(files):
     SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 180 / 3.6
+    SPEED_MAX = 230 / 3.6
     ACCELERATION_MIN = -15
     ACCELERATION_MAX = 9
 
@@ -73,40 +72,47 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
 
-    y_mean = np.mean(y)
     y_range = np.ptp(y)
 
     for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
+        model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         nrmse = rmse / y_range
         results.append((fold_num, rmse, nrmse))
-        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}%")
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
 
         if rmse < best_rmse:
             best_rmse = rmse
             best_model = model
 
+    # Save the best model
     if best_model:
-        model_file = os.path.join(save_dir, f"RF_best_model_{selected_car}.pkl")
-        surface_plot = os.path.join(save_dir, f"RF_best_model_{selected_car}_plot.html")
+        model_file = os.path.join(save_dir, f"LR_best_model_{selected_car}.joblib")
+        surface_plot = os.path.join(save_dir, f"LR_best_model_{selected_car}_plot.html")
         joblib.dump(best_model, model_file)
         print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30,
-                output_file=surface_plot)
+        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
         plot_contour(X_test, y_pred, scaler, selected_car, num_grids=400 ,output_file=None)
+
+    # Save the scaler
+    scaler_path = os.path.join(save_dir, f"LR_scaler_{selected_car}.pkl")
+    with open(scaler_path, 'wb') as f:
+        pickle.dump(scaler, f)
+    print(f"Scaler saved at {scaler_path}")
+
     return results, scaler
 
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_IV' in data.columns:
+        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power' in data.columns:
+            # Use the provided scaler
             features = data[['speed', 'acceleration']]
             features_scaled = scaler.transform(features)
 
@@ -114,11 +120,12 @@ def process_file_with_trained_model(file, model, scaler):
 
             data['Predicted_Power'] = data['Power'] - predicted_residual
 
+            # Save the updated file
             data.to_csv(file, index=False)
 
             print(f"Processed file {file}")
         else:
-            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power_IV'.")
+            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power'.")
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 

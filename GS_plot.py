@@ -240,7 +240,7 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'fitting':
+        elif Target == 'learning':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -406,7 +406,7 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
         plt.title(f"{selected_car} : All trip's BMS Energy vs. Model Energy over Time")
         plt.show()
 
-    elif Target == 'fitting':
+    elif Target == 'learning':
         fig, ax = plt.subplots(figsize=(6, 6))
         colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
 
@@ -415,20 +415,19 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
 
         for i in range(len(data_energies)):
             ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
-                       edgecolors=colors[i], label='Before fitting' if i == 0 else "")
+                       edgecolors=colors[i], label='Before learning' if i == 0 else "")
 
         for i in range(len(data_energies)):
             ax.scatter(data_energies[i], predicted_energies[i], color=colors[i],
-                       label='After fitting' if i == 0 else "")
+                       label='After learning' if i == 0 else "")
 
-        # 전체 데이터셋을 사용하여 45도 기준선 계산
         slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
-                color='lightblue', label='Trend (before fitting)')
+                color='lightblue', label='Trend (Before learning)')
 
         slope, intercept, _, _, _ = linregress(all_data_energies, all_predicted_energies)
         ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b',
-                label='Trend (after fitting)')
+                label='Trend (After learning)')
 
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -487,18 +486,18 @@ def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
                 predicted_energies[id].append(predicted_energy.cumsum()[-1])
 
         ax.scatter(data_energies[id], mod_energies[id], color=color_map[id], facecolors='none',
-                   edgecolors=color_map[id], label=f'{id} Before fitting')
+                   edgecolors=color_map[id], label=f'{id} Before learning')
 
         ax.scatter(data_energies[id], predicted_energies[id], color=color_map[id],
-                   label=f'{id} After fitting')
+                   label=f'{id} After learning')
 
         slope_original, intercept_original, _, _, _ = linregress(data_energies[id], mod_energies[id])
         ax.plot(np.array(data_energies[id]), intercept_original + slope_original * np.array(data_energies[id]),
-                color=color_map[id], linestyle='dashed', label=f'{id} Trend (before fitting)')
+                color=color_map[id], linestyle='dashed', label=f'{id} Trend (Before learning)')
 
         slope, intercept, _, _, _ = linregress(data_energies[id], predicted_energies[id])
         ax.plot(np.array(data_energies[id]), intercept + slope * np.array(data_energies[id]), color=color_map[id],
-                label=f'{id} Trend (after fitting)')
+                label=f'{id} Trend (After learning)')
 
     lims = [
         np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -652,7 +651,7 @@ def plot_energy_dis(file_lists, folder_path, selected_car, Target):
         plt.grid(False)
         plt.show()
 
-    elif Target == 'fitting' and 'Predicted_Power' in data.columns:
+    elif Target == 'learning' and 'Predicted_Power' in data.columns:
         # compute mean value
         mean_value = np.mean(dis_predicted_energies)
         # plot histogram for all files
@@ -994,7 +993,7 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
                 f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)
             plt.show()
-        elif Target == 'fitting':
+        elif Target == 'learning':
             # Create bins
             x_bins = np.linspace(min(total_distances), max(total_distances), 20)
             y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
