@@ -1,5 +1,6 @@
 import os
 import random
+import pickle
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
@@ -49,12 +50,12 @@ def get_vehicle_files(car_options, folder_path, vehicle_dict):
 
 def main():
     car_options = {
-        1: 'NiroEV',
+        1: 'EV6',
         2: 'Ionic5',
-        3: 'Ionic6',
-        4: 'KonaEV',
-        5: 'EV6',
-        6: 'GV60',
+        3: 'KonaEV',
+        4: 'NiroEV',
+        5: 'GV60',
+        6: 'Ionic6',
         7: 'Bongo3EV',
         8: 'Porter2EV',
     }
@@ -162,7 +163,7 @@ def main():
         elif task_choice == 3:
             while True:
                 print("1: XGBoost Model")
-                print("2: ")
+                print("2: Linear Regression")
                 print("3: Return to previous menu")
                 print("0: Quitting the program")
                 try:
@@ -192,7 +193,7 @@ def main():
 
                         xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
                     elif pred_choice == 2:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_best_model_{selected_car}.json')
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_best_model_{selected_car}.joblib')
                         scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_scaler_{selected_car}.pkl')
 
                         if not vehicle_files[selected_car]:
@@ -304,18 +305,18 @@ def main():
                         return
                     for selected_car in selected_cars:
                         if plot == 1:
-                            plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'model')
+                            plot_energy_scatter(vehicle_files[selected_car], selected_car, 'model')
                         elif plot == 2:
-                            plot_energy_scatter(vehicle_files[selected_car], folder_path, selected_car, 'learning')
+                            plot_energy_scatter(vehicle_files[selected_car], selected_car, 'learning')
                         elif plot == 3:
                             if len(vehicle_dict[selected_car]) >=5 :
                                 sample_ids = random.sample(vehicle_dict[selected_car], 5)
                                 sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in sample_ids}
-                                plot_driver_energy_scatter(sample_files_dict, folder_path, selected_car)
+                                plot_driver_energy_scatter(sample_files_dict, selected_car)
                             else:
                                 sample_ids = random.sample(vehicle_dict[selected_car], len(vehicle_dict[selected_car]))
                                 sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in sample_ids}
-                                plot_driver_energy_scatter(sample_files_dict, folder_path, selected_car)
+                                plot_driver_energy_scatter(sample_files_dict, selected_car)
                         elif plot == 4:
                             plot_power_scatter(vehicle_files[selected_car], folder_path)
                         elif plot == 5:

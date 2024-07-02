@@ -319,7 +319,15 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
             print("Invalid Target")
             return
 
-def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
+def calculate_rmse(true_values, predicted_values):
+    true_values = np.array(true_values)
+    predicted_values = np.array(predicted_values)
+    mse = np.mean((true_values - predicted_values) ** 2)
+    rmse = np.sqrt(mse)
+    relative_rmse = rmse / np.mean(true_values)
+    return rmse, relative_rmse
+
+def plot_energy_scatter(file_lists, selected_car, target):
     data_energies = []
     mod_energies = []
     predicted_energies = []
@@ -330,8 +338,7 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
 
     # 전체 데이터에 대한 에너지 계산
     for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(file)
 
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -356,8 +363,7 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
     sampled_files = random.sample(file_lists, sample_size)
 
     for file in tqdm(sampled_files):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(file)
 
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -377,7 +383,7 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
             predicted_energy = predicted_power * t_diff / 3600 / 1000
             predicted_energies.append(predicted_energy.cumsum()[-1])
 
-    if Target == 'model':
+    if target == 'model':
         fig, ax = plt.subplots(figsize=(6, 6))
         colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
 
@@ -391,7 +397,7 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
         # 전체 데이터셋을 사용하여 45도 기준선 계산
         slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
-                color='lightblue', label='Trendline')
+                color='lightblue')
 
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -402,11 +408,16 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
         ax.set_xlim(0, None)
         ax.set_ylim(0, None)
 
+        # RMSE 계산 및 플롯에 표기
+        rmse, relative_rmse = calculate_rmse(all_data_energies, all_mod_energies)
+        plt.text(0.05, 0.95, f'RMSE: {rmse:.2f}kWh\nRelative RMSE: {relative_rmse:.2%}',
+                 transform=ax.transAxes, fontsize=12, verticalalignment='top')
+
         plt.legend()
-        plt.title(f"{selected_car} : All trip's BMS Energy vs. Model Energy over Time")
+        plt.title(f"{selected_car} : BMS Energy vs. Model Energy")
         plt.show()
 
-    elif Target == 'learning':
+    elif target == 'learning':
         fig, ax = plt.subplots(figsize=(6, 6))
         colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
 
@@ -423,11 +434,10 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
 
         slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
         ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
-                color='lightblue', label='Trend (Before learning)')
+                color='lightblue')
 
         slope, intercept, _, _, _ = linregress(all_data_energies, all_predicted_energies)
-        ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b',
-                label='Trend (After learning)')
+        ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b')
 
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -438,14 +448,21 @@ def plot_energy_scatter(file_lists, folder_path, selected_car, Target):
         ax.set_xlim(0, None)
         ax.set_ylim(0, None)
 
+        # RMSE & RRMSE
+        rmse_before, relative_rmse_before = calculate_rmse(all_data_energies, all_mod_energies)
+        rmse_after, relative_rmse_after = calculate_rmse(all_data_energies, all_predicted_energies)
+        plt.text(0.6, 0.15, f'RMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
+                 transform=ax.transAxes, fontsize=10, verticalalignment='top')
+
         plt.legend()
-        plt.title(f"{selected_car} : All trip's BMS Energy vs. Trained Model Energy over Time")
+        plt.title(f"{selected_car} : BMS Energy vs. Trained Model Energy")
         plt.show()
 
     else:
         print('Invalid Target')
         return
-def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
+
+def plot_driver_energy_scatter(file_lists_dict, selected_car):
     data_energies = {}
     mod_energies = {}
     predicted_energies = {}
@@ -453,7 +470,7 @@ def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
     colors = cm.rainbow(np.linspace(0, 1, len(file_lists_dict)))
     color_map = {}
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_xlabel('Data Energy (kWh)')
     ax.set_ylabel('Predicted Energy (kWh)')
 
@@ -464,8 +481,7 @@ def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
         color_map[id] = colors[i]
 
         for file in tqdm(files, desc=f'Processing {id}'):
-            file_path = os.path.join(folder_path, file)
-            data = pd.read_csv(file_path)
+            data = pd.read_csv(file)
 
             t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
             t_diff = t.diff().dt.total_seconds().fillna(0)
@@ -485,19 +501,17 @@ def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
                 predicted_energy = predicted_power * t_diff / 3600 / 1000
                 predicted_energies[id].append(predicted_energy.cumsum()[-1])
 
-        ax.scatter(data_energies[id], mod_energies[id], color=color_map[id], facecolors='none',
-                   edgecolors=color_map[id], label=f'{id} Before learning')
-
-        ax.scatter(data_energies[id], predicted_energies[id], color=color_map[id],
+        ax.scatter(data_energies[id], predicted_energies[id], facecolors='none', edgecolors=color_map[id],
                    label=f'{id} After learning')
 
-        slope_original, intercept_original, _, _, _ = linregress(data_energies[id], mod_energies[id])
-        ax.plot(np.array(data_energies[id]), intercept_original + slope_original * np.array(data_energies[id]),
-                color=color_map[id], linestyle='dashed', label=f'{id} Trend (Before learning)')
-
         slope, intercept, _, _, _ = linregress(data_energies[id], predicted_energies[id])
-        ax.plot(np.array(data_energies[id]), intercept + slope * np.array(data_energies[id]), color=color_map[id],
-                label=f'{id} Trend (After learning)')
+        ax.plot(np.array(data_energies[id]), intercept + slope * np.array(data_energies[id]), color=color_map[id])
+
+        # Calculate RMSE & RRMSE for each id
+        rmse_before, relative_rmse_before = calculate_rmse(data_energies[id], mod_energies[id])
+        rmse_after, relative_rmse_after = calculate_rmse(data_energies[id], predicted_energies[id])
+        ax.text(0.05, 0.95 - i * 0.1, f'{id}\nRMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
+                transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 
     lims = [
         np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -508,7 +522,7 @@ def plot_driver_energy_scatter(file_lists_dict, folder_path, selected_car):
     ax.set_xlim(0, None)
     ax.set_ylim(0, None)
 
-    plt.legend()
+    plt.legend(loc='lower right')
     plt.title(f"{selected_car} : Drivers Energy Comparison\n BMS Energy vs. Trained Model Energy over Time")
 
     plt.show()
