@@ -97,7 +97,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         params = {
             'tree_method': 'hist',
             'device': 'cuda',
-            'eval_metric': ['rmse', 'mae']
+            'eval_metric': ['rmse']
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=100, evals=evals, obj=custom_obj)

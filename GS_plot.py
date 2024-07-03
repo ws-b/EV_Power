@@ -10,13 +10,12 @@ from scipy.interpolate import griddata
 from scipy.stats import linregress
 from tqdm import tqdm
 
-def plot_power(file_lists, folder_path, selected_car, Target):
+def plot_power(file_lists, selected_car, target):
     for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(file)
 
         # Device Number 및 Trip Number 추출
-        parts = file_path.split(os.sep)
+        parts = file.split(os.sep)
         file_name = parts[-1]
         name_parts = file_name.split('_')
         trip_info = (name_parts[2] if 'altitude' in name_parts else name_parts[1]).split('.')[0]
@@ -33,7 +32,7 @@ def plot_power(file_lists, folder_path, selected_car, Target):
         if 'Predicted_Power' in data.columns:
             predicted_power = np.array(data['Predicted_Power']) / 1000
         
-        if Target == 'stacked':
+        if target == 'stacked':
             A = data['A'] / 1000
             B = data['B'] / 1000
             C = data['C'] / 1000
@@ -52,7 +51,7 @@ def plot_power(file_lists, folder_path, selected_car, Target):
 
             plt.show()
 
-        elif Target == 'model':
+        elif target == 'model':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -71,7 +70,7 @@ def plot_power(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'data':
+        elif target == 'data':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -90,7 +89,7 @@ def plot_power(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'comparison':
+        elif target == 'comparison':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -112,7 +111,7 @@ def plot_power(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'difference':
+        elif target == 'difference':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -131,7 +130,7 @@ def plot_power(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'd_altitude' and 'delta altitude' in data.columns:
+        elif target == 'd_altitude' and 'delta altitude' in data.columns:
             # 고도 데이터
             d_altitude = np.array(data['delta altitude'])
 
@@ -169,13 +168,12 @@ def plot_power(file_lists, folder_path, selected_car, Target):
             print("Invalid Target")
             return
 
-def plot_energy(file_lists, folder_path, selected_car, Target):
+def plot_energy(file_lists, selected_car, target):
     for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(file)
 
         # Device Number 및 Trip Number 추출
-        parts = file_path.split(os.sep)
+        parts = file.split(os.sep)
         file_name = parts[-1]
         name_parts = file_name.split('_')
         trip_info = (name_parts[2] if 'altitude' in name_parts else name_parts[1]).split('.')[0]
@@ -202,7 +200,7 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
         else:
             pass
 
-        if Target == 'model':
+        if target == 'model':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -221,7 +219,7 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'data':
+        elif target == 'data':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -240,7 +238,7 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'learning':
+        elif target == 'learning':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -260,7 +258,7 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
             plt.show()
 
 
-        elif Target == 'comparison':
+        elif target == 'comparison':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
@@ -281,7 +279,7 @@ def plot_energy(file_lists, folder_path, selected_car, Target):
             plt.tight_layout()
             plt.show()
 
-        elif Target == 'altitude' and 'altitude' in data.columns:
+        elif target == 'altitude' and 'altitude' in data.columns:
             # 고도 데이터
             altitude = np.array(data['altitude'])
 
@@ -336,7 +334,7 @@ def plot_energy_scatter(file_lists, selected_car, target):
     all_mod_energies = []
     all_predicted_energies = []
 
-    # 전체 데이터에 대한 에너지 계산
+    # calculate total energy using whole data
     for file in tqdm(file_lists):
         data = pd.read_csv(file)
 
@@ -358,7 +356,7 @@ def plot_energy_scatter(file_lists, selected_car, target):
             predicted_energy = predicted_power * t_diff / 3600 / 1000
             all_predicted_energies.append(predicted_energy.cumsum()[-1])
 
-    # 랜덤으로 1000개의 파일을 선택하여 산점도 그리기
+    # select 1000 samples in random
     sample_size = min(1000, len(file_lists))
     sampled_files = random.sample(file_lists, sample_size)
 
@@ -703,13 +701,13 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
         print("Error: X should have 2 columns.")
         return
 
-    # 역변환하여 원래 범위로 변환
+    # Inverse transform to original scale
     X_orig = scaler.inverse_transform(X)
 
-    # Speed를 km/h로 변환
+    # Convert Speed Unit (km/h)
     X_orig[:, 0] *= 3.6
 
-    # 그리드 크기 계산
+    # calculate grid size
     num_grid_sqrt = int(np.sqrt(num_grids))
     grid_size_x = (X_orig[:, 0].max() - X_orig[:, 0].min()) / num_grid_sqrt
     grid_size_y = (X_orig[:, 1].max() - X_orig[:, 1].min()) / num_grid_sqrt
@@ -723,7 +721,7 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
             y_min = X_orig[:, 1].min() + j * grid_size_y
             y_max = y_min + grid_size_y
 
-            # 해당 그리드 내의 데이터 인덱스 선택
+            # select index in grid
             grid_indices = np.where(
                 (X_orig[:, 0] >= x_min) & (X_orig[:, 0] < x_max) &
                 (X_orig[:, 1] >= y_min) & (X_orig[:, 1] < y_max)

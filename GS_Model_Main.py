@@ -158,7 +158,7 @@ def main():
 
                 print(f"XGB RMSE: {XGB_RMSE}")
                 print(f"LR RMSE: {LR_RMSE}")
-                print(f"SVR RMSE: {SVM_RMSE}")
+                print(f"SVR RMSE: {SVR_RMSE}")
 
         elif task_choice == 3:
             while True:
@@ -248,25 +248,25 @@ def main():
                     for selected_car in selected_cars:
                         sample_files = random.sample(vehicle_files[selected_car] ,5)
                         if plot == 1:
-                            plot_power(sample_files, folder_path, selected_car, 'stacked')
+                            plot_power(sample_files, selected_car, 'stacked')
                         elif plot == 2:
-                            plot_power(sample_files, folder_path, selected_car, 'model')
+                            plot_power(sample_files, selected_car, 'model')
                         elif plot == 3:
-                            plot_power(sample_files, folder_path, selected_car, 'data')
+                            plot_power(sample_files, selected_car, 'data')
                         elif plot == 4:
-                            plot_power(sample_files, folder_path, selected_car, 'comparison')
+                            plot_power(sample_files, selected_car, 'comparison')
                         elif plot == 5:
-                            plot_power(sample_files, folder_path, selected_car, 'difference')
+                            plot_power(sample_files, selected_car, 'difference')
                         elif plot == 6:
-                            plot_power(sample_files, folder_path, selected_car, 'd_altitude')
+                            plot_power(sample_files, selected_car, 'd_altitude')
                         elif plot == 7:
-                            plot_energy(sample_files, folder_path, selected_car, 'model')
+                            plot_energy(sample_files, selected_car, 'model')
                         elif plot == 8:
-                            plot_energy(sample_files, folder_path, selected_car, 'data')
+                            plot_energy(sample_files, selected_car, 'data')
                         elif plot == 9:
-                            plot_energy(sample_files, folder_path, selected_car, 'comparison')
+                            plot_energy(sample_files, selected_car, 'comparison')
                         elif plot == 10:
-                            plot_energy(sample_files, folder_path, selected_car, 'altitude')
+                            plot_energy(sample_files, selected_car, 'altitude')
                         elif plot == 13:
                             break
                         elif plot == 0:
@@ -338,7 +338,8 @@ def main():
                 print("3: Plotting Data Energy Efficiency Graph")
                 print("4: Plotting Predicted Energy Efficiency Graph")
                 print("5: Driver's Energy Efficiency Graph")
-                print("6: Return to previous menu.")
+                print("6: ")
+                print("7: Return to previous menu.")
                 print("0: Quitting the program.")
                 selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
                 selections_list = selections.split(',')
@@ -348,7 +349,7 @@ def main():
                     except ValueError:
                         print(f"Invalid input: {selection}. Please enter a valid number.")
                         continue
-                    if plot == 6:
+                    if plot == 7:
                         break
                     elif plot == 0:
                         print("Quitting the program")
@@ -374,7 +375,8 @@ def main():
                                 if total_files >= required_files:
                                     break
                             plot_2d_histogram(sample_files_dict, selected_car)
-
+                        elif plot == 6:
+                            break
         elif task_choice == 0:
             print("Quitting the program.")
             return
