@@ -21,9 +21,9 @@ def process_single_file(file):
 
 def process_files(files):
     SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 230 / 3.6
-    ACCELERATION_MIN = -15
-    ACCELERATION_MAX = 9
+    SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
+    ACCELERATION_MIN = -15 # m/s^2
+    ACCELERATION_MAX = 9 # m/s^2
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -100,7 +100,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
             'eval_metric': ['rmse']
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
-        model = xgb.train(params, dtrain, num_boost_round=100, evals=evals, obj=custom_obj)
+        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
         y_pred = model.predict(dtest)
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
