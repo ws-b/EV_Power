@@ -85,7 +85,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
 
-    y_range = np.ptp(y)
+    y_mean = np.mean(y)
 
     for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
         X_train, X_test = X[train_index], X[test_index]
@@ -104,7 +104,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         y_pred = model.predict(dtest)
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-        nrmse = rmse / y_range
+        nrmse = rmse / y_mean
         results.append((fold_num, rmse, nrmse))
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
 
