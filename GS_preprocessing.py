@@ -107,8 +107,8 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
         date_parts = name_parts[2].split('-') if not altitude else name_parts[3].split('-')
         year_month = '-'.join(date_parts[:2])
 
-        vehicle_type = vehicle_type.get(device_no, 'Unknown')
-        save_folder = os.path.join(save_path, vehicle_type)
+        vehicle_model = vehicle_type.get(device_no, 'Unknown')
+        save_folder = os.path.join(save_path, vehicle_model)
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
 
