@@ -3,7 +3,7 @@ import platform
 from GS_preprocessing import (process_device_folders,process_files_trip_by_trip, process_files)
 from GS_vehicle_dict import vehicle_dict
 
-device_vehicle_mapping = {device: model for model, devices in vehicle_dict.items() for device in devices}
+vehicle_type = {device: model for model, devices in vehicle_dict.items() for device in devices}
 
 def pre_process():
     while True:
@@ -21,10 +21,10 @@ def pre_process():
         choice = int(choice)
 
         if choice == 1:
-            source_paths = r"C:\Users\BSL\Desktop\BMS_Data"
+            source_paths = r"C:\Users\WSONG\Desktop\drive-download-20240711T052431Z-001"
             destination_root = r"D:\SamsungSTF\Data\GSmbiz\BMS_Data"
-
-            process_device_folders(source_paths, destination_root)
+            process_device_folders(source_paths, destination_root, False)
+            process_device_folders(source_paths, destination_root, True)
             break
 
         elif choice == 2:
@@ -33,8 +33,8 @@ def pre_process():
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
-            process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
-            process_files(start_path, save_path, device_vehicle_mapping, altitude=True)
+            process_files(start_path, save_path, vehicle_type, altitude=False)
+            process_files(start_path, save_path, vehicle_type, altitude=True)
             break
 
         elif choice == 3:

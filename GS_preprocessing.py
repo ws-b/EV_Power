@@ -22,23 +22,34 @@ def load_data_by_vehicle(folder_path, vehicle_dict, selected_car):
     vehicle_files[selected_car] = all_files
 
     return vehicle_files
-def process_device_folders(source_paths, destination_root):
-    for year_month in os.listdir(source_paths):
-        year_month_path = os.path.join(source_paths, year_month)
-        if os.path.isdir(year_month_path):  # check year-month folder
-            for device_number in os.listdir(year_month_path):
-                device_number_path = os.path.join(year_month_path, device_number)
-                if os.path.isdir(device_number_path): # check device number folder
-                    # Create destination folder
-                    destination_path = os.path.join(destination_root, device_number, year_month)
-                    os.makedirs(destination_path, exist_ok=True)  # If the folder does not exist, create it
 
-                    # Move files
-                    for file in os.listdir(device_number_path):
-                        source_file_path = os.path.join(device_number_path, file)
-                        destination_file_path = os.path.join(destination_path, file)
-                        shutil.move(source_file_path, destination_file_path)
-                        print(f"Moved {file} to {destination_path}")
+def process_device_folders(source_paths, destination_root, altitude=False):
+    for root, dirs, files in os.walk(source_paths):
+        if not dirs:  # No subdirectories means this is a leaf directory
+            if altitude:
+                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
+            else:
+                filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' not in f]
+
+            filtered_files.sort()
+            device_no, year_month = None, None
+
+            for file in filtered_files:
+                file_path = os.path.join(root, file)
+                parts = file_path.split(os.sep)
+                file_name = parts[-1]
+                name_parts = file_name.split('_')
+                device_no = name_parts[1] if not altitude else name_parts[2]
+                date_parts = name_parts[2].split('-') if not altitude else name_parts[3].split('-')
+                year_month = '-'.join(date_parts[:2])
+
+                save_folder = os.path.join(destination_root, device_no, year_month)
+                os.makedirs(save_folder, exist_ok=True)  # If the folder does not exist, create it
+
+                destination_file_path = os.path.join(save_folder, file)
+
+                shutil.move(file_path, destination_file_path)
+                print(f"Moved {file} to {destination_file_path}")
 
 def read_file_with_detected_encoding(file_path):
     try:
@@ -56,7 +67,7 @@ def read_file_with_detected_encoding(file_path):
                 print(f"Failed to read file {file_path} with Python engine due to: {e}")
                 return None
 
-def process_files(start_path, save_path, device_vehicle_mapping, altitude=False):
+def process_files(start_path, save_path, vehicle_type, altitude=False):
     total_folders = sum([len(dirs) == 0 for _, dirs, _ in os.walk(start_path)])
 
     with tqdm(total=total_folders, desc="Processing folders", unit="folder") as pbar:
@@ -65,7 +76,7 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
             for root, dirs, files in os.walk(start_path):
                 if not dirs:  # Only process leaf folders
                     futures.append(
-                        executor.submit(process_folder, root, files, save_path, device_vehicle_mapping, altitude))
+                        executor.submit(process_folder, root, files, save_path, vehicle_type, altitude))
 
             for future in as_completed(futures):
                 try:
@@ -77,7 +88,7 @@ def process_files(start_path, save_path, device_vehicle_mapping, altitude=False)
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
 
-def process_folder(root, files, save_path, device_vehicle_mapping, altitude):
+def process_folder(root, files, save_path, vehicle_type, altitude):
     if altitude:
         filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
     else:
@@ -96,7 +107,7 @@ def process_folder(root, files, save_path, device_vehicle_mapping, altitude):
         date_parts = name_parts[2].split('-') if not altitude else name_parts[3].split('-')
         year_month = '-'.join(date_parts[:2])
 
-        vehicle_type = device_vehicle_mapping.get(device_no, 'Unknown')
+        vehicle_type = vehicle_type.get(device_no, 'Unknown')
         save_folder = os.path.join(save_path, vehicle_type)
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
