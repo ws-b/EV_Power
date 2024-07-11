@@ -2,7 +2,11 @@ import os
 import pandas as pd
 import pickle
 import numpy as np
-from sklearn.svm import SVR
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import KFold
+from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
@@ -52,6 +56,19 @@ def process_files(files):
 
     return full_data, scaler
 
+class SimpleNN(nn.Module):
+    def __init__(self, input_dim):
+        super(SimpleNN, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -59,47 +76,82 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
     best_rmse = float('inf')
-    best_model = None
+    best_model_state_dict = None
 
     if selected_car not in vehicle_files or not vehicle_files[selected_car]:
         print(f"No files found for the selected vehicle: {selected_car}")
         return
+
+    # Set device to GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        print(f"CUDA is available. Using GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        print("CUDA is not available. Using CPU.")
 
     files = vehicle_files[selected_car]
     data, scaler = process_files(files)
     X = data[['speed', 'acceleration']].to_numpy()
     y = data['Residual'].to_numpy()
 
-    y_range = np.ptp(y)
+    y_mean = np.mean(y)
+
+    best_test_data = None
 
     for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
-        model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+        # Convert to PyTorch tensors
+        X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(device)
+        X_test_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
+        y_train_tensor = torch.tensor(y_train, dtype=torch.float32).view(-1, 1).to(device)
+        y_test_tensor = torch.tensor(y_test, dtype=torch.float32).view(-1, 1).to(device)
+
+        # Create DataLoader
+        train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+        model = SimpleNN(input_dim=X_train.shape[1]).to(device)
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+        # Train the model
+        model.train()
+        for epoch in range(150):
+            for batch_X, batch_y in train_loader:
+                optimizer.zero_grad()
+                outputs = model(batch_X)
+                loss = criterion(outputs, batch_y)
+                loss.backward()
+                optimizer.step()
+
+        # Evaluate the model
+        model.eval()
+        with torch.no_grad():
+            y_pred = model(X_test_tensor).flatten().cpu().numpy()
 
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-        nrmse = rmse / y_range
+        nrmse = rmse / y_mean
         results.append((fold_num, rmse, nrmse))
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
 
         if rmse < best_rmse:
             best_rmse = rmse
-            best_model = model
+            best_model_state_dict = model.state_dict()  # Access the model's state_dict
+            best_test_data = (X_test, y_test, y_pred)
 
-    if best_model:
-        model_file = os.path.join(save_dir, f"SVRM_best_model_{selected_car}.pkl")
-        surface_plot = os.path.join(save_dir, f"SVR_best_model_{selected_car}_plot.html")
-        with open(model_file, 'wb') as f:
-            pickle.dump(best_model, f)
+    # Save the best model
+    if best_model_state_dict and best_test_data:
+        model_file = os.path.join(save_dir, f"DL_best_model_{selected_car}.pth")
+        torch.save(best_model_state_dict, model_file)
         print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
-        plot_contour(X_test, y_pred, scaler, selected_car, num_grids=400 ,output_file=None)
+        X_test, y_test, y_pred = best_test_data
+        plot_contour(X_test, y_test, y_pred, scaler, selected_car, num_grids=400, fold_num='best')
 
-    scaler_path = os.path.join(save_dir, f'SVR_scaler_{selected_car}.pkl')
+    # Save the scaler
+    scaler_path = os.path.join(save_dir, f'DL_scaler_{selected_car}.pkl')
     with open(scaler_path, 'wb') as f:
         pickle.dump(scaler, f)
     print(f"Scaler saved at {scaler_path}")
