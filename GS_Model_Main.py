@@ -51,11 +51,11 @@ def get_vehicle_files(car_options, folder_path, vehicle_dict):
 def main():
     car_options = {
         1: 'EV6',
-        2: 'Ionic5',
+        2: 'Ioniq5',
         3: 'KonaEV',
         4: 'NiroEV',
         5: 'GV60',
-        6: 'Ionic6',
+        6: 'Ioniq6',
         7: 'Bongo3EV',
         8: 'Porter2EV',
     }

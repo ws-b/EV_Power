@@ -3,6 +3,8 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
@@ -97,12 +99,13 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         params = {
             'tree_method': 'hist',
             'device': 'cuda',
-            'eval_metric': ['rmse']
+            'eval_metric': ['rmse'],
+            'lambda' : 1
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
         y_pred = model.predict(dtest)
-
+        residual2 = y_test - y_pred
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         nrmse = rmse / y_mean
         results.append((fold_num, rmse, nrmse))
@@ -120,7 +123,8 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
         plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
-        plot_contour(X_test, y_pred, scaler, selected_car, num_grids=400 ,output_file=None)
+        plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
+        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
 
     # Save the scaler
     scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
@@ -129,6 +133,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     print(f"Scaler saved at {scaler_path}")
 
     return results, scaler
+
 
 def process_file_with_trained_model(file, model, scaler):
     try:

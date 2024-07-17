@@ -20,9 +20,9 @@ class Vehicle:
 def select_vehicle(car):
     if car == 'NiroEV':
         return Vehicle(1928, 0, 32.717, -0.19110, 0.023073, 250, 350, 0, 0.9)
-    elif car == 'Ionic5':
+    elif car == 'Ioniq5':
         return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9) # parameters for Ioniq5
-    elif car == 'Ionic6':
+    elif car == 'Ioniq6':
         return Vehicle(2041.168, 0, 23.958, 0.15007, 0.015929, 250, 350, 0, 0.9) # parameters for Ionic6
     elif car == 'KonaEV':
         return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV

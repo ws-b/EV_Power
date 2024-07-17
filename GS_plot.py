@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 import random
 import plotly.graph_objects as go
@@ -446,10 +447,10 @@ def plot_energy_scatter(file_lists, selected_car, target):
         ax.set_xlim(0, None)
         ax.set_ylim(0, None)
 
-        # RMSE & RRMSE
+        # RMSE & NRMSE
         rmse_before, relative_rmse_before = calculate_rmse(all_data_energies, all_mod_energies)
         rmse_after, relative_rmse_after = calculate_rmse(all_data_energies, all_predicted_energies)
-        plt.text(0.6, 0.15, f'RMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
+        plt.text(0.6, 0.15, f'RMSE (Before): {rmse_before:.2f}kWh\nNRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nNRMSE (After): {relative_rmse_after:.2%}',
                  transform=ax.transAxes, fontsize=10, verticalalignment='top')
 
         plt.legend()
@@ -505,10 +506,10 @@ def plot_driver_energy_scatter(file_lists_dict, selected_car):
         slope, intercept, _, _, _ = linregress(data_energies[id], predicted_energies[id])
         ax.plot(np.array(data_energies[id]), intercept + slope * np.array(data_energies[id]), color=color_map[id])
 
-        # Calculate RMSE & RRMSE for each id
+        # Calculate RMSE & NRMSE for each id
         rmse_before, relative_rmse_before = calculate_rmse(data_energies[id], mod_energies[id])
         rmse_after, relative_rmse_after = calculate_rmse(data_energies[id], predicted_energies[id])
-        ax.text(0.05, 0.95 - i * 0.1, f'{id}\nRMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
+        ax.text(0.05, 0.95 - i * 0.1, f'{id}\nRMSE (Before): {rmse_before:.2f}kWh\nNRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nNRMSE (After): {relative_rmse_after:.2%}',
                 transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 
     lims = [
@@ -779,7 +780,7 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
     else:
         fig.show()
 
-def plot_contour(X, y_pred, scaler, selected_car, num_grids=400, output_file=None):
+def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
     if X.shape[1] != 2:
         raise ValueError("Error: X should have 2 columns.")
 
@@ -801,13 +802,51 @@ def plot_contour(X, y_pred, scaler, selected_car, num_grids=400, output_file=Non
     plt.colorbar(contour)
     plt.xlabel('Speed (km/h)')
     plt.ylabel('Acceleration (m/s²)')
+    plt.title(f'{selected_car} : Contour Plot of {terminology}')
+    plt.show()
+"""
+def plot_contour(X, y_test, y_pred, scaler, selected_car, num_grids=400):
+    if X.shape[1] != 2:
+        raise ValueError("Error: X should have 2 columns.")
+
+    # Inverse transform to original scale
+    X_orig = scaler.inverse_transform(X)
+
+    # Convert speed to km/h
+    X_orig[:, 0] *= 3.6
+
+    # Create grid
+    grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
+    grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+    grid_z_test = griddata((X_orig[:, 0], X_orig[:, 1]), y_test, (grid_x, grid_y), method='linear')
+    grid_z_pred = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
+
+    # Calculate the common z range
+    z_min = min(np.nanmin(grid_z_test), np.nanmin(grid_z_pred))
+    z_max = max(np.nanmax(grid_z_test), np.nanmax(grid_z_pred))
+
+    # Normalize the color map
+    norm = mcolors.Normalize(vmin=z_min, vmax=z_max)
+
+    # Contour plot for actual test data
+    plt.figure(figsize=(10, 8))
+    contour_test = plt.contourf(grid_x, grid_y, grid_z_test, levels=20, cmap='viridis', norm=norm)
+    plt.colorbar(contour_test)
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title(f'{selected_car} : Contour Plot of Actual Test Data')
+    plt.show()
+
+    # Contour plot for predicted data
+    plt.figure(figsize=(10, 8))
+    contour_pred = plt.contourf(grid_x, grid_y, grid_z_pred, levels=20, cmap='viridis', norm=norm)
+    plt.colorbar(contour_pred)
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
     plt.title(f'{selected_car} : Contour Plot of Predicted Residuals')
-
-    if output_file:
-        plt.savefig(output_file)
-    else:
-        plt.show()
-
+    plt.show()
+"""
 def plot_contour2(file_lists, selected_car, num_grids=400):
     all_data = []
 
