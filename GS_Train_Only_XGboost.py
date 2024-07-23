@@ -15,8 +15,7 @@ def process_single_file(file):
     try:
         data = pd.read_csv(file)
         if 'Power' in data.columns and 'Power_IV' in data.columns:
-            data['Residual'] = data['Power'] - data['Power_IV']
-            return data[['speed', 'acceleration', 'Residual']]
+            return data[['speed', 'acceleration', 'Power_IV']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -56,19 +55,6 @@ def process_files(files, scaler=None):
 
     return full_data, scaler
 
-def custom_obj(preds, dtrain):
-    labels = dtrain.get_label()
-    speed = dtrain.get_weight()  # Use weight to store speed
-
-    grad = preds - labels
-    hess = np.ones_like(grad)
-
-    # speed가 0인 경우 제약 조건 반영
-    mask = (speed == 0)
-    grad[mask] = np.maximum(0, grad[mask])
-
-    return grad, hess
-
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -85,7 +71,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     files = vehicle_files[selected_car]
     # 전체 데이터를 사용하여 평균 계산
     full_data, scaler = process_files(files)
-    y = full_data['Residual'].to_numpy()
+    y = full_data['Power_IV'].to_numpy()
     y_mean = np.mean(y)
 
     for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
@@ -96,10 +82,10 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         test_data, _ = process_files(test_files)
 
         X_train = train_data[['speed', 'acceleration']].to_numpy()
-        y_train = train_data['Residual'].to_numpy()
+        y_train = train_data['Power_IV'].to_numpy()
 
         X_test = test_data[['speed', 'acceleration']].to_numpy()
-        y_test = test_data['Residual'].to_numpy()
+        y_test = test_data['Power_IV'].to_numpy()
 
         dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
         dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
@@ -111,9 +97,8 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
             'lambda': 1
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
-        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
+        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
-        residual2 = y_test - y_pred
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         nrmse = rmse / y_mean
         results.append((fold_num, rmse, nrmse))
@@ -127,17 +112,17 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
 
     # Save the best model
     if best_model:
-        model_file = os.path.join(save_dir, f"XGB_best_model_{selected_car}.json")
-        surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_car}_plot.html")
+        model_file = os.path.join(save_dir, f"XGB_only_best_model_{selected_car}.json")
+        #surface_plot = os.path.join(save_dir, f"XGB_only_best_model_{selected_car}_plot.html")
         best_model.save_model(model_file)
         print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
-
-        plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
+        #plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
+        Residual = y_pred - y_test
+        plot_contour(X_test, Residual, scaler, selected_car, '(Predicted Power - BMS Power)', num_grids=400)
+        #plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
 
     # Save the scaler
-    scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
+    scaler_path = os.path.join(save_dir, f'XGB_only_scaler_{selected_car}.pkl')
     with open(scaler_path, 'wb') as f:
         pickle.dump(scaler, f)
     print(f"Scaler saved at {scaler_path}")
@@ -155,7 +140,7 @@ def process_file_with_trained_model(file, model, scaler):
 
             predicted_residual = model.predict(features_scaled)
 
-            data['Predicted_Power'] = data['Power'] - predicted_residual
+            data['Predicted_Power'] = predicted_residual
 
             # Save the updated file
             data.to_csv(file, index=False)

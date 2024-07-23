@@ -553,15 +553,14 @@ def plot_power_scatter(file_lists, folder_path):
         plt.show()
 
 
-def plot_energy_dis(file_lists, folder_path, selected_car, Target):
+def plot_energy_dis(file_lists, selected_car, Target):
     dis_mod_energies = []
     dis_data_energies = []
     dis_predicted_energies = []
     total_distances = []
 
     for file in tqdm(file_lists):
-        file_path = os.path.join(folder_path, file)
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(file)
 
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)

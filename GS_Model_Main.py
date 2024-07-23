@@ -6,6 +6,7 @@ from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost_REV import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
+from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
 from GS_Train_DL import cross_validate as DL_cross_validate, add_predicted_power_column as DL_add_predicted_power_column
 
@@ -92,7 +93,7 @@ def main():
             while True:
                 print("1: Train Model using XGBoost")
                 print("2: Train Model using Linear Regression")
-                print("3: Train Model using Deep Learning")
+                print("3: Train Model using Only ML")
                 print("4: Return to previous menu")
                 print("0: Quitting the program")
                 try:
@@ -108,7 +109,7 @@ def main():
                     return
                 XGB_RMSE = {}
                 LR_RMSE = {}
-                DL_RMSE = {}
+                ONLY_RMSE = {}
                 for selected_car in selected_cars:
                     if train_choice == 1:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
@@ -141,7 +142,7 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 3:
-                        results, scaler = DL_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+                        results, scaler = only_xgb_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
@@ -152,13 +153,13 @@ def main():
                                     min_rmse = rmse
 
                             # Store the minimum RMSE and MAE in dictionaries
-                            DL_RMSE[selected_car] = min_rmse
+                            ONLY_RMSE[selected_car] = min_rmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
 
                 print(f"XGB RMSE: {XGB_RMSE}")
                 print(f"LR RMSE: {LR_RMSE}")
-                print(f"DL RMSE: {DL_RMSE}")
+                print(f"ONLY ML RMSE: {ONLY_RMSE}")
 
         elif task_choice == 3:
             while True:
@@ -320,11 +321,11 @@ def main():
                         elif plot == 4:
                             plot_power_scatter(vehicle_files[selected_car], folder_path)
                         elif plot == 5:
-                            plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'model')
+                            plot_energy_dis(vehicle_files[selected_car], selected_car, 'model')
                         elif plot == 6:
-                            plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'data')
+                            plot_energy_dis(vehicle_files[selected_car], selected_car, 'data')
                         elif plot == 7:
-                            plot_energy_dis(vehicle_files[selected_car], folder_path, selected_car, 'learning')
+                            plot_energy_dis(vehicle_files[selected_car], selected_car, 'learning')
 
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
