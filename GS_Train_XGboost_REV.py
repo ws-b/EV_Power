@@ -1,16 +1,16 @@
 import os
 import pandas as pd
-import numpy as np
 import pickle
-from sklearn.linear_model import LinearRegression
+import numpy as np
+import xgboost as xgb
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
 from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import joblib
 
-# 데이터 전처리 함수
 def process_single_file(file):
     try:
         data = pd.read_csv(file)
@@ -21,12 +21,11 @@ def process_single_file(file):
         print(f"Error processing file {file}: {e}")
     return None
 
-# 여러 파일을 처리하는 함수
-def process_files(files):
+def process_files(files, scaler=None):
     SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 230 / 3.6
-    ACCELERATION_MIN = -15
-    ACCELERATION_MAX = 9
+    SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
+    ACCELERATION_MIN = -15 # m/s^2
+    ACCELERATION_MAX = 9 # m/s^2
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -49,14 +48,27 @@ def process_files(files):
 
     full_data = pd.concat(df_list, ignore_index=True)
 
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+    if scaler is None:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
 
     full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
 
     return full_data, scaler
 
-# 교차 검증 및 모델 학습 함수
+def custom_obj(preds, dtrain):
+    labels = dtrain.get_label()
+    speed = dtrain.get_weight()  # Use weight to store speed
+
+    grad = preds - labels
+    hess = np.ones_like(grad)
+
+    # speed가 0인 경우 제약 조건 반영
+    mask = (speed == 0)
+    grad[mask] = np.maximum(0, grad[mask])
+
+    return grad, hess
+
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -71,19 +83,36 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         return
 
     files = vehicle_files[selected_car]
-    data, scaler = process_files(files)
-    X = data[['speed', 'acceleration']].to_numpy()
-    y = data['Residual'].to_numpy()
-
+    # 전체 데이터를 사용하여 평균 계산
+    full_data, scaler = process_files(files)
+    y = full_data['Residual'].to_numpy()
     y_mean = np.mean(y)
 
-    for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+    for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
+        train_files = [files[i] for i in train_index]
+        test_files = [files[i] for i in test_index]
 
-        model = LinearRegression()
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+        train_data, scaler = process_files(train_files)
+        test_data, _ = process_files(test_files)
+
+        X_train = train_data[['speed', 'acceleration']].to_numpy()
+        y_train = train_data['Residual'].to_numpy()
+
+        X_test = test_data[['speed', 'acceleration']].to_numpy()
+        y_test = test_data['Residual'].to_numpy()
+
+        dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
+        dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
+
+        params = {
+            'tree_method': 'hist',
+            'device': 'cuda',
+            'eval_metric': ['rmse'],
+            'lambda': 1
+        }
+        evals = [(dtrain, 'train'), (dtest, 'test')]
+        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
+        y_pred = model.predict(dtest)
         residual2 = y_test - y_pred
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
         nrmse = rmse / y_mean
@@ -96,22 +125,24 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
 
     # Save the best model
     if best_model:
-        model_file = os.path.join(save_dir, f"LR_best_model_{selected_car}.joblib")
-        joblib.dump(best_model, model_file)
+        model_file = os.path.join(save_dir, f"XGB_best_model_{selected_car}.json")
+        surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_car}_plot.html")
+        best_model.save_model(model_file)
         print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
+        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
         plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
+        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
 
     # Save the scaler
-    scaler_path = os.path.join(save_dir, f"LR_scaler_{selected_car}.pkl")
+    scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
     with open(scaler_path, 'wb') as f:
         pickle.dump(scaler, f)
     print(f"Scaler saved at {scaler_path}")
 
     return results, scaler
 
-# 학습된 모델을 사용하여 파일 처리 함수
+
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
@@ -133,10 +164,10 @@ def process_file_with_trained_model(file, model, scaler):
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 
-# 여러 파일을 학습된 모델로 처리하는 함수
 def add_predicted_power_column(files, model_path, scaler):
     try:
-        model = joblib.load(model_path)
+        model = xgb.XGBRegressor()
+        model.load_model(model_path)
     except Exception as e:
         print(f"Error loading model: {e}")
         return
