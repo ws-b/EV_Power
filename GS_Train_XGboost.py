@@ -3,10 +3,8 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
 from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -21,7 +19,7 @@ def process_single_file(file):
         print(f"Error processing file {file}: {e}")
     return None
 
-def process_files(files):
+def process_files(files, scaler=None):
     SPEED_MIN = 0 / 3.6
     SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
     ACCELERATION_MIN = -15 # m/s^2
@@ -48,13 +46,13 @@ def process_files(files):
 
     full_data = pd.concat(df_list, ignore_index=True)
 
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+    if scaler is None:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
 
     full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
 
     return full_data, scaler
-
 
 def custom_obj(preds, dtrain):
     labels = dtrain.get_label()
@@ -69,13 +67,39 @@ def custom_obj(preds, dtrain):
 
     return grad, hess
 
+def calculate_rrmse(y_test, y_pred):
+    relative_errors = (y_pred - y_test) / y_test
+
+    rrmse = np.sqrt(np.mean(relative_errors ** 2))
+
+    return rrmse
+
+def grid_search_lambda(X_train, y_train):
+    dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
+    lambda_values = np.logspace(-3, 7, num=11)
+    param_grid = {
+        'tree_method': ['hist'],
+        'device': ['cuda'],
+        'eval_metric': ['rmse'],
+        'lambda': lambda_values
+    }
+
+    model = xgb.XGBRegressor()
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_squared_error', cv=5, verbose=1)
+    grid_search.fit(X_train, y_train)
+    best_lambda = grid_search.best_params_['lambda']
+
+    print(f"Best lambda found: {best_lambda}")
+    return best_lambda
+
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+    model_name = "XGB"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
-    best_rmse = float('inf')
+    models = []
     best_model = None
 
     if selected_car not in vehicle_files or not vehicle_files[selected_car]:
@@ -83,15 +107,24 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         return
 
     files = vehicle_files[selected_car]
-    data, scaler = process_files(files)
-    X = data[['speed', 'acceleration']].to_numpy()
-    y = data['Residual'].to_numpy()
+    # 전체 데이터를 사용하여 평균 계산
+    full_data, scaler = process_files(files)
+    y = full_data['Residual'].to_numpy()
 
-    y_mean = np.mean(y)
+    for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
+        train_files = [files[i] for i in train_index]
+        test_files = [files[i] for i in test_index]
 
-    for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+        train_data, scaler = process_files(train_files)
+        test_data, _ = process_files(test_files)
+
+        X_train = train_data[['speed', 'acceleration']].to_numpy()
+        y_train = train_data['Residual'].to_numpy()
+
+        X_test = test_data[['speed', 'acceleration']].to_numpy()
+        y_test = test_data['Residual'].to_numpy()
+
+        best_lambda = grid_search_lambda(X_train, y_train)
 
         dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
         dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
@@ -100,34 +133,37 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
             'tree_method': 'hist',
             'device': 'cuda',
             'eval_metric': ['rmse'],
-            'lambda' : 1
+            'lambda': best_lambda
         }
+
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
         y_pred = model.predict(dtest)
-        residual2 = y_test - y_pred
-        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-        nrmse = rmse / y_mean
-        results.append((fold_num, rmse, nrmse))
-        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
+        residual2 = y_pred - y_test
+        rrmse = calculate_rrmse(y_pred, y_test)
+        results.append((fold_num, rrmse))
+        models.append(model)
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
 
-        if rmse < best_rmse:
-            best_rmse = rmse
-            best_model = model
+        # Calculate the median RRMSE
+        median_rrmse = np.median([result[1] for result in results])
+        # Find the index of the model corresponding to the median RRMSE
+        median_index = np.argmin([abs(result[1] - median_rrmse) for result in results])
+        best_model = models[median_index]
 
     # Save the best model
     if best_model:
-        model_file = os.path.join(save_dir, f"XGB_best_model_{selected_car}.json")
-        surface_plot = os.path.join(save_dir, f"XGB_best_model_{selected_car}_plot.html")
+        model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.json")
+        surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
         best_model.save_model(model_file)
-        print(f"Best model for {selected_car} saved with RMSE: {best_rmse}")
-        plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
+        print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
+        #plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
         plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
+        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
 
     # Save the scaler
-    scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')
+    scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')
     with open(scaler_path, 'wb') as f:
         pickle.dump(scaler, f)
     print(f"Scaler saved at {scaler_path}")

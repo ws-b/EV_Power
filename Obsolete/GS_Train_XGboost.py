@@ -21,7 +21,7 @@ def process_single_file(file):
         print(f"Error processing file {file}: {e}")
     return None
 
-def process_files(files, scaler=None):
+def process_files(files):
     SPEED_MIN = 0 / 3.6
     SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
     ACCELERATION_MIN = -15 # m/s^2
@@ -48,13 +48,13 @@ def process_files(files, scaler=None):
 
     full_data = pd.concat(df_list, ignore_index=True)
 
-    if scaler is None:
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
 
     full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
 
     return full_data, scaler
+
 
 def custom_obj(preds, dtrain):
     labels = dtrain.get_label()
@@ -83,23 +83,15 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         return
 
     files = vehicle_files[selected_car]
-    # 전체 데이터를 사용하여 평균 계산
-    full_data, scaler = process_files(files)
-    y = full_data['Residual'].to_numpy()
+    data, scaler = process_files(files)
+    X = data[['speed', 'acceleration']].to_numpy()
+    y = data['Residual'].to_numpy()
+
     y_mean = np.mean(y)
 
-    for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
-        train_files = [files[i] for i in train_index]
-        test_files = [files[i] for i in test_index]
-
-        train_data, scaler = process_files(train_files)
-        test_data, _ = process_files(test_files)
-
-        X_train = train_data[['speed', 'acceleration']].to_numpy()
-        y_train = train_data['Residual'].to_numpy()
-
-        X_test = test_data[['speed', 'acceleration']].to_numpy()
-        y_test = test_data['Residual'].to_numpy()
+    for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
 
         dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
         dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
@@ -108,7 +100,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
             'tree_method': 'hist',
             'device': 'cuda',
             'eval_metric': ['rmse'],
-            'lambda': 1
+            'lambda' : 1
         }
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
@@ -119,11 +111,9 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         results.append((fold_num, rmse, nrmse))
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, NRMSE: {nrmse}")
 
-        if len(results) == kf.get_n_splits():
-            avg_rmse = np.mean([result[1] for result in results])
-            if avg_rmse < best_rmse:
-                best_rmse = avg_rmse
-                best_model = model
+        if rmse < best_rmse:
+            best_rmse = rmse
+            best_model = model
 
     # Save the best model
     if best_model:
@@ -134,7 +124,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
         plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
+        plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
 
     # Save the scaler
     scaler_path = os.path.join(save_dir, f'XGB_scaler_{selected_car}.pkl')

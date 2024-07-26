@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 import random
 import plotly.graph_objects as go
@@ -112,25 +111,6 @@ def plot_power(file_lists, selected_car, target):
             plt.tight_layout()
             plt.show()
 
-        elif target == 'difference':
-            # Plot the comparison graph
-            plt.figure(figsize=(10, 6))  # Set the size of the graph
-            plt.xlabel('Time (minutes)')
-            plt.ylabel('Data Power - Model Power (kW)')
-            plt.plot(t_min, power_diff, label='Data Power - Model Power (kW)', color='tab:blue')
-
-            # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
-
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Data Power & Model Power Difference')
-            plt.tight_layout()
-            plt.show()
-
         elif target == 'd_altitude' and 'delta altitude' in data.columns:
             # 고도 데이터
             d_altitude = np.array(data['delta altitude'])
@@ -187,7 +167,7 @@ def plot_energy(file_lists, selected_car, target):
         data_power = np.array(data['Power_IV'])
         data_energy = data_power * t_diff / 3600 / 1000
         data_energy_cumulative = data_energy.cumsum()
-        
+
         if 'Power' in data.columns:
             model_power = np.array(data['Power'])
             model_energy = model_power * t_diff / 3600 / 1000
@@ -286,30 +266,25 @@ def plot_energy(file_lists, selected_car, target):
 
             # 그래프 그리기
             fig, ax1 = plt.subplots(figsize=(10, 6))
-
             # 첫 번째 y축 (왼쪽): 에너지 데이터
             ax1.set_xlabel('Time (minutes)')
             ax1.set_ylabel('Energy (kWh)')
             ax1.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
             ax1.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
             ax1.tick_params(axis='y')
-
             # 두 번째 y축 (오른쪽): 고도 데이터
             ax2 = ax1.twinx()
             ax2.set_ylabel('Altitude (m)', color='tab:green')  # 오른쪽 y축 레이블
             # ax2.set_ylim([0, 2000])
             ax2.plot(t_min, altitude, label='Altitude (m)', color='tab:green')
             ax2.tick_params(axis='y', labelcolor='tab:green')
-
             # 파일과 날짜 추가
             date = t.iloc[0].strftime('%Y-%m-%d')
             fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
-            fig.text(0.01, 0.99, f'{selected_car}: '+ trip_info, verticalalignment='top', color='black', fontsize=12)
-
+            fig.text(0.01, 0.99, f'{selected_car}: ' + trip_info, verticalalignment='top', color='black', fontsize=12)
             # 범례와 타이틀
             fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
             plt.title('Model Energy vs. Data Energy and Altitude')
-
             # 그래프 출력
             plt.tight_layout()
             plt.show()
@@ -803,49 +778,7 @@ def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
     plt.ylabel('Acceleration (m/s²)')
     plt.title(f'{selected_car} : Contour Plot of {terminology}')
     plt.show()
-"""
-def plot_contour(X, y_test, y_pred, scaler, selected_car, num_grids=400):
-    if X.shape[1] != 2:
-        raise ValueError("Error: X should have 2 columns.")
 
-    # Inverse transform to original scale
-    X_orig = scaler.inverse_transform(X)
-
-    # Convert speed to km/h
-    X_orig[:, 0] *= 3.6
-
-    # Create grid
-    grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
-    grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
-    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-    grid_z_test = griddata((X_orig[:, 0], X_orig[:, 1]), y_test, (grid_x, grid_y), method='linear')
-    grid_z_pred = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
-
-    # Calculate the common z range
-    z_min = min(np.nanmin(grid_z_test), np.nanmin(grid_z_pred))
-    z_max = max(np.nanmax(grid_z_test), np.nanmax(grid_z_pred))
-
-    # Normalize the color map
-    norm = mcolors.Normalize(vmin=z_min, vmax=z_max)
-
-    # Contour plot for actual test data
-    plt.figure(figsize=(10, 8))
-    contour_test = plt.contourf(grid_x, grid_y, grid_z_test, levels=20, cmap='viridis', norm=norm)
-    plt.colorbar(contour_test)
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title(f'{selected_car} : Contour Plot of Actual Test Data')
-    plt.show()
-
-    # Contour plot for predicted data
-    plt.figure(figsize=(10, 8))
-    contour_pred = plt.contourf(grid_x, grid_y, grid_z_pred, levels=20, cmap='viridis', norm=norm)
-    plt.colorbar(contour_pred)
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title(f'{selected_car} : Contour Plot of Predicted Residuals')
-    plt.show()
-"""
 def plot_contour2(file_lists, selected_car, num_grids=400):
     all_data = []
 

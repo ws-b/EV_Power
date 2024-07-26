@@ -5,7 +5,7 @@ from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
-from GS_Train_XGboost_REV import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
+from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
 from GS_Train_DL import cross_validate as DL_cross_validate, add_predicted_power_column as DL_add_predicted_power_column
@@ -107,23 +107,20 @@ def main():
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
-                XGB_RMSE = {}
-                LR_RMSE = {}
-                ONLY_RMSE = {}
+                XGB_RRMSE = {}
+                LR_RRMSE = {}
+                ONLY_RRMSE = {}
                 for selected_car in selected_cars:
                     if train_choice == 1:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
-                            min_rmse = float('inf')
-                            for fold_num, rmse, mae in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAE: {mae}")
-                                if rmse < min_rmse:
-                                    min_rmse = rmse
+                            for fold_num, rrmse in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
 
-                            # Store the minimum RMSE and MAE in dictionaries
-                            XGB_RMSE[selected_car] = min_rmse
+                            # Store the minimum RMSE in dictionaries
+                            XGB_RRMSE[selected_car] = rrmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 2:
@@ -131,14 +128,11 @@ def main():
 
                         # Print overall results
                         if results:
-                            min_rmse = float('inf')
-                            for fold_num, rmse, mae in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAE: {mae}")
-                                if rmse < min_rmse:
-                                    min_rmse = rmse
+                            for fold_num, rrmse in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
 
-                            # Store the minimum RMSE and MAE in dictionaries
-                            LR_RMSE[selected_car] = min_rmse
+                            # Store the minimum RMSE in dictionaries
+                            LR_RRMSE[selected_car] = rrmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 3:
@@ -146,20 +140,16 @@ def main():
 
                         # Print overall results
                         if results:
-                            min_rmse = float('inf')
-                            for fold_num, rmse, mae in results:
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAE: {mae}")
-                                if rmse < min_rmse:
-                                    min_rmse = rmse
+                            for fold_num, rrmse in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
 
-                            # Store the minimum RMSE and MAE in dictionaries
-                            ONLY_RMSE[selected_car] = min_rmse
+                            ONLY_RRMSE[selected_car] = rrmse
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
 
-                print(f"XGB RMSE: {XGB_RMSE}")
-                print(f"LR RMSE: {LR_RMSE}")
-                print(f"ONLY ML RMSE: {ONLY_RMSE}")
+                print(f"XGB RRMSE: {XGB_RRMSE}")
+                print(f"LR RRMSE: {LR_RRMSE}")
+                print(f"ONLY ML RRMSE: {ONLY_RRMSE}")
 
         elif task_choice == 3:
             while True:
@@ -227,7 +217,7 @@ def main():
                 print("2: Plotting Model's Power Graph")
                 print("3: Plotting Data's Power Graph")
                 print("4: Plotting Power Comparison Graph")
-                print("5: Plotting Power Difference Graph")
+                print("5: ")
                 print("6: Plotting Delta Altitude and Difference Graph")
                 print("7: Plotting Model's Energy Graph")
                 print("8: Plotting Data's Energy Graph")
@@ -248,6 +238,8 @@ def main():
 
                     for selected_car in selected_cars:
                         sample_files = random.sample(vehicle_files[selected_car] ,5)
+                        altitude_files = [file for file in vehicle_files[selected_car] if 'altitude' in file]
+                        sample_alt_files = random.sample(altitude_files, min(5, len(altitude_files)))
                         if plot == 1:
                             plot_power(sample_files, selected_car, 'stacked')
                         elif plot == 2:
@@ -257,9 +249,9 @@ def main():
                         elif plot == 4:
                             plot_power(sample_files, selected_car, 'comparison')
                         elif plot == 5:
-                            plot_power(sample_files, selected_car, 'difference')
+                            break
                         elif plot == 6:
-                            plot_power(sample_files, selected_car, 'd_altitude')
+                            plot_power(sample_alt_files, selected_car, 'd_altitude')
                         elif plot == 7:
                             plot_energy(sample_files, selected_car, 'model')
                         elif plot == 8:
@@ -267,7 +259,7 @@ def main():
                         elif plot == 9:
                             plot_energy(sample_files, selected_car, 'comparison')
                         elif plot == 10:
-                            plot_energy(sample_files, selected_car, 'altitude')
+                            plot_energy(sample_alt_files, selected_car, 'altitude')
                         elif plot == 13:
                             break
                         elif plot == 0:
