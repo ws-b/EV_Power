@@ -1,8 +1,9 @@
 import os
+import numpy as np
 import random
 import pickle
 from GS_preprocessing import load_data_by_vehicle
-from GS_Merge_Power import process_files_power, select_vehicle
+from GS_Merge_Power import process_files_power, select_vehicle, compute_rrmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
@@ -91,10 +92,11 @@ def main():
         elif task_choice == 2:
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
             while True:
-                print("1: Train Model using XGBoost")
-                print("2: Train Model using Linear Regression")
-                print("3: Train Model using Only ML")
-                print("4: Return to previous menu")
+                print("1: Physics-based Equation calculate relative RMSE")
+                print("2: Train Model using XGBoost")
+                print("3: Train Model using Linear Regression")
+                print("4: Train Model using Only ML")
+                print("5: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -102,48 +104,54 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 4:
+                if train_choice == 5:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
+                PE_RRMSE = {}
                 XGB_RRMSE = {}
                 LR_RRMSE = {}
                 ONLY_RRMSE = {}
                 for selected_car in selected_cars:
                     if train_choice == 1:
+                        rrmse = compute_rrmse(vehicle_files, selected_car)
+                        PE_RRMSE[selected_car] = rrmse
+                    if train_choice == 2:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
+                            rrmse_values = []
                             for fold_num, rrmse in results:
                                 print(f"Fold: {fold_num}, RRMSE: {rrmse}")
-
-                            # Store the minimum RMSE in dictionaries
-                            XGB_RRMSE[selected_car] = rrmse
+                                rrmse_values.append(rrmse)
+                            XGB_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if train_choice == 2:
+                    if train_choice == 3:
                         results, scaler = lr_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
+                            rrmse_values = []
                             for fold_num, rrmse in results:
                                 print(f"Fold: {fold_num}, RRMSE: {rrmse}")
-
+                                rrmse_values.append(rrmse)
                             # Store the minimum RMSE in dictionaries
-                            LR_RRMSE[selected_car] = rrmse
+                            LR_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if train_choice == 3:
+                    if train_choice == 4:
                         results, scaler = only_xgb_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         # Print overall results
                         if results:
+                            rrmse_values = []
                             for fold_num, rrmse in results:
                                 print(f"Fold: {fold_num}, RRMSE: {rrmse}")
-
-                            ONLY_RRMSE[selected_car] = rrmse
+                                rrmse_values.append(rrmse)
+                            ONLY_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
 

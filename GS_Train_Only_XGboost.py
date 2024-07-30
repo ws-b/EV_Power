@@ -3,6 +3,7 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
+import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
@@ -54,13 +55,11 @@ def process_files(files, scaler=None):
     return full_data, scaler
 
 def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_pred - y_test) / y_test
-
+    relative_errors = (y_pred - y_test) / np.mean(y_test)
     rrmse = np.sqrt(np.mean(relative_errors ** 2))
-
     return rrmse
 
-def grid_search_lambda(X_train, y_train):
+def grid_search_lambda(X_train, y_train, selected_car):
     dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
     lambda_values = np.logspace(-3, 7, num=11)
     param_grid = {
@@ -71,11 +70,28 @@ def grid_search_lambda(X_train, y_train):
     }
 
     model = xgb.XGBRegressor()
-    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_squared_error', cv=5, verbose=1)
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_squared_error', cv=5,
+                               verbose=1)
     grid_search.fit(X_train, y_train)
-    best_lambda = grid_search.best_params_['lambda']
+    results = grid_search.cv_results_
 
+    best_lambda = grid_search.best_params_['lambda']
     print(f"Best lambda found: {best_lambda}")
+
+    # Extracting the mean test scores for each lambda value
+    mean_test_scores = results['mean_test_score']
+
+    # Creating a 2D plot
+    fig, ax = plt.subplots()
+    lambdas = np.log10(lambda_values)
+    scores = -mean_test_scores  # Negate to convert to positive MSE values
+
+    ax.plot(lambdas, scores, marker='o')
+    ax.set_xlabel('log10(lambda)')
+    ax.set_ylabel('Mean Squared Error')
+    ax.set_title(f'Grid Search Lambda vs. Mean Squared Error for {selected_car}')
+    plt.show()
+
     return best_lambda
 
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
@@ -96,7 +112,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
     # 전체 데이터를 사용하여 평균 계산
     full_data, scaler = process_files(files)
     y = full_data['Power_IV'].to_numpy()
-
+    best_lambda = None
     for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
         train_files = [files[i] for i in train_index]
         test_files = [files[i] for i in test_index]
@@ -110,7 +126,8 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         X_test = test_data[['speed', 'acceleration']].to_numpy()
         y_test = test_data['Power_IV'].to_numpy()
 
-        best_lambda = grid_search_lambda(X_train, y_train)
+        if best_lambda is None:
+            best_lambda = grid_search_lambda(X_train, y_train, selected_car)
 
         dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
         dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
@@ -125,7 +142,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
-        rrmse = calculate_rrmse(y_pred, y_test)
+        rrmse = calculate_rrmse(y_test, y_pred)
         results.append((fold_num, rrmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")

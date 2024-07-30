@@ -57,10 +57,8 @@ def process_files(files):
     return full_data, scaler
 
 def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_pred - y_test) / y_test
-
+    relative_errors = (y_pred - y_test) / np.mean(y_test)
     rrmse = np.sqrt(np.mean(relative_errors ** 2))
-
     return rrmse
 
 # 교차 검증 및 모델 학습 함수
@@ -91,8 +89,8 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        residual2 = y_test - y_pred
-        rrmse = calculate_rrmse(y_pred, y_test)
+        residual2 = y_pred - y_test
+        rrmse = calculate_rrmse(y_test, y_pred)
         results.append((fold_num, rrmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
