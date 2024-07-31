@@ -109,9 +109,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         return
 
     files = vehicle_files[selected_car]
-    # 전체 데이터를 사용하여 평균 계산
-    full_data, scaler = process_files(files)
-    y = full_data['Power_IV'].to_numpy()
+
     best_lambda = None
     for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
         train_files = [files[i] for i in train_index]

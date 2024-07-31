@@ -16,17 +16,17 @@ def process_single_file(file):
         data = pd.read_csv(file)
         if 'Power' in data.columns and 'Power_IV' in data.columns:
             data['Residual'] = data['Power'] - data['Power_IV']
-            return data[['speed', 'acceleration', 'Residual']]
+            return data[['speed', 'acceleration', 'Residual', 'Power', 'Power_IV']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
 
 # 여러 파일을 처리하는 함수
-def process_files(files):
+def process_files(files, scaler=None):
     SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 230 / 3.6
-    ACCELERATION_MIN = -15
-    ACCELERATION_MAX = 9
+    SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
+    ACCELERATION_MIN = -15 # m/s^2
+    ACCELERATION_MAX = 9 # m/s^2
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -49,12 +49,14 @@ def process_files(files):
 
     full_data = pd.concat(df_list, ignore_index=True)
 
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+    if scaler is None:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
 
     full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
 
     return full_data, scaler
+
 
 def calculate_rrmse(y_test, y_pred):
     relative_errors = (y_pred - y_test) / np.mean(y_test)
@@ -76,21 +78,25 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         return
 
     files = vehicle_files[selected_car]
-    data, scaler = process_files(files)
-    X = data[['speed', 'acceleration']].to_numpy()
-    y = data['Residual'].to_numpy()
 
-    y_mean = np.mean(y)
+    for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
+        train_files = [files[i] for i in train_index]
+        test_files = [files[i] for i in test_index]
 
-    for fold_num, (train_index, test_index) in enumerate(kf.split(X), 1):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+        train_data, scaler = process_files(train_files)
+        test_data, _ = process_files(test_files)
+
+        X_train = train_data[['speed', 'acceleration']].to_numpy()
+        y_train = train_data['Residual'].to_numpy()
+
+        X_test = test_data[['speed', 'acceleration']].to_numpy()
+        y_test = test_data['Residual'].to_numpy()
 
         model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         residual2 = y_pred - y_test
-        rrmse = calculate_rrmse(y_test, y_pred)
+        rrmse = calculate_rrmse(test_data['Power'] - y_test, test_data['Power'] - y_pred)
         results.append((fold_num, rrmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")

@@ -15,7 +15,7 @@ def process_single_file(file):
         data = pd.read_csv(file)
         if 'Power' in data.columns and 'Power_IV' in data.columns:
             data['Residual'] = data['Power'] - data['Power_IV']
-            return data[['speed', 'acceleration', 'Residual']]
+            return data[['speed', 'acceleration', 'Residual', 'Power', 'Power_IV']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -123,9 +123,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         return
 
     files = vehicle_files[selected_car]
-    # 전체 데이터를 사용하여 평균 계산
-    full_data, scaler = process_files(files)
-    y = full_data['Residual'].to_numpy()
+
     best_lambda = None
     for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
         train_files = [files[i] for i in train_index]
@@ -157,7 +155,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
         y_pred = model.predict(dtest)
         residual2 = y_pred - y_test
-        rrmse = calculate_rrmse(y_test, y_pred)
+        rrmse = calculate_rrmse(test_data['Power'] - y_test, test_data['Power'] - y_pred)
         results.append((fold_num, rrmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
