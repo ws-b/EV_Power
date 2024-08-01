@@ -2,6 +2,7 @@ import os
 import numpy as np
 import random
 import pickle
+import matplotlib.pyplot as plt
 from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle, compute_rrmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
@@ -96,7 +97,8 @@ def main():
                 print("2: Train Model using XGBoost")
                 print("3: Train Model using Linear Regression")
                 print("4: Train Model using Only ML")
-                print("5: Return to previous menu")
+                print("5: Train Models with varying vehicle_files sizes")
+                print("6: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -104,7 +106,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 5:
+                if train_choice == 6:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -113,6 +115,17 @@ def main():
                 XGB_RRMSE = {}
                 LR_RRMSE = {}
                 ONLY_RRMSE = {}
+                results_dict = {}
+
+                Physics_Only_RRMSE = {
+                    'EV6': 1.85,
+                    'Ioniq5': 1.59,
+                    'KonaEV': 1.67,
+                    'NiroEV': 2.04,
+                    'GV60': 2.16,
+                    'Ioniq6': 1.70
+                }
+
                 for selected_car in selected_cars:
                     if train_choice == 1:
                         rrmse = compute_rrmse(vehicle_files, selected_car)
@@ -154,6 +167,106 @@ def main():
                             ONLY_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+
+                    if train_choice == 5:
+                        vehicle_file_sizes = [50, 100, 300, 500, 1000, 1500, 2000, 3000, 5000, 10000]
+
+                        results_dict[selected_car] = {}
+                        max_samples = len(vehicle_files[selected_car])
+
+                        for size in vehicle_file_sizes:
+                            actual_size = min(size, max_samples)  # 실제 사용될 샘플 수
+                            if actual_size < size:
+                                print(
+                                    f"Size {size} is larger than the available number of vehicle files for {selected_car}. Setting size to {actual_size}.")
+
+                            sampled_files = random.sample(vehicle_files[selected_car], actual_size)
+                            sampled_vehicle_files = {selected_car: sampled_files}
+
+                            # XGBoost 모델 훈련 및 결과 저장
+                            results, scaler = xgb_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                            if results:
+                                rrmse_values = [rrmse for fold_num, rrmse in results]
+                                if actual_size not in results_dict[selected_car]:
+                                    results_dict[selected_car][actual_size] = []
+                                results_dict[selected_car][actual_size].append({
+                                    'model': 'Hybrid Model(XGBoost)',
+                                    'selected_car': selected_car,
+                                    'rrmse': np.median(rrmse_values)
+                                })
+
+                            # 선형 회귀 모델 훈련 및 결과 저장
+                            results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                            if results:
+                                rrmse_values = [rrmse for fold_num, rrmse in results]
+                                if actual_size not in results_dict[selected_car]:
+                                    results_dict[selected_car][actual_size] = []
+                                results_dict[selected_car][actual_size].append({
+                                    'model': 'Hybrid Model(Linear Regression)',
+                                    'selected_car': selected_car,
+                                    'rrmse': np.median(rrmse_values)
+                                })
+
+                            # Only ML 모델 훈련 및 결과 저장
+                            results, scaler = only_xgb_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                            if results:
+                                rrmse_values = [rrmse for fold_num, rrmse in results]
+                                if actual_size not in results_dict[selected_car]:
+                                    results_dict[selected_car][actual_size] = []
+                                results_dict[selected_car][actual_size].append({
+                                    'model': 'Only ML(XGBoost)',
+                                    'selected_car': selected_car,
+                                    'rrmse': np.median(rrmse_values)
+                                })
+
+                print(results_dict)
+
+                for selected_car in selected_cars:
+                    sizes = []
+                    xgb_rrmse = []
+                    lr_rrmse = []
+                    only_ml_rrmse = []
+
+                    max_samples = len(vehicle_files[selected_car])
+
+                    for size in vehicle_file_sizes:
+                        actual_size = min(size, max_samples)
+
+                        if actual_size not in sizes:
+                            sizes.append(actual_size)
+
+                        xgb_values = [result['rrmse'] for result in results_dict[selected_car].get(actual_size, []) if
+                                      result['model'] == 'Hybrid Model(XGBoost)' and result[
+                                          'selected_car'] == selected_car]
+                        lr_values = [result['rrmse'] for result in results_dict[selected_car].get(actual_size, []) if
+                                     result['model'] == 'Hybrid Model(Linear Regression)' and result[
+                                         'selected_car'] == selected_car]
+                        only_ml_values = [result['rrmse'] for result in results_dict[selected_car].get(actual_size, [])
+                                          if
+                                          result['model'] == 'Only ML(XGBoost)' and result[
+                                              'selected_car'] == selected_car]
+
+                        xgb_rrmse.append(np.median(xgb_values) if xgb_values else None)
+                        lr_rrmse.append(np.median(lr_values) if lr_values else None)
+                        only_ml_rrmse.append(np.median(only_ml_values) if only_ml_values else None)
+
+                    # None 값을 제외한 리스트 생성
+                    filtered_sizes = [s for s, val in zip(sizes, xgb_rrmse) if val is not None]
+                    filtered_xgb_rrmse = [val for val in xgb_rrmse if val is not None]
+                    filtered_lr_rrmse = [val for val in lr_rrmse if val is not None]
+                    filtered_only_ml_rrmse = [val for val in only_ml_rrmse if val is not None]
+
+                    plt.figure(figsize=(10, 6))
+                    plt.plot(filtered_sizes, filtered_xgb_rrmse, label='XGBoost', marker='o')
+                    plt.plot(filtered_sizes, filtered_lr_rrmse, label='Linear Regression', marker='o')
+                    plt.plot(filtered_sizes, filtered_only_ml_rrmse, label='Only ML', marker='o')
+                    plt.axhline(y=Physics_Only_RRMSE[selected_car], color='r', linestyle='--', label='Physics Only')
+                    plt.xlabel('Number of Trips')
+                    plt.ylabel('RRMSE')
+                    plt.title(f'RRMSE vs Number of Trips for {selected_car}')
+                    plt.legend()
+                    plt.grid(True)
+                    plt.show()
 
                 print(f"XGB RRMSE: {XGB_RRMSE}")
                 print(f"LR RRMSE: {LR_RRMSE}")

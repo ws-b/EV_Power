@@ -81,22 +81,20 @@ def grid_search_lambda(X_train, y_train, selected_car):
     # Extracting the mean test scores for each lambda value
     mean_test_scores = results['mean_test_score']
 
-    # Creating a 2D plot
-    fig, ax = plt.subplots()
-    lambdas = np.log10(lambda_values)
-    scores = -mean_test_scores  # Negate to convert to positive MSE values
-
-    ax.plot(lambdas, scores, marker='o')
-    ax.set_xlabel('log10(lambda)')
-    ax.set_ylabel('Mean Squared Error')
-    ax.set_title(f'Grid Search Lambda vs. Mean Squared Error for {selected_car}')
-    plt.show()
+    # # Creating a 2D plot
+    # fig, ax = plt.subplots()
+    # lambdas = np.log10(lambda_values)
+    # scores = -mean_test_scores  # Negate to convert to positive MSE values
+    #
+    # ax.plot(lambdas, scores, marker='o')
+    # ax.set_xlabel('log10(lambda)')
+    # ax.set_ylabel('Mean Squared Error')
+    # ax.set_title(f'Grid Search Lambda vs. Mean Squared Error for {selected_car}')
+    # plt.show()
 
     return best_lambda
 
 def cross_validate(vehicle_files, selected_car, save_dir="models"):
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
     model_name = "XGB_Only"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -150,22 +148,24 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         # Find the index of the model corresponding to the median RRMSE
         median_index = np.argmin([abs(result[1] - median_rrmse) for result in results])
         best_model = models[median_index]
+    if save_dir:
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        # Save the best model
+        if best_model:
+            model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.json")
+            surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
+            best_model.save_model(model_file)
+            print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
 
-    # Save the best model
-    if best_model:
-        model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.json")
-        surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
-        best_model.save_model(model_file)
-        print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
+            Residual = y_pred - y_test
+            # plot_contour(X_test, Residual, scaler, selected_car, '(Predicted Power - BMS Power)', num_grids=400)
 
-        Residual = y_pred - y_test
-        plot_contour(X_test, Residual, scaler, selected_car, '(Predicted Power - BMS Power)', num_grids=400)
-
-    # Save the scaler
-    scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')
-    with open(scaler_path, 'wb') as f:
-        pickle.dump(scaler, f)
-    print(f"Scaler saved at {scaler_path}")
+        # Save the scaler
+        scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')
+        with open(scaler_path, 'wb') as f:
+            pickle.dump(scaler, f)
+        print(f"Scaler saved at {scaler_path}")
 
     return results, scaler
 
