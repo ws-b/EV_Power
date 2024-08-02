@@ -133,7 +133,6 @@ def main():
                     if train_choice == 2:
                         results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
-                        # Print overall results
                         if results:
                             rrmse_values = []
                             for fold_num, rrmse in results:
@@ -145,7 +144,6 @@ def main():
                     if train_choice == 3:
                         results, scaler = lr_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
-                        # Print overall results
                         if results:
                             rrmse_values = []
                             for fold_num, rrmse in results:
@@ -158,7 +156,6 @@ def main():
                     if train_choice == 4:
                         results, scaler = only_xgb_validate(vehicle_files, selected_car, save_dir=save_dir)
 
-                        # Print overall results
                         if results:
                             rrmse_values = []
                             for fold_num, rrmse in results:
@@ -169,103 +166,89 @@ def main():
                             print(f"No results for the selected vehicle: {selected_car}")
 
                     if train_choice == 5:
-                        vehicle_file_sizes = [50, 100, 300, 500, 1000, 1500, 2000, 3000, 5000, 10000]
+                        vehicle_file_sizes = [30, 50, 100, 150, 200, 250, 300, 350, 400, 450,
+                                              500, 600, 700, 800, 900, 1000, 1500, 2000, 3000, 5000, 10000]
 
                         results_dict[selected_car] = {}
                         max_samples = len(vehicle_files[selected_car])
 
-                        for size in vehicle_file_sizes:
-                            actual_size = min(size, max_samples)  # 실제 사용될 샘플 수
-                            if actual_size < size:
-                                print(
-                                    f"Size {size} is larger than the available number of vehicle files for {selected_car}. Setting size to {actual_size}.")
+                        filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
 
-                            sampled_files = random.sample(vehicle_files[selected_car], actual_size)
+                        for size in filtered_vehicle_file_sizes:
+                            sampled_files = random.sample(vehicle_files[selected_car], size)
                             sampled_vehicle_files = {selected_car: sampled_files}
 
                             # XGBoost 모델 훈련 및 결과 저장
                             results, scaler = xgb_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
                             if results:
                                 rrmse_values = [rrmse for fold_num, rrmse in results]
-                                if actual_size not in results_dict[selected_car]:
-                                    results_dict[selected_car][actual_size] = []
-                                results_dict[selected_car][actual_size].append({
+                            if size not in results_dict[selected_car]:
+                                results_dict[selected_car][size] = []
+                                results_dict[selected_car][size].append({
                                     'model': 'Hybrid Model(XGBoost)',
                                     'selected_car': selected_car,
-                                    'rrmse': np.median(rrmse_values)
+                                    'rrmse': rrmse_values
                                 })
 
                             # 선형 회귀 모델 훈련 및 결과 저장
                             results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
                             if results:
                                 rrmse_values = [rrmse for fold_num, rrmse in results]
-                                if actual_size not in results_dict[selected_car]:
-                                    results_dict[selected_car][actual_size] = []
-                                results_dict[selected_car][actual_size].append({
+                                if size not in results_dict[selected_car]:
+                                    results_dict[selected_car][size] = []
+                                results_dict[selected_car][size].append({
                                     'model': 'Hybrid Model(Linear Regression)',
                                     'selected_car': selected_car,
-                                    'rrmse': np.median(rrmse_values)
+                                    'rrmse': rrmse_values
                                 })
 
                             # Only ML 모델 훈련 및 결과 저장
                             results, scaler = only_xgb_validate(sampled_vehicle_files, selected_car, save_dir=None)
                             if results:
                                 rrmse_values = [rrmse for fold_num, rrmse in results]
-                                if actual_size not in results_dict[selected_car]:
-                                    results_dict[selected_car][actual_size] = []
-                                results_dict[selected_car][actual_size].append({
+                                if size not in results_dict[selected_car]:
+                                    results_dict[selected_car][size] = []
+                                results_dict[selected_car][size].append({
                                     'model': 'Only ML(XGBoost)',
                                     'selected_car': selected_car,
-                                    'rrmse': np.median(rrmse_values)
+                                    'rrmse': rrmse_values
                                 })
 
                 print(results_dict)
 
                 for selected_car in selected_cars:
-                    sizes = []
-                    xgb_rrmse = []
-                    lr_rrmse = []
-                    only_ml_rrmse = []
-
-                    max_samples = len(vehicle_files[selected_car])
-
-                    for size in vehicle_file_sizes:
-                        actual_size = min(size, max_samples)
-
-                        if actual_size not in sizes:
-                            sizes.append(actual_size)
-
-                        xgb_values = [result['rrmse'] for result in results_dict[selected_car].get(actual_size, []) if
-                                      result['model'] == 'Hybrid Model(XGBoost)' and result[
-                                          'selected_car'] == selected_car]
-                        lr_values = [result['rrmse'] for result in results_dict[selected_car].get(actual_size, []) if
-                                     result['model'] == 'Hybrid Model(Linear Regression)' and result[
-                                         'selected_car'] == selected_car]
-                        only_ml_values = [result['rrmse'] for result in results_dict[selected_car].get(actual_size, [])
-                                          if
-                                          result['model'] == 'Only ML(XGBoost)' and result[
-                                              'selected_car'] == selected_car]
-
-                        xgb_rrmse.append(np.median(xgb_values) if xgb_values else None)
-                        lr_rrmse.append(np.median(lr_values) if lr_values else None)
-                        only_ml_rrmse.append(np.median(only_ml_values) if only_ml_values else None)
-
-                    # None 값을 제외한 리스트 생성
-                    filtered_sizes = [s for s, val in zip(sizes, xgb_rrmse) if val is not None]
-                    filtered_xgb_rrmse = [val for val in xgb_rrmse if val is not None]
-                    filtered_lr_rrmse = [val for val in lr_rrmse if val is not None]
-                    filtered_only_ml_rrmse = [val for val in only_ml_rrmse if val is not None]
+                    results_dict[selected_car] = results
+                    sizes = sorted(results.keys())
+                    Physics_Only_RRMSE[selected_car] = physics_only_rrmse
+                    xgb_rrmse = [
+                        np.mean([result['rrmse'] for result in results[size] if result['model'] == 'Hybrid Model(XGBoost)'])
+                        for size in sizes
+                    ]
+                    lr_rrmse = [
+                        np.mean([result['rrmse'] for result in results[size] if result['model'] == 'Hybrid Model(Linear Regression)'])
+                        for size in sizes
+                    ]
+                    only_ml_rrmse = [
+                        np.mean([result['rrmse'] for result in results[size] if result['model'] == 'Only ML(XGBoost)'])
+                        for size in sizes
+                    ]
 
                     plt.figure(figsize=(10, 6))
-                    plt.plot(filtered_sizes, filtered_xgb_rrmse, label='XGBoost', marker='o')
-                    plt.plot(filtered_sizes, filtered_lr_rrmse, label='Linear Regression', marker='o')
-                    plt.plot(filtered_sizes, filtered_only_ml_rrmse, label='Only ML', marker='o')
-                    plt.axhline(y=Physics_Only_RRMSE[selected_car], color='r', linestyle='--', label='Physics Only')
+                    plt.plot(sizes, xgb_rrmse, label='Hybrid Model(XGBoost)', marker='o')
+                    plt.plot(sizes, lr_rrmse, label='Hybrid Model(Linear Regression)', marker='o')
+                    plt.plot(sizes, only_ml_rrmse, label='Only ML(XGBoost)', marker='o')
+                    plt.axhline(y=physics_only_rrmse, color='r', linestyle='--', label='Physics Model')
+
                     plt.xlabel('Number of Trips')
                     plt.ylabel('RRMSE')
                     plt.title(f'RRMSE vs Number of Trips for {selected_car}')
                     plt.legend()
                     plt.grid(True)
+
+                    plt.xscale('symlog', linthresh=700)
+                    plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
+                    plt.xlim(min(sizes) - 10, max(sizes) + 1000)
+
                     plt.show()
 
                 print(f"XGB RRMSE: {XGB_RRMSE}")
