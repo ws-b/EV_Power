@@ -10,7 +10,6 @@ from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
-from GS_Train_DL import cross_validate as DL_cross_validate, add_predicted_power_column as DL_add_predicted_power_column
 
 def get_vehicle_files(car_options, folder_path, vehicle_dict):
     selected_cars = []
@@ -88,7 +87,8 @@ def main():
         if task_choice == 1:
             for selected_car in selected_cars:
                 EV = select_vehicle(selected_car)
-                process_files_power(vehicle_files.get(selected_car, []), EV)
+                filtered_files = [f for f in vehicle_files.get(selected_car, []) if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
+                process_files_power(filtered_files, EV)
 
         elif task_choice == 2:
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')

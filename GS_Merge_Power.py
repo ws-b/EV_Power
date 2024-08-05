@@ -43,52 +43,46 @@ def select_vehicle(car):
 def process_file_power(file, EV):
     data = pd.read_csv(file)
 
-    # Set parameters for the vehicle model
-    inertia = 0.05  # rotational inertia of the wheels
-    g = 9.18  # m/s**2
-    t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-    v = data['speed'].tolist()
-    a = data['acceleration'].tolist()
-    int_temp = data['int_temp'].tolist()
+    inertia = 0.05  # Rotational inertia of the wheels
+    g = 9.18  # Gravitational acceleration (m/s^2)
+    # t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+    v = data['speed'].to_numpy()
+    a = data['acceleration'].to_numpy()
+    int_temp = data['int_temp'].to_numpy()
+    ext_temp = data['ext_temp'].to_numpy()
 
-    A = []
-    B = []
-    C = []
+    if 'altitude' in data.columns:
+        altitude = data['altitude'].to_numpy()
+        data['altitude'].interpolate(method='linear', inplace=True)
+
+    A = EV.Ca * v / EV.eff
+    B = EV.Cb * v**2 / EV.eff
+    C = EV.Cc * v**3 / EV.eff
+    F = EV.mass * g * np.sin(np.arctan(altitude)) * v / EV.eff
+
     D = []
-    E = []
-
-    for velocity in v:
-        A.append(EV.Ca * velocity / EV.eff)
-        B.append(EV.Cb * velocity * velocity / EV.eff)
-        C.append(EV.Cc * velocity * velocity * velocity / EV.eff)
-
     for i in range(len(a)):
         if EV.re_brake == 1:
-            if abs(a[i]) < 0.001:  # Threshold for acceleration to avoid division by zero
-                exp_term = np.exp(0.0411 / 0.001)  # Use the threshold value instead of actual acceleration
-            else:
-                exp_term = np.exp(0.0411 / abs(a[i]))
-
+            exp_term = np.exp(0.0411 / max(abs(a[i]), 0.001))
             if a[i] >= 0:
-                D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
+                D.append(((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]) / EV.eff)
             else:
                 D.append((((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i] / exp_term)) * EV.eff)
         else:
-            if a[i] >= 0:
-                D.append(((1 + inertia) * (EV.mass + EV.load) * a[i]) * v[i] / EV.eff)
-            else:
-                D.append(0)
-        Eff_hvac = 0.81 # Auxiliary power efficiency
-        target_int_temp = 22
-        E_hvac = abs(target_int_temp - int_temp[i]) * EV.hvac * Eff_hvac # 22'c is the set temperature
+            D.append(((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]) / EV.eff if a[i] >= 0 else 0)
+
+    Eff_hvac = 0.81  # Auxiliary power efficiency
+    target_int_temp = 22
+    E_hvac = abs(target_int_temp - int_temp) * EV.hvac * Eff_hvac
+
+    E = []
+    for i in range(len(v)):
         if v[i] <= 0.5:
-            E.append(EV.aux + EV.idle + E_hvac)
+            E.append(EV.aux + EV.idle + E_hvac[i])
         else:
-            E.append(EV.aux + E_hvac)
+            E.append(EV.aux + E_hvac[i])
 
-    Power_list = [A, B, C, D, E]
-    Power = np.sum(Power_list, axis=0)
-
+    Power = np.array(A) + np.array(B) + np.array(C) + np.array(D) + np.array(E) + np.array(F)
     data['Power'] = Power
 
     data.to_csv(file, index=False)
