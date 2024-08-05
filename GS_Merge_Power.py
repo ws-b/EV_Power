@@ -54,12 +54,12 @@ def process_file_power(file, EV):
     if 'altitude' in data.columns:
         altitude = data['altitude'].to_numpy()
         data['altitude'].interpolate(method='linear', inplace=True)
+        F = EV.mass * g * np.sin(np.arctan(altitude)) * v / EV.eff
 
     A = EV.Ca * v / EV.eff
     B = EV.Cb * v**2 / EV.eff
     C = EV.Cc * v**3 / EV.eff
-    F = EV.mass * g * np.sin(np.arctan(altitude)) * v / EV.eff
-
+    
     D = []
     for i in range(len(a)):
         if EV.re_brake == 1:
