@@ -166,8 +166,8 @@ def main():
                             print(f"No results for the selected vehicle: {selected_car}")
 
                     if train_choice == 5:
-                        vehicle_file_sizes = [30, 50, 100, 150, 200, 250, 300, 350, 400, 450,
-                                              500, 600, 700, 800, 900, 1000, 1500, 2000, 3000, 5000, 10000]
+                        vehicle_file_sizes = [5, 7, 10, 15, 20, 50, 100, 150, 200, 500,
+                                              700, 1000, 1500, 2000, 3000, 5000, 10000]
 
                         results_dict[selected_car] = {}
                         max_samples = len(vehicle_files[selected_car])
@@ -175,44 +175,52 @@ def main():
                         filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
 
                         for size in filtered_vehicle_file_sizes:
-                            sampled_files = random.sample(vehicle_files[selected_car], size)
-                            sampled_vehicle_files = {selected_car: sampled_files}
+                            if size < 50:
+                                iterations = 10
+                            elif 50 <= size <= 100:
+                                iterations = 6
+                            else:
+                                iterations = 1
 
-                            # XGBoost 모델 훈련 및 결과 저장
-                            results, scaler = xgb_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
-                            if results:
-                                rrmse_values = [rrmse for fold_num, rrmse in results]
-                            if size not in results_dict[selected_car]:
-                                results_dict[selected_car][size] = []
+                            for _ in range(iterations):
+                                sampled_files = random.sample(vehicle_files[selected_car], size)
+                                sampled_vehicle_files = {selected_car: sampled_files}
+
+                                # XGBoost 모델 훈련 및 결과 저장
+                                results, scaler = xgb_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                                if results:
+                                    rrmse_values = [rrmse for fold_num, rrmse in results]
+                                if size not in results_dict[selected_car]:
+                                    results_dict[selected_car][size] = []
                                 results_dict[selected_car][size].append({
                                     'model': 'Hybrid Model(XGBoost)',
                                     'selected_car': selected_car,
                                     'rrmse': rrmse_values
                                 })
 
-                            # 선형 회귀 모델 훈련 및 결과 저장
-                            results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
-                            if results:
-                                rrmse_values = [rrmse for fold_num, rrmse in results]
-                                if size not in results_dict[selected_car]:
-                                    results_dict[selected_car][size] = []
-                                results_dict[selected_car][size].append({
-                                    'model': 'Hybrid Model(Linear Regression)',
-                                    'selected_car': selected_car,
-                                    'rrmse': rrmse_values
-                                })
+                                # 선형 회귀 모델 훈련 및 결과 저장
+                                results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                                if results:
+                                    rrmse_values = [rrmse for fold_num, rrmse in results]
+                                    if size not in results_dict[selected_car]:
+                                        results_dict[selected_car][size] = []
+                                    results_dict[selected_car][size].append({
+                                        'model': 'Hybrid Model(Linear Regression)',
+                                        'selected_car': selected_car,
+                                        'rrmse': rrmse_values
+                                    })
 
-                            # Only ML 모델 훈련 및 결과 저장
-                            results, scaler = only_xgb_validate(sampled_vehicle_files, selected_car, save_dir=None)
-                            if results:
-                                rrmse_values = [rrmse for fold_num, rrmse in results]
-                                if size not in results_dict[selected_car]:
-                                    results_dict[selected_car][size] = []
-                                results_dict[selected_car][size].append({
-                                    'model': 'Only ML(XGBoost)',
-                                    'selected_car': selected_car,
-                                    'rrmse': rrmse_values
-                                })
+                                # Only ML 모델 훈련 및 결과 저장
+                                results, scaler = only_xgb_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                                if results:
+                                    rrmse_values = [rrmse for fold_num, rrmse in results]
+                                    if size not in results_dict[selected_car]:
+                                        results_dict[selected_car][size] = []
+                                    results_dict[selected_car][size].append({
+                                        'model': 'Only ML(XGBoost)',
+                                        'selected_car': selected_car,
+                                        'rrmse': rrmse_values
+                                    })
 
                 print(results_dict)
 
