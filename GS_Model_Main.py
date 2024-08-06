@@ -182,7 +182,7 @@ def main():
                             else:
                                 iterations = 1
 
-                            for _ in range(iterations):
+                            for iteration in range(iterations):
                                 sampled_files = random.sample(vehicle_files[selected_car], size)
                                 sampled_vehicle_files = {selected_car: sampled_files}
 
@@ -228,18 +228,25 @@ def main():
                     results_dict[selected_car] = results
                     sizes = sorted(results.keys())
                     Physics_Only_RRMSE[selected_car] = physics_only_rrmse
-                    xgb_rrmse = [
-                        np.mean([result['rrmse'] for result in results[size] if result['model'] == 'Hybrid Model(XGBoost)'])
-                        for size in sizes
-                    ]
-                    lr_rrmse = [
-                        np.mean([result['rrmse'] for result in results[size] if result['model'] == 'Hybrid Model(Linear Regression)'])
-                        for size in sizes
-                    ]
-                    only_ml_rrmse = [
-                        np.mean([result['rrmse'] for result in results[size] if result['model'] == 'Only ML(XGBoost)'])
-                        for size in sizes
-                    ]
+
+                    xgb_rrmse = []
+                    lr_rrmse = []
+                    only_ml_rrmse = []
+
+                    for size in sizes:
+                        xgb_values = [item for result in results[size] if result['model'] == 'Hybrid Model(XGBoost)' for
+                                      item in result['rrmse']]
+                        lr_values = [item for result in results[size] if
+                                     result['model'] == 'Hybrid Model(Linear Regression)' for item in result['rrmse']]
+                        only_ml_values = [item for result in results[size] if result['model'] == 'Only ML(XGBoost)' for
+                                          item in result['rrmse']]
+
+                        if xgb_values:
+                            xgb_rrmse.append(np.mean(xgb_values))
+                        if lr_values:
+                            lr_rrmse.append(np.mean(lr_values))
+                        if only_ml_values:
+                            only_ml_rrmse.append(np.mean(only_ml_values))
 
                     plt.figure(figsize=(10, 6))
                     plt.plot(sizes, xgb_rrmse, label='Hybrid Model(XGBoost)', marker='o')
@@ -253,10 +260,9 @@ def main():
                     plt.legend()
                     plt.grid(True)
 
-                    plt.xscale('symlog', linthresh=700)
+                    plt.xscale('symlog', linthresh=20)
                     plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
-                    plt.xlim(min(sizes) - 10, max(sizes) + 1000)
-
+                    plt.xlim(min(sizes) - 1, max(sizes) + 1000)
                     plt.show()
 
                 print(f"XGB RRMSE: {XGB_RRMSE}")
