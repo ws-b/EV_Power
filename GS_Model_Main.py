@@ -88,7 +88,8 @@ def main():
             for selected_car in selected_cars:
                 EV = select_vehicle(selected_car)
                 filtered_files = [f for f in vehicle_files.get(selected_car, []) if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
-                process_files_power(filtered_files, EV)
+
+                process_files_power(vehicle_files.get(selected_car, []), EV)
 
         elif task_choice == 2:
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
@@ -166,8 +167,8 @@ def main():
                             print(f"No results for the selected vehicle: {selected_car}")
 
                     if train_choice == 5:
-                        vehicle_file_sizes = [5, 7, 10, 15, 20, 50, 100, 150, 200, 500,
-                                              700, 1000, 1500, 2000, 3000, 5000, 10000]
+                        vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500,
+                                              1000, 2000, 3000, 5000, 10000]
 
                         results_dict[selected_car] = {}
                         max_samples = len(vehicle_files[selected_car])
@@ -186,7 +187,6 @@ def main():
                                 sampled_files = random.sample(vehicle_files[selected_car], size)
                                 sampled_vehicle_files = {selected_car: sampled_files}
 
-                                # XGBoost 모델 훈련 및 결과 저장
                                 results, scaler = xgb_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
                                 if results:
                                     rrmse_values = [rrmse for fold_num, rrmse in results]
@@ -198,7 +198,6 @@ def main():
                                     'rrmse': rrmse_values
                                 })
 
-                                # 선형 회귀 모델 훈련 및 결과 저장
                                 results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
                                 if results:
                                     rrmse_values = [rrmse for fold_num, rrmse in results]
@@ -210,7 +209,6 @@ def main():
                                         'rrmse': rrmse_values
                                     })
 
-                                # Only ML 모델 훈련 및 결과 저장
                                 results, scaler = only_xgb_validate(sampled_vehicle_files, selected_car, save_dir=None)
                                 if results:
                                     rrmse_values = [rrmse for fold_num, rrmse in results]

@@ -45,22 +45,42 @@ def process_file_power(file, EV):
 
     inertia = 0.05  # Rotational inertia of the wheels
     g = 9.18  # Gravitational acceleration (m/s^2)
-    # t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+    t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
     v = data['speed'].to_numpy()
     a = data['acceleration'].to_numpy()
-    int_temp = data['int_temp'].to_numpy()
     ext_temp = data['ext_temp'].to_numpy()
-
-    if 'altitude' in data.columns:
-        altitude = data['altitude'].to_numpy()
-        data['altitude'].interpolate(method='linear', inplace=True)
-        F = EV.mass * g * np.sin(np.arctan(altitude)) * v / EV.eff
 
     A = EV.Ca * v / EV.eff
     B = EV.Cb * v**2 / EV.eff
     C = EV.Cc * v**3 / EV.eff
-    
+    """
+    # 고도 데이터가 있는 경우
+    if 'altitude' in data.columns:
+        altitude = data['altitude'].to_numpy()
+        data = data.assign(altitude=data['altitude'].interpolate(method='linear'))
+
+        # 고도 차이 구하기
+        altitude_diff = np.diff(altitude)
+        altitude_diff = np.append(altitude_diff, 0)  # 마지막 값을 0으로 설정
+
+        # 시간 간격 계산 (초 단위)
+        time_diff = np.diff(t.astype(np.int64) // 10 ** 9)
+        time_diff = np.append(time_diff, time_diff[-1])  # 마지막 값을 이전 값으로 설정
+
+        # 거리 계산 (속도 * 시간 간격)
+        distance_diff = v * time_diff
+
+        # 각도 계산
+        slope = np.arctan2(altitude_diff / distance_diff)
+
+        # 힘 계산
+        #F = EV.mass * g * np.sin(slope) * v / EV.eff
+        F = np.zeros_like(v)
+    else:
+        F = np.zeros_like(v)
+    """
     D = []
+    F = np.zeros_like(v)
     for i in range(len(a)):
         if EV.re_brake == 1:
             exp_term = np.exp(0.0411 / max(abs(a[i]), 0.001))
@@ -72,8 +92,8 @@ def process_file_power(file, EV):
             D.append(((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]) / EV.eff if a[i] >= 0 else 0)
 
     Eff_hvac = 0.81  # Auxiliary power efficiency
-    target_int_temp = 22
-    E_hvac = abs(target_int_temp - int_temp) * EV.hvac * Eff_hvac
+    target_temp = 22
+    E_hvac = abs(target_temp - ext_temp) * EV.hvac * Eff_hvac
 
     E = []
     for i in range(len(v)):
