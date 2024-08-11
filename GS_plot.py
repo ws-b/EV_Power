@@ -795,7 +795,7 @@ def plot_contour2(file_lists, selected_car, num_grids=400):
 
     X = merged_data['speed'] * 3.6
     Y = merged_data['acceleration']
-    Residual = merged_data['Power'] - merged_data['Power_IV']
+    Residual = merged_data['Power_IV'] - merged_data['Power']
 
     # Handle missing values
     mask = ~np.isnan(X) & ~np.isnan(Y) & ~np.isnan(Residual)

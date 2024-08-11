@@ -70,7 +70,7 @@ def grid_search_lambda(X_train, y_train, selected_car):
     }
 
     model = xgb.XGBRegressor()
-    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_squared_error', cv=5,
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_root_mean_squared_error', cv=5,
                                verbose=1)
     grid_search.fit(X_train, y_train)
     results = grid_search.cv_results_
@@ -94,7 +94,7 @@ def grid_search_lambda(X_train, y_train, selected_car):
 
     return best_lambda
 
-def cross_validate(vehicle_files, selected_car, save_dir="models"):
+def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="models"):
     model_name = "XGB_Only"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -108,7 +108,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
 
     files = vehicle_files[selected_car]
 
-    best_lambda = None
+    best_lambda = precomputed_lambda
     for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
         train_files = [files[i] for i in train_index]
         test_files = [files[i] for i in test_index]
@@ -167,7 +167,7 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
             pickle.dump(scaler, f)
         print(f"Scaler saved at {scaler_path}")
 
-    return results, scaler
+    return results, scaler, best_lambda
 
 
 def process_file_with_trained_model(file, model, scaler):
