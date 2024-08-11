@@ -93,9 +93,10 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
         model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
+        rmse = np.sqrt(np.mean(((test_data['Power'] - y_pred) - (test_data['Power'] - y_test)) ** 2))
         residual2 = y_pred - y_test
         rrmse = calculate_rrmse(test_data['Power'] - y_test, test_data['Power'] - y_pred)
-        results.append((fold_num, rrmse))
+        results.append((fold_num, rrmse, rmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
 

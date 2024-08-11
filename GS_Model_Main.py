@@ -115,7 +115,6 @@ def main():
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
-                PE_RRMSE = {}
                 XGB_RRMSE = {}
                 LR_RRMSE = {}
                 ONLY_RRMSE = {}
@@ -123,44 +122,41 @@ def main():
 
                 for selected_car in selected_cars:
                     if train_choice == 1:
-                        rrmse = compute_rrmse(vehicle_files, selected_car)
-                        PE_RRMSE[selected_car] = rrmse
-                    if train_choice == 2:
-                        results, scaler = xgb_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+                        results, scaler = xgb_cross_validate(vehicle_files, selected_car, None,  save_dir=save_dir)
 
                         if results:
                             rrmse_values = []
-                            for fold_num, rrmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                            for fold_num, rrmse, rmse in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, RMSE: {rmse}")
                                 rrmse_values.append(rrmse)
                             XGB_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if train_choice == 3:
+                    if train_choice == 2:
                         results, scaler = lr_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
 
                         if results:
                             rrmse_values = []
-                            for fold_num, rrmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                            for fold_num, rrmse, rmse in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, RMSE: {rmse}")
                                 rrmse_values.append(rrmse)
                             # Store the minimum RMSE in dictionaries
                             LR_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if train_choice == 4:
-                        results, scaler = only_xgb_validate(vehicle_files, selected_car, save_dir=save_dir)
+                    if train_choice == 3:
+                        results, scaler = only_xgb_validate(vehicle_files, selected_car, None, save_dir=save_dir)
 
                         if results:
                             rrmse_values = []
-                            for fold_num, rrmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                            for fold_num, rrmse, rmse in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, RMSE: {rmse}")
                                 rrmse_values.append(rrmse)
                             ONLY_RRMSE[selected_car] = np.median(rrmse_values)
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
 
-                    if train_choice == 5:
+                    if train_choice == 4:
                         vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500,
                                               1000, 2000, 3000, 5000, 10000]
 
@@ -168,8 +164,8 @@ def main():
                         max_samples = len(vehicle_files[selected_car])
 
                         filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
-                        _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None)
-                        _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None)
+                        _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None, save_dir=None)
+                        _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, save_dir=None)
 
                         for size in filtered_vehicle_file_sizes:
                             if size not in results_dict[selected_car]:
@@ -198,7 +194,7 @@ def main():
 
                                 results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for fold_num, rrmse in results]
+                                    rrmse_values = [rrmse for fold_num, rrmse, rmse in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(XGBoost)',
                                         'selected_car': selected_car,
@@ -207,7 +203,7 @@ def main():
 
                                 results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for fold_num, rrmse in results]
+                                    rrmse_values = [rrmse for fold_num, rrmse, rmse in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(Linear Regression)',
                                         'selected_car': selected_car,
@@ -216,7 +212,7 @@ def main():
 
                                 results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for fold_num, rrmse in results]
+                                    rrmse_values = [rrmse for fold_num, rrmse, rmse in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Only ML(XGBoost)',
                                         'selected_car': selected_car,
@@ -251,17 +247,17 @@ def main():
                             phys_rrmse.append(np.mean(phys_values))
                         if xgb_values:
                             xgb_rrmse.append(np.mean(xgb_values))
-                            xgb_std.append(2 * np.std(xgb_values))  # 2σ 계산
+                            xgb_std.append(2 * np.std(xgb_values))  # 2σ 95%
                         if lr_values:
                             lr_rrmse.append(np.mean(lr_values))
-                            lr_std.append(2 * np.std(lr_values))  # 2σ 계산
+                            lr_std.append(2 * np.std(lr_values))  # 2σ 95%
                         if only_ml_values:
                             only_ml_rrmse.append(np.mean(only_ml_values))
-                            only_ml_std.append(2 * np.std(only_ml_values))  # 2σ 계산
+                            only_ml_std.append(2 * np.std(only_ml_values))  # 2σ 95%
 
                     plt.figure(figsize=(10, 6))
 
-                    # Physics-Based 모델
+                    # Physics-Based Model
                     plt.plot(sizes, phys_rrmse, label='Physics-Based', linestyle='--', color='r')
 
                     # Hybrid Model(XGBoost)

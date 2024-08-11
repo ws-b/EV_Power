@@ -138,8 +138,9 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="mo
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
+        rmse = np.sqrt(np.mean((y_test - y_pred) ** 2)) 
         rrmse = calculate_rrmse(y_test, y_pred)
-        results.append((fold_num, rrmse))
+        results.append((fold_num, rrmse, rmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
 
