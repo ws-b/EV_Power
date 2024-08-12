@@ -5,7 +5,8 @@ import pickle
 import matplotlib.pyplot as plt
 import time
 from GS_preprocessing import load_data_by_vehicle
-from GS_Merge_Power import process_files_power, select_vehicle, compute_rrmse
+from GS_Merge_Power import process_files_power, select_vehicle
+from GS_Functions import compute_rrmse, compute_rmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
@@ -115,44 +116,60 @@ def main():
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
-                XGB_RRMSE = {}
-                LR_RRMSE = {}
-                ONLY_RRMSE = {}
+                XGB = {}
+                LR = {}
+                ONLY_ML = {}
                 results_dict = {}
 
                 for selected_car in selected_cars:
                     if train_choice == 1:
-                        results, scaler = xgb_cross_validate(vehicle_files, selected_car, None,  save_dir=save_dir)
+                        results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
 
                         if results:
+                            rmse_values = []
                             rrmse_values = []
                             for fold_num, rrmse, rmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, RMSE: {rmse}")
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                                rmse_values.append(rmse)
                                 rrmse_values.append(rrmse)
-                            XGB_RRMSE[selected_car] = np.median(rrmse_values)
+                            XGB[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values
+                            }
+
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 2:
-                        results, scaler = lr_cross_validate(vehicle_files, selected_car, save_dir=save_dir)
+                        results, scaler = lr_cross_validate(vehicle_files, selected_car, True, save_dir=save_dir)
 
                         if results:
+                            rmse_values = []
                             rrmse_values = []
                             for fold_num, rrmse, rmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, RMSE: {rmse}")
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                                rmse_values.append(rmse)
                                 rrmse_values.append(rrmse)
-                            # Store the minimum RMSE in dictionaries
-                            LR_RRMSE[selected_car] = np.median(rrmse_values)
+                            LR[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values
+                            }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 3:
-                        results, scaler = only_xgb_validate(vehicle_files, selected_car, None, save_dir=save_dir)
+                        results, scaler, _ = only_xgb_validate(vehicle_files, selected_car, None, True, save_dir=save_dir)
 
                         if results:
+                            rmse_values = []
                             rrmse_values = []
                             for fold_num, rrmse, rmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, RMSE: {rmse}")
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                                rmse_values.append(rmse)
                                 rrmse_values.append(rrmse)
-                            ONLY_RRMSE[selected_car] = np.median(rrmse_values)
+                            ONLY_ML[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values
+                            }
+                            print()
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
 
@@ -164,8 +181,8 @@ def main():
                         max_samples = len(vehicle_files[selected_car])
 
                         filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
-                        _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None, save_dir=None)
-                        _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, save_dir=None)
+                        _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None, None, save_dir=None)
+                        _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, None, save_dir=None)
 
                         for size in filtered_vehicle_file_sizes:
                             if size not in results_dict[selected_car]:
@@ -192,99 +209,99 @@ def main():
                                         'rrmse': [rrmse_physics]
                                     })
 
-                                results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB, save_dir=None)
+                                results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB, None, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for fold_num, rrmse, rmse in results]
+                                    rrmse_values = [rrmse for _, rrmse, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(XGBoost)',
                                         'selected_car': selected_car,
                                         'rrmse': rrmse_values
                                     })
 
-                                results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, save_dir=None)
+                                results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, None, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for fold_num, rrmse, rmse in results]
+                                    rrmse_values = [rrmse for _, rrmse, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(Linear Regression)',
                                         'selected_car': selected_car,
                                         'rrmse': rrmse_values
                                     })
 
-                                results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML, save_dir=None)
+                                results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML, None, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for fold_num, rrmse, rmse in results]
+                                    rrmse_values = [rrmse for _, rrmse, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Only ML(XGBoost)',
                                         'selected_car': selected_car,
                                         'rrmse': rrmse_values
                                     })
 
-                print(results_dict)
+                        print(results_dict)
 
-                for selected_car in selected_cars:
-                    results = results_dict[selected_car]
-                    sizes = sorted(results.keys())
+                        for selected_car in selected_cars:
+                            results = results_dict[selected_car]
+                            sizes = sorted(results.keys())
 
-                    phys_rrmse = []
-                    xgb_rrmse = []
-                    xgb_std = []
-                    lr_rrmse = []
-                    lr_std = []
-                    only_ml_rrmse = []
-                    only_ml_std = []
+                            phys_rrmse = []
+                            xgb_rrmse = []
+                            xgb_std = []
+                            lr_rrmse = []
+                            lr_std = []
+                            only_ml_rrmse = []
+                            only_ml_std = []
 
-                    for size in sizes:
-                        phys_values = [item for result in results[size] if result['model'] == 'Physics-Based' for item
-                                       in result['rrmse']]
-                        xgb_values = [item for result in results[size] if result['model'] == 'Hybrid Model(XGBoost)' for
-                                      item in result['rrmse']]
-                        lr_values = [item for result in results[size] if
-                                     result['model'] == 'Hybrid Model(Linear Regression)' for item in result['rrmse']]
-                        only_ml_values = [item for result in results[size] if result['model'] == 'Only ML(XGBoost)' for
-                                          item in result['rrmse']]
+                            for size in sizes:
+                                phys_values = [item for result in results[size] if result['model'] == 'Physics-Based' for item
+                                               in result['rrmse']]
+                                xgb_values = [item for result in results[size] if result['model'] == 'Hybrid Model(XGBoost)' for
+                                              item in result['rrmse']]
+                                lr_values = [item for result in results[size] if
+                                             result['model'] == 'Hybrid Model(Linear Regression)' for item in result['rrmse']]
+                                only_ml_values = [item for result in results[size] if result['model'] == 'Only ML(XGBoost)' for
+                                                  item in result['rrmse']]
 
-                        if phys_values:
-                            phys_rrmse.append(np.mean(phys_values))
-                        if xgb_values:
-                            xgb_rrmse.append(np.mean(xgb_values))
-                            xgb_std.append(2 * np.std(xgb_values))  # 2σ 95%
-                        if lr_values:
-                            lr_rrmse.append(np.mean(lr_values))
-                            lr_std.append(2 * np.std(lr_values))  # 2σ 95%
-                        if only_ml_values:
-                            only_ml_rrmse.append(np.mean(only_ml_values))
-                            only_ml_std.append(2 * np.std(only_ml_values))  # 2σ 95%
+                                if phys_values:
+                                    phys_rrmse.append(np.mean(phys_values))
+                                if xgb_values:
+                                    xgb_rrmse.append(np.mean(xgb_values))
+                                    xgb_std.append(2 * np.std(xgb_values))  # 2σ 95%
+                                if lr_values:
+                                    lr_rrmse.append(np.mean(lr_values))
+                                    lr_std.append(2 * np.std(lr_values))  # 2σ 95%
+                                if only_ml_values:
+                                    only_ml_rrmse.append(np.mean(only_ml_values))
+                                    only_ml_std.append(2 * np.std(only_ml_values))  # 2σ 95%
 
-                    plt.figure(figsize=(10, 6))
+                            plt.figure(figsize=(10, 6))
 
-                    # Physics-Based Model
-                    plt.plot(sizes, phys_rrmse, label='Physics-Based', linestyle='--', color='r')
+                            # Physics-Based Model
+                            plt.plot(sizes, phys_rrmse, label='Physics-Based', linestyle='--', color='r')
 
-                    # Hybrid Model(XGBoost)
-                    plt.errorbar(sizes, xgb_rrmse, yerr=xgb_std, label='Hybrid Model(XGBoost)', marker='o', capsize=5)
+                            # Hybrid Model(XGBoost)
+                            plt.errorbar(sizes, xgb_rrmse, yerr=xgb_std, label='Hybrid Model(XGBoost)', marker='o', capsize=5)
 
-                    # Hybrid Model(Linear Regression)
-                    plt.errorbar(sizes, lr_rrmse, yerr=lr_std, label='Hybrid Model(Linear Regression)', marker='o',
-                                 capsize=5)
+                            # Hybrid Model(Linear Regression)
+                            plt.errorbar(sizes, lr_rrmse, yerr=lr_std, label='Hybrid Model(Linear Regression)', marker='o',
+                                         capsize=5)
 
-                    # Only ML(XGBoost)
-                    plt.errorbar(sizes, only_ml_rrmse, yerr=only_ml_std, label='Only ML(XGBoost)', marker='o',
-                                 capsize=5)
+                            # Only ML(XGBoost)
+                            plt.errorbar(sizes, only_ml_rrmse, yerr=only_ml_std, label='Only ML(XGBoost)', marker='o',
+                                         capsize=5)
 
-                    plt.xlabel('Number of Trips')
-                    plt.ylabel('RRMSE')
-                    plt.title(f'RRMSE vs Number of Trips for {selected_car}')
-                    plt.legend()
-                    plt.grid(True)
+                            plt.xlabel('Number of Trips')
+                            plt.ylabel('RRMSE')
+                            plt.title(f'RRMSE vs Number of Trips for {selected_car}')
+                            plt.legend()
+                            plt.grid(True)
 
-                    plt.xscale('symlog', linthresh=20)
-                    plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
-                    plt.xlim(min(sizes) - 1, max(sizes) + 1000)
-                    plt.show()
+                            plt.xscale('symlog', linthresh=20)
+                            plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
+                            plt.xlim(min(sizes) - 1, max(sizes) + 1000)
+                            plt.show()
 
-                print(f"XGB RRMSE: {XGB_RRMSE}")
-                print(f"LR RRMSE: {LR_RRMSE}")
-                print(f"ONLY ML RRMSE: {ONLY_RRMSE}")
+                print(f"XGB RRMSE & RMSE: {XGB}")
+                print(f"LR RRMSE & RMSE: {LR}")
+                print(f"ONLY ML RRMSE & RMSE: {ONLY_ML}")
 
         elif task_choice == 3:
             while True:
@@ -466,7 +483,7 @@ def main():
                 print("3: Plotting Data Energy Efficiency Graph")
                 print("4: Plotting Predicted Energy Efficiency Graph")
                 print("5: Driver's Energy Efficiency Graph")
-                print("6: ")
+                print("6: Calculating physics-based RMSE")
                 print("7: Return to previous menu.")
                 print("0: Quitting the program.")
                 selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
@@ -504,7 +521,9 @@ def main():
                                     break
                             plot_2d_histogram(sample_files_dict, selected_car)
                         elif plot == 6:
-                            break
+                            compute_rmse(vehicle_files, selected_car)
+                            compute_rrmse(vehicle_files, selected_car)
+
         elif task_choice == 0:
             print("Quitting the program.")
             return

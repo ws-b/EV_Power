@@ -47,43 +47,51 @@ def sample_grid(speed, acceleration, grid_size=100, max_per_grid=30):
     return sampled_speeds, sampled_accelerations
 
 
-# Iterate through each vehicle type in the vehicle_dict
-for vehicle_type, device_ids in vehicle_dict.items():
-    all_speeds = []
-    all_accelerations = []
+def calculate_rrmse(y_test, y_pred):
+    relative_errors = (y_pred - y_test) / np.mean(y_test)
+    rrmse = np.sqrt(np.mean(relative_errors ** 2))
+    return rrmse
 
-    # Get the list of relevant files
-    relevant_files = [os.path.join(directory, f) for f in os.listdir(directory) if
-                      f.endswith(".csv") and any(device_id in f for device_id in device_ids)]
+def calculate_rmse(y_test, y_pred):
+    rmse = np.sqrt(np.mean((y_test-y_pred) ** 2))
+    return rmse
 
-    # Use ThreadPoolExecutor to process files concurrently
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(process_file, relevant_files)
+def read_and_process_files(files):
+    data = pd.concat([pd.read_csv(file) for file in files], ignore_index=True)
+    return data
 
-        for device_id, speeds, accelerations in results:
-            if speeds is not None and accelerations is not None:
-                all_speeds.extend(speeds)
-                all_accelerations.extend(accelerations)
+def compute_rrmse(vehicle_files, selected_car):
+    if not vehicle_files:
+        print("No files provided")
+        return
 
-    # Convert to numpy arrays for easy handling
-    all_speeds = np.array(all_speeds)
-    all_accelerations = np.array(all_accelerations)
+    data = read_and_process_files(vehicle_files[selected_car])
 
-    # Sample the data in the grids
-    sampled_speeds, sampled_accelerations = sample_grid(all_speeds, all_accelerations)
+    if 'Power' not in data.columns or 'Power_IV' not in data.columns:
+        print(f"Columns 'Power' and/or 'Power_IV' not found in the data")
+        return
 
-    # Create a scatter plot for the current vehicle type
-    plt.figure(figsize=(10, 6))
-    plt.scatter(sampled_speeds, sampled_accelerations, alpha=0.5)
-    plt.title(f'Speed vs Acceleration for {vehicle_type}')
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.xlim(0, 230)
-    plt.ylim(-15, 9)
-    plt.grid(True)
+    y_pred = data['Power'].to_numpy()
+    y_test = data['Power_IV'].to_numpy()
 
-    # Save the plot as a PNG file
-    plt.savefig(os.path.join(directory, f'{vehicle_type}_speed_vs_acceleration.png'))
-    plt.close()
+    rrmse = calculate_rrmse(y_test, y_pred)
+    print(f"RRMSE for {selected_car}  : {rrmse}")
+    return rrmse
 
-print("Plots generated and saved successfully.")
+def compute_rmse(vehicle_files, selected_car):
+    if not vehicle_files:
+        print("No files provided")
+        return
+
+    data = read_and_process_files(vehicle_files[selected_car])
+
+    if 'Power' not in data.columns or 'Power_IV' not in data.columns:
+        print(f"Columns 'Power' and/or 'Power_IV' not found in the data")
+        return
+
+    y_pred = data['Power'].to_numpy()
+    y_test = data['Power_IV'].to_numpy()
+
+    rmse = calculate_rmse(y_test, y_pred)
+    print(f"RMSE for {selected_car}  : {rmse}")
+    return rmse

@@ -94,7 +94,7 @@ def grid_search_lambda(X_train, y_train, selected_car):
 
     return best_lambda
 
-def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="models"):
+def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None, save_dir="models"):
     model_name = "XGB_Only"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -138,7 +138,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="mo
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
-        rmse = np.sqrt(np.mean((y_test - y_pred) ** 2)) 
+        rmse = np.sqrt(np.mean((y_test - y_pred) ** 2))
         rrmse = calculate_rrmse(y_test, y_pred)
         results.append((fold_num, rrmse, rmse))
         models.append(model)
@@ -160,7 +160,8 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="mo
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
 
             Residual = y_pred - y_test
-            # plot_contour(X_test, Residual, scaler, selected_car, '(Predicted Power - BMS Power)', num_grids=400)
+            if plot:
+                plot_contour(X_test, Residual, scaler, selected_car, '(Predicted Power - BMS Power)', num_grids=400)
 
         # Save the scaler
         scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')

@@ -108,7 +108,7 @@ def grid_search_lambda(X_train, y_train, selected_car):
 
     return best_lambda
 
-def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="models"):
+def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None, save_dir="models"):
     model_name = "XGB"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -174,10 +174,11 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, save_dir="mo
             surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
             best_model.save_model(model_file)
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
-            # plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
+            if plot:
+                #plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
 
-            # plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-            # plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
+                plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
+                plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
 
         # Save the scaler
         scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')

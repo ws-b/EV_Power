@@ -64,7 +64,7 @@ def calculate_rrmse(y_test, y_pred):
     return rrmse
 
 # 교차 검증 및 모델 학습 함수
-def cross_validate(vehicle_files, selected_car, save_dir="models"):
+def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
     model_name = "LR"
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
@@ -113,9 +113,9 @@ def cross_validate(vehicle_files, selected_car, save_dir="models"):
             model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.joblib")
             joblib.dump(best_model, model_file)
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
-
-            # plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-            # plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
+            if plot:
+                plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
+                plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
 
         # Save the scaler
         scaler_path = os.path.join(save_dir, f"{model_name}_scaler_{selected_car}.pkl")

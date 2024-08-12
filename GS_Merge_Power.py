@@ -114,29 +114,3 @@ def process_files_power(file_lists, EV):
             future.result()
 
     print('Done')
-
-def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_pred - y_test) / np.mean(y_test)
-    rrmse = np.sqrt(np.mean(relative_errors ** 2))
-    return rrmse
-def read_and_process_files(files):
-    data = pd.concat([pd.read_csv(file) for file in files], ignore_index=True)
-    return data
-
-def compute_rrmse(vehicle_files, selected_car):
-    if not vehicle_files:
-        print("No files provided")
-        return
-
-    data = read_and_process_files(vehicle_files[selected_car])
-
-    if 'Power' not in data.columns or 'Power_IV' not in data.columns:
-        print(f"Columns 'Power' and/or 'Power_IV' not found in the data")
-        return
-
-    y_pred = data['Power'].to_numpy()
-    y_test = data['Power_IV'].to_numpy()
-
-    rrmse = calculate_rrmse(y_test, y_pred)
-    print(f"RRMSE for {selected_car}  : {rrmse}")
-    return rrmse
