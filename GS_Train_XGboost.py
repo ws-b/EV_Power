@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
-import matplotlib.pyplot as plt
+from GS_Functions import calculate_rrmse, calculate_rmse
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
@@ -14,7 +14,7 @@ def process_single_file(file):
     try:
         data = pd.read_csv(file)
         if 'Power' in data.columns and 'Power_IV' in data.columns:
-            data['Residual'] = data['Power'] - data['Power_IV']
+            data['Residual'] = data['Power_IV'] - data['Power']
             return data[['speed', 'acceleration', 'Residual', 'Power', 'Power_IV']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
@@ -68,12 +68,7 @@ def custom_obj(preds, dtrain):
 
     return grad, hess
 
-def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_pred - y_test) / np.mean(y_test)
-    rrmse = np.sqrt(np.mean(relative_errors ** 2))
-    return rrmse
-
-def grid_search_lambda(X_train, y_train, selected_car):
+def grid_search_lambda(X_train, y_train):
     dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
     lambda_values = np.logspace(-3, 7, num=11)
     param_grid = {
@@ -87,24 +82,9 @@ def grid_search_lambda(X_train, y_train, selected_car):
     grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_root_mean_squared_error', cv=5,
                                verbose=1)
     grid_search.fit(X_train, y_train)
-    results = grid_search.cv_results_
 
     best_lambda = grid_search.best_params_['lambda']
     print(f"Best lambda found: {best_lambda}")
-
-    # Extracting the mean test scores for each lambda value
-    mean_test_scores = results['mean_test_score']
-
-    # # Creating a 2D plot
-    # fig, ax = plt.subplots()
-    # lambdas = np.log10(lambda_values)
-    # scores = -mean_test_scores  # Negate to convert to positive MSE values
-    #
-    # ax.plot(lambdas, scores, marker='o')
-    # ax.set_xlabel('log10(lambda)')
-    # ax.set_ylabel('Mean Squared Error')
-    # ax.set_title(f'Grid Search Lambda vs. Mean Squared Error for {selected_car}')
-    # plt.show()
 
     return best_lambda
 
@@ -137,7 +117,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         y_test = test_data['Residual'].to_numpy()
 
         if best_lambda is None:
-            best_lambda = grid_search_lambda(X_train, y_train, selected_car)
+            best_lambda = grid_search_lambda(X_train, y_train)
 
         dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
         dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
@@ -152,9 +132,9 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
         y_pred = model.predict(dtest)
-        rmse = np.sqrt(np.mean(((test_data['Power'] - y_pred) - (test_data['Power'] - y_test)) ** 2))
-        residual2 = y_pred - y_test
-        rrmse = calculate_rrmse(test_data['Power'] - y_test, test_data['Power'] - y_pred)
+        rmse = calculate_rmse((y_test - test_data['Power']), (y_pred - test_data['Power']))
+        rrmse = calculate_rrmse((y_test - test_data['Power']), (y_pred - test_data['Power']))
+        residual2 = y_test - y_pred
         results.append((fold_num, rrmse, rmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")

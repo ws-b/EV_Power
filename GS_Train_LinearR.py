@@ -2,20 +2,20 @@ import os
 import pandas as pd
 import numpy as np
 import pickle
+import joblib
+from GS_Functions import calculate_rrmse, calculate_rmse
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
 from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import joblib
 
 # 데이터 전처리 함수
 def process_single_file(file):
     try:
         data = pd.read_csv(file)
         if 'Power' in data.columns and 'Power_IV' in data.columns:
-            data['Residual'] = data['Power'] - data['Power_IV']
+            data['Residual'] = data['Power_IV'] - data['Power']
             return data[['speed', 'acceleration', 'Residual', 'Power', 'Power_IV']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
@@ -57,12 +57,6 @@ def process_files(files, scaler=None):
 
     return full_data, scaler
 
-
-def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_pred - y_test) / np.mean(y_test)
-    rrmse = np.sqrt(np.mean(relative_errors ** 2))
-    return rrmse
-
 # 교차 검증 및 모델 학습 함수
 def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
     model_name = "LR"
@@ -93,9 +87,9 @@ def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
         model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        rmse = np.sqrt(np.mean(((test_data['Power'] - y_pred) - (test_data['Power'] - y_test)) ** 2))
-        residual2 = y_pred - y_test
-        rrmse = calculate_rrmse(test_data['Power'] - y_test, test_data['Power'] - y_pred)
+        rmse = calculate_rmse((y_test - test_data['Power']), (y_pred - test_data['Power']))
+        rrmse = calculate_rrmse((y_test - test_data['Power']), (y_pred - test_data['Power']))
+        residual2 = y_test - y_pred
         results.append((fold_num, rrmse, rmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")

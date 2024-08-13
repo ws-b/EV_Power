@@ -98,11 +98,11 @@ def main():
         elif task_choice == 2:
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
             while True:
-                print("1: Physics-based Equation calculate relative RMSE")
-                print("2: Train Model using XGBoost")
-                print("3: Train Model using Linear Regression")
-                print("4: Train Model using Only ML")
-                print("5: Train Models with varying vehicle_files sizes")
+                print("1: Train Model using XGBoost")
+                print("2: Train Model using Linear Regression")
+                print("3: Train Model using Only ML")
+                print("4: Train Models with varying vehicle_files sizes")
+                print("5: ")
                 print("6: Return to previous menu")
                 print("0: Quitting the program")
                 try:
@@ -188,11 +188,11 @@ def main():
                             if size not in results_dict[selected_car]:
                                 results_dict[selected_car][size] = []
                             if size < 20:
-                                samplings = 2
+                                samplings = 200
                             elif 20 <= size < 50:
-                                samplings = 2
+                                samplings = 10
                             elif 50 <= size <= 100:
-                                samplings = 1
+                                samplings = 5
                             else:
                                 samplings = 1
 

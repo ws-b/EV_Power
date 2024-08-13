@@ -48,7 +48,7 @@ def sample_grid(speed, acceleration, grid_size=100, max_per_grid=30):
 
 
 def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_pred - y_test) / np.mean(y_test)
+    relative_errors = (y_test - y_pred) / np.mean(y_test)
     rrmse = np.sqrt(np.mean(relative_errors ** 2))
     return rrmse
 

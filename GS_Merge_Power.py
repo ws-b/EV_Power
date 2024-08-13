@@ -53,34 +53,8 @@ def process_file_power(file, EV):
     A = EV.Ca * v / EV.eff
     B = EV.Cb * v**2 / EV.eff
     C = EV.Cc * v**3 / EV.eff
-    """
-    # 고도 데이터가 있는 경우
-    if 'altitude' in data.columns:
-        altitude = data['altitude'].to_numpy()
-        data = data.assign(altitude=data['altitude'].interpolate(method='linear'))
-
-        # 고도 차이 구하기
-        altitude_diff = np.diff(altitude)
-        altitude_diff = np.append(altitude_diff, 0)  # 마지막 값을 0으로 설정
-
-        # 시간 간격 계산 (초 단위)
-        time_diff = np.diff(t.astype(np.int64) // 10 ** 9)
-        time_diff = np.append(time_diff, time_diff[-1])  # 마지막 값을 이전 값으로 설정
-
-        # 거리 계산 (속도 * 시간 간격)
-        distance_diff = v * time_diff
-
-        # 각도 계산
-        slope = np.arctan2(altitude_diff / distance_diff)
-
-        # 힘 계산
-        #F = EV.mass * g * np.sin(slope) * v / EV.eff
-        F = np.zeros_like(v)
-    else:
-        F = np.zeros_like(v)
-    """
     D = []
-    F = np.zeros_like(v)
+
     for i in range(len(a)):
         if EV.re_brake == 1:
             exp_term = np.exp(0.0411 / max(abs(a[i]), 0.001))
@@ -101,6 +75,38 @@ def process_file_power(file, EV):
             E.append(EV.aux + EV.idle + E_hvac[i])
         else:
             E.append(EV.aux + E_hvac[i])
+
+    if 'altitude' in data.columns:
+        # 처음과 마지막의 NaN 값을 bfill과 ffill로 채우기
+        data['altitude'].fillna(method='bfill', inplace=True)
+        data['altitude'].fillna(method='ffill', inplace=True)
+
+        # 중간의 NaN 값을 선형 보간법으로 채우기
+        data['altitude'] = data['altitude'].interpolate(method='linear')
+
+        # 고도 데이터를 numpy 배열로 변환
+        altitude = data['altitude'].to_numpy()
+
+        # 고도 차이 구하기
+        altitude_diff = np.diff(altitude)
+        altitude_diff = np.append(altitude_diff, 0)  # 마지막 값을 0으로 설정
+
+        # 시간 간격 계산 (초 단위)
+        time_diff = np.diff(t.astype(np.int64) // 10 ** 9)
+        time_diff = np.append(time_diff, time_diff[-1])  # 마지막 값을 이전 값으로 설정
+
+        # 거리 계산 (속도 * 시간 간격)
+        distance_diff = v * time_diff
+
+        # 각도 계산
+        with np.errstate(divide='ignore', invalid='ignore'):
+            slope = np.arctan2(altitude_diff, distance_diff)
+            slope = np.where(distance_diff == 0, 0, slope)  # 거리가 0일 때 각도를 0으로 설정
+
+        # 힘 계산
+        F = EV.mass * g * np.sin(slope) * v / EV.eff
+    else:
+        F = np.zeros_like(v)
 
     Power = np.array(A) + np.array(B) + np.array(C) + np.array(D) + np.array(E) + np.array(F)
     data['Power'] = Power
