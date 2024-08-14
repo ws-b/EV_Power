@@ -3,14 +3,12 @@ import numpy as np
 import random
 import pickle
 import matplotlib.pyplot as plt
-import time
-from GS_preprocessing import load_data_by_vehicle
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_Functions import get_vehicle_files, compute_rrmse, compute_rmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
-from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
+from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
 from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
 
 def main():
@@ -126,7 +124,6 @@ def main():
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values
                             }
-                            print()
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
 
@@ -149,8 +146,6 @@ def main():
                                         'model': 'Only ML(XGBoost)',
                                         'lambda': lambda_ML
                                     })
-
-                        print(l2lambda)
 
                         for size in filtered_vehicle_file_sizes:
                             if size not in results_dict[selected_car]:
@@ -261,6 +256,7 @@ def main():
                         plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
                         plt.xlim(min(sizes) - 1, max(sizes) + 1000)
                         plt.show()
+                        print(f"{l2lambda}")
 
                 print(f"XGB RRMSE & RMSE: {XGB}")
                 print(f"LR RRMSE & RMSE: {LR}")
@@ -270,7 +266,8 @@ def main():
             while True:
                 print("1: XGBoost Model")
                 print("2: Linear Regression")
-                print("3: Return to previous menu")
+                print("3: Machine Learning Only(XGB)")
+                print("4: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     pred_choice = int(input("Enter number you want to run: "))
@@ -278,7 +275,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if pred_choice == 3:
+                if pred_choice == 4:
                     break
                 elif pred_choice == 0:
                     print("Quitting the program")
@@ -312,8 +309,8 @@ def main():
 
                         lr_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
                     elif pred_choice == 3:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'SVR_best_model_{selected_car}.json')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'SVR_scaler_{selected_car}.pkl')
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_Only_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_Only_scaler_{selected_car}.pkl')
 
                         if not vehicle_files[selected_car]:
                             print(f"No files to process for the selected vehicle: {selected_car}")
@@ -323,7 +320,7 @@ def main():
                         with open(scaler_path, 'rb') as f:
                             scaler = pickle.load(f)
 
-                        svr_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+                        only_xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
 
 
         elif task_choice == 4:

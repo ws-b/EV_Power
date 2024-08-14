@@ -94,7 +94,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
     models = []
-    best_model = precomputed_lambda
+    best_model = None
 
     if selected_car not in vehicle_files or not vehicle_files[selected_car]:
         print(f"No files found for the selected vehicle: {selected_car}")
@@ -102,7 +102,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
 
     files = vehicle_files[selected_car]
 
-    best_lambda = None
+    best_lambda = precomputed_lambda
     for fold_num, (train_index, test_index) in enumerate(kf.split(files), 1):
         train_files = [files[i] for i in train_index]
         test_files = [files[i] for i in test_index]
@@ -130,7 +130,8 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         }
 
         evals = [(dtrain, 'train'), (dtest, 'test')]
-        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
+        #model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
+        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
         rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
         rrmse = calculate_rrmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
