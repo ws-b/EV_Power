@@ -13,8 +13,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 def process_single_file(file):
     try:
         data = pd.read_csv(file)
-        if 'Power' in data.columns and 'Power_IV' in data.columns:
-            return data[['speed', 'acceleration', 'Power_IV']]
+        if 'Power_data' in data.columns:
+            return data[['speed', 'acceleration', 'Power_data']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -97,10 +97,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         test_data, _ = process_files(test_files)
 
         X_train = train_data[['speed', 'acceleration']].to_numpy()
-        y_train = train_data['Power_IV'].to_numpy()
+        y_train = train_data['Power_data'].to_numpy()
 
         X_test = test_data[['speed', 'acceleration']].to_numpy()
-        y_test = test_data['Power_IV'].to_numpy()
+        y_test = test_data['Power_data'].to_numpy()
 
         if best_lambda is None:
             best_lambda = grid_search_lambda(X_train, y_train)
@@ -155,21 +155,19 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power' in data.columns:
+        if 'speed' in data.columns and 'acceleration' in data.columns:
             # Use the provided scaler
             features = data[['speed', 'acceleration']]
             features_scaled = scaler.transform(features)
 
-            predicted_residual = model.predict(features_scaled)
-
-            data['Predicted_Power'] = predicted_residual
+            data['Power_ml'] = model.predict(features_scaled)
 
             # Save the updated file
             data.to_csv(file, index=False)
 
             print(f"Processed file {file}")
         else:
-            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power'.")
+            print(f"File {file} does not contain required columns 'speed', 'acceleration'.")
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 

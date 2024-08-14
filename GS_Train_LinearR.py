@@ -14,9 +14,9 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 def process_single_file(file):
     try:
         data = pd.read_csv(file)
-        if 'Power' in data.columns and 'Power_IV' in data.columns:
-            data['Residual'] = data['Power_IV'] - data['Power']
-            return data[['speed', 'acceleration', 'Residual', 'Power', 'Power_IV']]
+        if 'Power_phys' in data.columns and 'Power_data' in data.columns:
+            data['Residual'] = data['Power_data'] - data['Power_phys']
+            return data[['speed', 'acceleration', 'Residual', 'Power_phys', 'Power_data']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -87,8 +87,8 @@ def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
         model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        rmse = calculate_rmse((y_test - test_data['Power']), (y_pred - test_data['Power']))
-        rrmse = calculate_rrmse((y_test - test_data['Power']), (y_pred - test_data['Power']))
+        rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
+        rrmse = calculate_rrmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
         residual2 = y_test - y_pred
         results.append((fold_num, rrmse, rmse))
         models.append(model)
@@ -123,21 +123,21 @@ def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power' in data.columns:
+        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_phys' in data.columns:
             # Use the provided scaler
             features = data[['speed', 'acceleration']]
             features_scaled = scaler.transform(features)
 
             predicted_residual = model.predict(features_scaled)
 
-            data['Predicted_Power'] = data['Power'] - predicted_residual
+            data['Power_hybrid'] = data['Power_phys'] + predicted_residual
 
             # Save the updated file
             data.to_csv(file, index=False)
 
             print(f"Processed file {file}")
         else:
-            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power'.")
+            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power_phys'.")
     except Exception as e:
         print(f"Error processing file {file}: {e}")
 

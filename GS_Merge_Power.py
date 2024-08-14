@@ -75,11 +75,11 @@ def process_file_power(file, EV):
             E.append(EV.aux + EV.idle + E_hvac[i])
         else:
             E.append(EV.aux + E_hvac[i])
-
+    """vv
     if 'altitude' in data.columns:
         # 처음과 마지막의 NaN 값을 bfill과 ffill로 채우기
-        data['altitude'].fillna(method='bfill', inplace=True)
-        data['altitude'].fillna(method='ffill', inplace=True)
+        data['altitude'] = data['altitude'].bfill()
+        data['altitude'] = data['altitude'].ffill()
 
         # 중간의 NaN 값을 선형 보간법으로 채우기
         data['altitude'] = data['altitude'].interpolate(method='linear')
@@ -93,6 +93,10 @@ def process_file_power(file, EV):
 
         # 시간 간격 계산 (초 단위)
         time_diff = np.diff(t.astype(np.int64) // 10 ** 9)
+
+        if time_diff.size == 0:
+            print(f"Error: 'time_diff' is 0 in file '{file}'")
+
         time_diff = np.append(time_diff, time_diff[-1])  # 마지막 값을 이전 값으로 설정
 
         # 거리 계산 (속도 * 시간 간격)
@@ -105,11 +109,13 @@ def process_file_power(file, EV):
 
         # 힘 계산
         F = EV.mass * g * np.sin(slope) * v / EV.eff
+
     else:
         F = np.zeros_like(v)
-
+    """
+    F = np.zeros_like(v)
     Power = np.array(A) + np.array(B) + np.array(C) + np.array(D) + np.array(E) + np.array(F)
-    data['Power'] = Power
+    data['Power_phys'] = Power
 
     data.to_csv(file, index=False)
 

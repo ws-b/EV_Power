@@ -162,16 +162,16 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
                                                                        len(combined_df) - 1, 'time_diff']
 
         combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
-        combined_df['Power_IV'] = combined_df['pack_volt'] * combined_df['pack_current']
+        combined_df['Power_data'] = combined_df['pack_volt'] * combined_df['pack_current']
         if 'altitude' in combined_df.columns:
             combined_df['delta altitude'] = combined_df['altitude'].diff()
             data_save = combined_df[
                 ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                 'altitude', 'pack_volt', 'pack_current', 'Power_IV']].copy()
+                 'altitude', 'pack_volt', 'pack_current', 'Power_data']].copy()
         else:
             data_save = combined_df[
                 ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                 'pack_volt', 'pack_current', 'Power_IV']].copy()
+                 'pack_volt', 'pack_current', 'Power_data']].copy()
 
         data_save.to_csv(output_file_path, index=False)
 
@@ -330,7 +330,7 @@ def check_trip_conditions(trip):
     if (t.iloc[-1] - t.iloc[0]).total_seconds() < time_limit or distance < distance_limit:
         return False
 
-    data_energy = (trip['Power_IV'] * t_diff / 3600 / 1000).cumsum().iloc[-1]
+    data_energy = (trip['Power_data'] * t_diff / 3600 / 1000).cumsum().iloc[-1]
     if data_energy < energy_limit:
         return False
 

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import random
 import plotly.graph_objects as go
+from GS_Functions import calculate_rrmse, calculate_rmse
 from scipy.interpolate import griddata
 from scipy.stats import linregress
 from tqdm import tqdm
@@ -25,12 +26,12 @@ def plot_power(file_lists, selected_car, target):
         t_diff = np.array(t_diff.fillna(0))
         t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
 
-        data_power = np.array(data['Power_IV']) / 1000
-        model_power = np.array(data['Power']) / 1000
-        power_diff = data_power - model_power
+        power_data = np.array(data['Power_data']) / 1000
+        power_phys = np.array(data['Power_phys']) / 1000
+        power_diff = power_data - power_phys
 
-        if 'Predicted_Power' in data.columns:
-            predicted_power = np.array(data['Predicted_Power']) / 1000
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = np.array(data['Power_hybrid']) / 1000
         
         if target == 'stacked':
             A = data['A'] / 1000
@@ -51,12 +52,12 @@ def plot_power(file_lists, selected_car, target):
 
             plt.show()
 
-        elif target == 'model':
+        elif target == 'physics':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
-            plt.ylabel('Data Power and Model Power (kW)')
-            plt.plot(t_min, data_power, label='Data Power (kW)', color='tab:blue')
+            plt.ylabel('Data Power and Physics Model Power (kW)')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -66,7 +67,7 @@ def plot_power(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Model Power vs. Data Power')
+            plt.title('Physics Model Power vs. Data Power')
             plt.tight_layout()
             plt.show()
 
@@ -75,7 +76,7 @@ def plot_power(file_lists, selected_car, target):
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('Data Power (kW)')
-            plt.plot(t_min, data_power, label='Data Power (kW)', color='tab:blue')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -85,7 +86,7 @@ def plot_power(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Data Power vs. Model Power')
+            plt.title('Data Power vs. Physics Model Power')
             plt.tight_layout()
             plt.show()
 
@@ -93,10 +94,10 @@ def plot_power(file_lists, selected_car, target):
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
-            plt.ylabel('Data Power and Model Power (kW)')
-            plt.plot(t_min, data_power, label='Data Power (kW)', color='tab:blue')
-            plt.plot(t_min, model_power, label='model Power (kW)', color='tab:red')
-            plt.plot(t_min, predicted_power, label='Predicted Power (kW)', color='tab:green')
+            plt.ylabel('Data Power and Physics Model Power (kW)')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
+            plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red')
+            plt.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green')
             plt.ylim([-100, 100])
 
             # Add date and file name
@@ -107,7 +108,7 @@ def plot_power(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Data Power vs.  Model Power')
+            plt.title('Data Power vs.  Physics Model Power')
             plt.tight_layout()
             plt.show()
 
@@ -121,8 +122,8 @@ def plot_power(file_lists, selected_car, target):
             # 첫 번째 y축 (왼쪽): 에너지 데이터
             ax1.set_xlabel('Time (minutes)')
             ax1.set_ylabel('Power (kW)')
-            ax1.plot(t_min, data_power, label='Data Power (kW)', color='tab:blue')
-            ax1.plot(t_min, model_power, label='Model Power (kW)', color='tab:red')
+            ax1.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
+            ax1.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red')
             ax1.tick_params(axis='y')
 
             # 두 번째 y축 (오른쪽): 고도 데이터
@@ -139,7 +140,7 @@ def plot_power(file_lists, selected_car, target):
 
             # 범례와 타이틀
             fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
-            plt.title('Data Power vs. Model Power and Delta Altitude')
+            plt.title('Data Power vs. Physics Model Power and Delta Altitude')
 
             # 그래프 출력
             plt.tight_layout()
@@ -164,29 +165,29 @@ def plot_energy(file_lists, selected_car, target):
         t_diff = np.array(t_diff.fillna(0))
         t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
 
-        data_power = np.array(data['Power_IV'])
-        data_energy = data_power * t_diff / 3600 / 1000
-        data_energy_cumulative = data_energy.cumsum()
+        power_data = np.array(data['Power_data'])
+        energy_data = power_data * t_diff / 3600 / 1000
+        energy_data_cumulative = energy_data.cumsum()
 
-        if 'Power' in data.columns:
-            model_power = np.array(data['Power'])
-            model_energy = model_power * t_diff / 3600 / 1000
-            model_energy_cumulative = model_energy.cumsum()
+        if 'Power_phys' in data.columns:
+            power_phys = np.array(data['Power_phys'])
+            energy_phys = power_phys * t_diff / 3600 / 1000
+            energy_phys_cumulative = energy_phys.cumsum()
 
-        if 'Predicted_Power' in data.columns:
-            predicted_power = np.array(data['Predicted_Power'])
-            predicted_energy = predicted_power * t_diff / 3600 / 1000
-            predicted_energy_cumulative = predicted_energy.cumsum()
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = np.array(data['Power_hybrid'])
+            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+            energy_hybrid_cumulative = energy_hybrid.cumsum()
 
         else:
             pass
 
-        if target == 'model':
+        if target == 'physics':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
-            plt.ylabel('Model Energy (kWh)')
-            plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
+            plt.ylabel('Physics Model Energy (kWh)')
+            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -196,7 +197,7 @@ def plot_energy(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
-            plt.title('Model Energy')
+            plt.title('Physics Model Energy')
             plt.tight_layout()
             plt.show()
 
@@ -205,7 +206,7 @@ def plot_energy(file_lists, selected_car, target):
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('Data Energy (kWh)')
-            plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -219,12 +220,12 @@ def plot_energy(file_lists, selected_car, target):
             plt.tight_layout()
             plt.show()
 
-        elif target == 'learning':
+        elif target == 'hybrid':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
-            plt.ylabel('Trained Model Energy (kWh)')
-            plt.plot(t_min, predicted_energy_cumulative, label='Trained Model Energy (kWh)', color='tab:blue')
+            plt.ylabel('Hybrid Model Energy (kWh)')
+            plt.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:blue')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -234,7 +235,7 @@ def plot_energy(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
-            plt.title('Train Model Energy')
+            plt.title('Hybrid Model Energy')
             plt.tight_layout()
             plt.show()
 
@@ -243,10 +244,10 @@ def plot_energy(file_lists, selected_car, target):
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
-            plt.ylabel('BMS Energy and Model Energy (kWh)')
-            plt.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
-            plt.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
-            plt.plot(t_min, predicted_energy_cumulative, label='Trained Model Energy (kWh)', color='tab:green')
+            plt.ylabel('BMS Energy and Physics Model Energy (kWh)')
+            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red')
+            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            plt.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:green')
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -256,7 +257,7 @@ def plot_energy(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
-            plt.title('Model Energy vs. BMS Energy')
+            plt.title('Physics Model Energy vs. BMS Energy')
             plt.tight_layout()
             plt.show()
 
@@ -269,8 +270,8 @@ def plot_energy(file_lists, selected_car, target):
             # 첫 번째 y축 (왼쪽): 에너지 데이터
             ax1.set_xlabel('Time (minutes)')
             ax1.set_ylabel('Energy (kWh)')
-            ax1.plot(t_min, model_energy_cumulative, label='Model Energy (kWh)', color='tab:red')
-            ax1.plot(t_min, data_energy_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            ax1.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red')
+            ax1.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue')
             ax1.tick_params(axis='y')
             # 두 번째 y축 (오른쪽): 고도 데이터
             ax2 = ax1.twinx()
@@ -284,7 +285,7 @@ def plot_energy(file_lists, selected_car, target):
             fig.text(0.01, 0.99, f'{selected_car}: ' + trip_info, verticalalignment='top', color='black', fontsize=12)
             # 범례와 타이틀
             fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
-            plt.title('Model Energy vs. Data Energy and Altitude')
+            plt.title('Physics Model Energy vs. Data Energy and Altitude')
             # 그래프 출력
             plt.tight_layout()
             plt.show()
@@ -292,23 +293,14 @@ def plot_energy(file_lists, selected_car, target):
         else:
             print("Invalid Target")
             return
-
-def calculate_rmse(true_values, predicted_values):
-    true_values = np.array(true_values)
-    predicted_values = np.array(predicted_values)
-    mse = np.mean((true_values - predicted_values) ** 2)
-    rmse = np.sqrt(mse)
-    relative_rmse = rmse / np.mean(true_values)
-    return rmse, relative_rmse
-
 def plot_energy_scatter(file_lists, selected_car, target):
-    data_energies = []
-    mod_energies = []
-    predicted_energies = []
+    energies_data = []
+    energies_phys = []
+    energies_hybrid = []
 
-    all_data_energies = []
-    all_mod_energies = []
-    all_predicted_energies = []
+    all_energies_data = []
+    all_energies_phys = []
+    all_energies_hybrid = []
 
     # calculate total energy using whole data
     for file in tqdm(file_lists):
@@ -318,19 +310,19 @@ def plot_energy_scatter(file_lists, selected_car, target):
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
 
-        data_power = np.array(data['Power_IV'])
-        data_energy = data_power * t_diff / 3600 / 1000
-        all_data_energies.append(data_energy.cumsum()[-1])
+        power_data = np.array(data['Power_data'])
+        energy_data = power_data * t_diff / 3600 / 1000
+        all_energies_data.append(energy_data.cumsum()[-1])
 
-        if 'Power' in data.columns:
-            model_power = np.array(data['Power'])
-            model_energy = model_power * t_diff / 3600 / 1000
-            all_mod_energies.append(model_energy.cumsum()[-1])
+        if 'Power_phys' in data.columns:
+            power_phys = np.array(data['Power_phys'])
+            energy_phys = power_phys * t_diff / 3600 / 1000
+            all_energies_phys.append(energy_phys.cumsum()[-1])
 
-        if 'Predicted_Power' in data.columns:
-            predicted_power = np.array(data['Predicted_Power'])
-            predicted_energy = predicted_power * t_diff / 3600 / 1000
-            all_predicted_energies.append(predicted_energy.cumsum()[-1])
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = np.array(data['Power_hybrid'])
+            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+            all_energies_hybrid.append(energy_hybrid.cumsum()[-1])
 
     # select 1000 samples in random
     sample_size = min(1000, len(file_lists))
@@ -343,34 +335,34 @@ def plot_energy_scatter(file_lists, selected_car, target):
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
 
-        data_power = np.array(data['Power_IV'])
-        data_energy = data_power * t_diff / 3600 / 1000
-        data_energies.append(data_energy.cumsum()[-1])
+        power_data = np.array(data['Power_data'])
+        energy_data = power_data * t_diff / 3600 / 1000
+        energies_data.append(energy_data.cumsum()[-1])
 
-        if 'Power' in data.columns:
-            model_power = np.array(data['Power'])
-            model_energy = model_power * t_diff / 3600 / 1000
-            mod_energies.append(model_energy.cumsum()[-1])
+        if 'Power_phys' in data.columns:
+            power_phys = np.array(data['Power_phys'])
+            energy_phys = power_phys * t_diff / 3600 / 1000
+            energies_phys.append(energy_phys.cumsum()[-1])
 
-        if 'Predicted_Power' in data.columns:
-            predicted_power = np.array(data['Predicted_Power'])
-            predicted_energy = predicted_power * t_diff / 3600 / 1000
-            predicted_energies.append(predicted_energy.cumsum()[-1])
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = np.array(data['Power_hybrid'])
+            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+            energies_hybrid.append(energy_hybrid.cumsum()[-1])
 
-    if target == 'model':
+    if target == 'physics':
         fig, ax = plt.subplots(figsize=(6, 6))
-        colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
+        colors = cm.rainbow(np.linspace(0, 1, len(energies_data)))
 
         ax.set_xlabel('Data Energy (kWh)')
-        ax.set_ylabel('Model Energy (kWh)')
+        ax.set_ylabel('Physics_based Model Energy (kWh)')
 
-        for i in range(len(mod_energies)):
-            ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
+        for i in range(len(energies_phys)):
+            ax.scatter(energies_data[i], energies_phys[i], color=colors[i], facecolors='none',
                        edgecolors=colors[i], label='Model Energy' if i == 0 else "")
 
         # 전체 데이터셋을 사용하여 45도 기준선 계산
-        slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
-        ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
+        slope_original, intercept_original, _, _, _ = linregress(all_energies_data, all_energies_phys)
+        ax.plot(np.array(energies_data), intercept_original + slope_original * np.array(energies_data),
                 color='lightblue')
 
         lims = [
@@ -383,7 +375,7 @@ def plot_energy_scatter(file_lists, selected_car, target):
         ax.set_ylim(0, None)
 
         # RMSE 계산 및 플롯에 표기
-        rmse, relative_rmse = calculate_rmse(all_data_energies, all_mod_energies)
+        rmse, relative_rmse = calculate_rmse(all_energies_data, all_energies_phys), calculate_rrmse(all_energies_data, all_energies_phys)
         plt.text(0.05, 0.95, f'RMSE: {rmse:.2f}kWh\nRelative RMSE: {relative_rmse:.2%}',
                  transform=ax.transAxes, fontsize=12, verticalalignment='top')
 
@@ -391,27 +383,27 @@ def plot_energy_scatter(file_lists, selected_car, target):
         plt.title(f"{selected_car} : BMS Energy vs. Model Energy")
         plt.show()
 
-    elif target == 'learning':
+    elif target == 'hybrid':
         fig, ax = plt.subplots(figsize=(6, 6))
-        colors = cm.rainbow(np.linspace(0, 1, len(data_energies)))
+        colors = cm.rainbow(np.linspace(0, 1, len(energies_data)))
 
         ax.set_xlabel('Data Energy (kWh)')
-        ax.set_ylabel('Predicted Energy (kWh)')
+        ax.set_ylabel('Hybrid Model Energy (kWh)')
 
-        for i in range(len(data_energies)):
-            ax.scatter(data_energies[i], mod_energies[i], color=colors[i], facecolors='none',
+        for i in range(len(energies_data)):
+            ax.scatter(energies_data[i], energies_phys[i], color=colors[i], facecolors='none',
                        edgecolors=colors[i], label='Before learning' if i == 0 else "")
 
-        for i in range(len(data_energies)):
-            ax.scatter(data_energies[i], predicted_energies[i], color=colors[i],
+        for i in range(len(energies_data)):
+            ax.scatter(energies_data[i], energies_hybrid[i], color=colors[i],
                        label='After learning' if i == 0 else "")
 
-        slope_original, intercept_original, _, _, _ = linregress(all_data_energies, all_mod_energies)
-        ax.plot(np.array(data_energies), intercept_original + slope_original * np.array(data_energies),
+        slope_original, intercept_original, _, _, _ = linregress(all_energies_data, all_energies_phys)
+        ax.plot(np.array(energies_data), intercept_original + slope_original * np.array(energies_data),
                 color='lightblue')
 
-        slope, intercept, _, _, _ = linregress(all_data_energies, all_predicted_energies)
-        ax.plot(np.array(data_energies), intercept + slope * np.array(data_energies), 'b')
+        slope, intercept, _, _, _ = linregress(all_energies_data, all_energies_hybrid)
+        ax.plot(np.array(energies_data), intercept + slope * np.array(energies_data), 'b')
 
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -423,8 +415,8 @@ def plot_energy_scatter(file_lists, selected_car, target):
         ax.set_ylim(0, None)
 
         # RMSE & NRMSE
-        rmse_before, relative_rmse_before = calculate_rmse(all_data_energies, all_mod_energies)
-        rmse_after, relative_rmse_after = calculate_rmse(all_data_energies, all_predicted_energies)
+        rmse_before, relative_rmse_before = calculate_rmse(all_energies_data, all_energies_phys), calculate_rrmse(all_energies_data, all_energies_phys)
+        rmse_after, relative_rmse_after = calculate_rmse(all_energies_data, all_energies_hybrid), calculate_rrmse(all_energies_data, all_energies_hybrid)
         plt.text(0.6, 0.15, f'RMSE (Before): {rmse_before:.2f}kWh\nNRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nNRMSE (After): {relative_rmse_after:.2%}',
                  transform=ax.transAxes, fontsize=10, verticalalignment='top')
 
@@ -437,21 +429,21 @@ def plot_energy_scatter(file_lists, selected_car, target):
         return
 
 def plot_driver_energy_scatter(file_lists_dict, selected_car):
-    data_energies = {}
-    mod_energies = {}
-    predicted_energies = {}
+    energies_data = {}
+    energies_phys = {}
+    energies_hybrid = {}
 
     colors = cm.rainbow(np.linspace(0, 1, len(file_lists_dict)))
     color_map = {}
 
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_xlabel('Data Energy (kWh)')
-    ax.set_ylabel('Predicted Energy (kWh)')
+    ax.set_ylabel('Hybrid Model Energy (kWh)')
 
     for i, (id, files) in enumerate(file_lists_dict.items()):
-        data_energies[id] = []
-        mod_energies[id] = []
-        predicted_energies[id] = []
+        energies_data[id] = []
+        energies_phys[id] = []
+        energies_hybrid[id] = []
         color_map[id] = colors[i]
 
         for file in tqdm(files, desc=f'Processing {id}'):
@@ -461,29 +453,29 @@ def plot_driver_energy_scatter(file_lists_dict, selected_car):
             t_diff = t.diff().dt.total_seconds().fillna(0)
             t_diff = np.array(t_diff.fillna(0))
 
-            data_power = np.array(data['Power_IV'])
-            data_energy = data_power * t_diff / 3600 / 1000
-            data_energies[id].append(data_energy.cumsum()[-1])
+            power_data = np.array(data['Power_data'])
+            energy_data = power_data * t_diff / 3600 / 1000
+            energies_data[id].append(energy_data.cumsum()[-1])
 
-            if 'Power' in data.columns:
-                model_power = np.array(data['Power'])
-                model_energy = model_power * t_diff / 3600 / 1000
-                mod_energies[id].append(model_energy.cumsum()[-1])
+            if 'Power_phys' in data.columns:
+                power_phys = np.array(data['Power_phys'])
+                energy_phys = power_phys * t_diff / 3600 / 1000
+                energies_phys[id].append(energy_phys.cumsum()[-1])
 
-            if 'Predicted_Power' in data.columns:
-                predicted_power = np.array(data['Predicted_Power'])
-                predicted_energy = predicted_power * t_diff / 3600 / 1000
-                predicted_energies[id].append(predicted_energy.cumsum()[-1])
+            if 'Power_hybrid' in data.columns:
+                power_hybrid = np.array(data['Power_hybrid'])
+                predicted_energy = power_hybrid * t_diff / 3600 / 1000
+                energies_hybrid[id].append(predicted_energy.cumsum()[-1])
 
-        ax.scatter(data_energies[id], predicted_energies[id], facecolors='none', edgecolors=color_map[id],
+        ax.scatter(energies_data[id], energies_hybrid[id], facecolors='none', edgecolors=color_map[id],
                    label=f'{id} After learning')
 
-        slope, intercept, _, _, _ = linregress(data_energies[id], predicted_energies[id])
-        ax.plot(np.array(data_energies[id]), intercept + slope * np.array(data_energies[id]), color=color_map[id])
+        slope, intercept, _, _, _ = linregress(energies_data[id], energies_hybrid[id])
+        ax.plot(np.array(energies_data[id]), intercept + slope * np.array(energies_data[id]), color=color_map[id])
 
         # Calculate RMSE & NRMSE for each id
-        rmse_before, relative_rmse_before = calculate_rmse(data_energies[id], mod_energies[id])
-        rmse_after, relative_rmse_after = calculate_rmse(data_energies[id], predicted_energies[id])
+        rmse_before, relative_rmse_before = calculate_rmse(energies_data[id], energies_phys[id]), calculate_rrmse(energies_data[id], energies_phys[id])
+        rmse_after, relative_rmse_after = calculate_rmse(energies_data[id], energies_hybrid[id]), calculate_rrmse(energies_data[id], energies_hybrid[id])
         ax.text(0.05, 0.95 - i * 0.1, f'{id}\nRMSE (Before): {rmse_before:.2f}kWh\nNRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nNRMSE (After): {relative_rmse_after:.2%}',
                 transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 
@@ -511,9 +503,9 @@ def plot_power_scatter(file_lists, folder_path):
         t_diff = np.array(t_diff.fillna(0))
 
         d_altitude = np.array(data['delta altitude'])
-        data_power = np.array(data['Power_IV'])
-        model_power = np.array(data['Power'])
-        diff_power = data_power - model_power
+        power_data = np.array(data['Power_data'])
+        power_phys = np.array(data['Power_phys'])
+        diff_power = power_data - power_phys
 
         # Plotting for each file
         plt.figure(figsize=(10, 6))
@@ -529,9 +521,9 @@ def plot_power_scatter(file_lists, folder_path):
 
 
 def plot_energy_dis(file_lists, selected_car, Target):
-    dis_mod_energies = []
-    dis_data_energies = []
-    dis_predicted_energies = []
+    dis_energies_phys = []
+    dis_energies_data = []
+    dis_energies_hybrid = []
     total_distances = []
 
     for file in tqdm(file_lists):
@@ -547,41 +539,41 @@ def plot_energy_dis(file_lists, selected_car, Target):
         distance = v * t_diff
         total_distance = distance.cumsum()
 
-        if 'Power' in data.columns:
-            model_power = np.array(data['Power'])
-            model_energy = model_power * t_diff / 3600 / 1000
+        if 'Power_phys' in data.columns:
+            power_phys = np.array(data['Power_phys'])
+            energy_phys = power_phys * t_diff / 3600 / 1000
         else:
-            model_energy = np.zeros_like(t_diff)
+            energy_phys = np.zeros_like(t_diff)
 
-        data_power = np.array(data['Power_IV'])
-        data_energy = data_power * t_diff / 3600 / 1000
+        Power_data = np.array(data['Power_data'])
+        energy_data = Power_data * t_diff / 3600 / 1000
 
-        if 'Predicted_Power' in data.columns:
-            predicted_power = data['Predicted_Power']
-            predicted_power = np.array(predicted_power)
-            predicted_energy = predicted_power * t_diff / 3600 / 1000
-            dis_predicted_energy = ((total_distance[-1] / 1000) / (predicted_energy.cumsum()[-1])) if \
-            predicted_energy.cumsum()[-1] != 0 else 0
-            dis_predicted_energies.append(dis_predicted_energy)
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = data['Power_hybrid']
+            power_hybrid = np.array(power_hybrid)
+            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+            dis_energy_hybrid = ((total_distance[-1] / 1000) / (energy_hybrid.cumsum()[-1])) if \
+            energy_hybrid.cumsum()[-1] != 0 else 0
+            dis_energies_hybrid.append(dis_energy_hybrid)
 
         # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-        dis_mod_energy = ((total_distance[-1] / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[
+        dis_energy_phys = ((total_distance[-1] / 1000) / (energy_phys.cumsum()[-1])) if energy_phys.cumsum()[
                                                                                             -1] != 0 else 0
-        dis_mod_energies.append(dis_mod_energy)
+        dis_energies_phys.append(dis_energy_phys)
 
-        dis_data_energy = ((total_distance[-1] / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[
+        dis_data_energy = ((total_distance[-1] / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
                                                                                             -1] != 0 else 0
-        dis_data_energies.append(dis_data_energy)
+        dis_energies_data.append(dis_data_energy)
 
         # collect total distances for each file
         total_distances.append(total_distance[-1])
 
-    if Target == 'model':
+    if Target == 'physics':
         # compute mean value
-        mean_value = np.mean(dis_mod_energies)
+        mean_value = np.mean(dis_energies_phys)
 
         # plot histogram for all files
-        hist_data = sns.histplot(dis_mod_energies, bins='auto', color='gray', kde=False)
+        hist_data = sns.histplot(dis_energies_phys, bins='auto', color='gray', kde=False)
 
         # plot vertical line for mean value
         plt.axvline(mean_value, color='red', linestyle='--')
@@ -589,13 +581,13 @@ def plot_energy_dis(file_lists, selected_car, Target):
                  color='red', fontsize=12)
 
         # plot vertical line for median value
-        median_value = np.median(dis_mod_energies)
+        median_value = np.median(dis_energies_phys)
         plt.axvline(median_value, color='blue', linestyle='--')
         plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
                  fontsize=12)
 
         # display total number of samples at top right
-        total_samples = len(dis_mod_energies)
+        total_samples = len(dis_energies_phys)
         plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
                  verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
@@ -609,10 +601,10 @@ def plot_energy_dis(file_lists, selected_car, Target):
 
     elif Target == 'data':
         # compute mean value
-        mean_value = np.mean(dis_data_energies)
+        mean_value = np.mean(dis_energies_data)
 
         # plot histogram for all files
-        hist_data = sns.histplot(dis_data_energies, bins='auto', color='gray', kde=False)
+        hist_data = sns.histplot(dis_energies_data, bins='auto', color='gray', kde=False)
 
         # plot vertical line for mean value
         plt.axvline(mean_value, color='red', linestyle='--')
@@ -620,13 +612,13 @@ def plot_energy_dis(file_lists, selected_car, Target):
                  color='red', fontsize=12)
 
         # plot vertical line for median value
-        median_value = np.median(dis_data_energies)
+        median_value = np.median(dis_energies_data)
         plt.axvline(median_value, color='blue', linestyle='--')
         plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
                  fontsize=12)
 
         # display total number of samples at top right
-        total_samples = len(dis_data_energies)
+        total_samples = len(dis_energies_data)
         plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
                  verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
@@ -638,11 +630,11 @@ def plot_energy_dis(file_lists, selected_car, Target):
         plt.grid(False)
         plt.show()
 
-    elif Target == 'learning' and 'Predicted_Power' in data.columns:
+    elif Target == 'hybrid' and 'Power_hybrid' in data.columns:
         # compute mean value
-        mean_value = np.mean(dis_predicted_energies)
+        mean_value = np.mean(dis_energies_hybrid)
         # plot histogram for all files
-        hist_data = sns.histplot(dis_predicted_energies, bins='auto', color='gray', kde=False)
+        hist_data = sns.histplot(dis_energies_hybrid, bins='auto', color='gray', kde=False)
 
         # plot vertical line for mean value
         plt.axvline(mean_value, color='red', linestyle='--')
@@ -650,21 +642,21 @@ def plot_energy_dis(file_lists, selected_car, Target):
                  color='red', fontsize=12)
 
         # plot vertical line for median value
-        median_value = np.median(dis_predicted_energies)
+        median_value = np.median(dis_energies_hybrid)
         plt.axvline(median_value, color='blue', linestyle='--')
         plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
                  fontsize=12)
 
         # display total number of samples at top right
-        total_samples = len(dis_predicted_energies)
+        total_samples = len(dis_energies_hybrid)
         plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
                  verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
 
         # set x-axis range (from 0 to 25)
         plt.xlim(0, 25)
-        plt.xlabel('Total Distance / Total Trained Model Energy (km/kWh)')
+        plt.xlabel('Total Distance / Total Hybrid Model Energy (km/kWh)')
         plt.ylabel('Number of trips')
-        plt.title(f"{selected_car} : Total Distance / Total Trained Model Energy Distribution")
+        plt.title(f"{selected_car} : Total Distance / Total Hybrid Model Energy Distribution")
         plt.grid(False)
         plt.show()
 
@@ -795,7 +787,7 @@ def plot_contour2(file_lists, selected_car, num_grids=400):
 
     X = merged_data['speed'] * 3.6
     Y = merged_data['acceleration']
-    Residual = merged_data['Power_IV'] - merged_data['Power']
+    Residual = merged_data['Power_data'] - merged_data['Power_phys']
 
     # Handle missing values
     mask = ~np.isnan(X) & ~np.isnan(Y) & ~np.isnan(Residual)
@@ -822,7 +814,7 @@ def plot_contour2(file_lists, selected_car, num_grids=400):
 def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
     if isinstance(sample_files_dict, dict):
         for id, files in tqdm(sample_files_dict.items()):
-            dis_data_energies = []
+            dis_energies_data = []
             total_distances = []
             average_speeds = []
 
@@ -839,14 +831,14 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
                 distance = v * t_diff
                 total_distance = distance.cumsum()[-1]
 
-                data_power = np.array(data['Power_IV'])
-                data_energy = data_power * t_diff / 3600 / 1000
+                power_data = np.array(data['Power_data'])
+                energy_data = power_data * t_diff / 3600 / 1000
 
-                total_energy = data_energy.cumsum()[-1]
-                dis_data_energy = ((total_distance / 1000) / total_energy) if total_energy != 0 else 0
+                total_energy = energy_data.cumsum()[-1]
+                dis_energy_data = ((total_distance / 1000) / total_energy) if total_energy != 0 else 0
 
                 total_distances.append(total_distance / 1000)  # convert to km
-                dis_data_energies.append(dis_data_energy)
+                dis_energies_data.append(dis_energy_data)
                 average_speed = np.mean(v) * 3.6  # converting m/s to km/h
                 average_speeds.append(average_speed)
 
@@ -854,7 +846,7 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
             x_bins = np.linspace(min(total_distances), max(total_distances), 20)
             y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
 
-            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_data_energies)
+            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_energies_data)
             counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
 
             # Avoid division by zero
@@ -875,9 +867,9 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
             plt.show()
 
     elif isinstance(sample_files_dict, list):
-        dis_data_energies = []
-        dis_mod_energies = []
-        dis_predicted_energies = []
+        dis_energies_data = []
+        dis_energies_phys = []
+        dis_energies_hybrid = []
         total_distances = []
         average_speeds = []
 
@@ -894,42 +886,42 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
             distance = v * t_diff
             total_distance = distance.cumsum()[-1]
 
-            if 'Power' in data.columns:
-                model_power = np.array(data['Power'])
-                model_energy = model_power * t_diff / 3600 / 1000
+            if 'Power_phys' in data.columns:
+                power_phys = np.array(data['Power_phys'])
+                energy_model = power_phys * t_diff / 3600 / 1000
             else:
-                model_energy = np.zeros_like(t_diff)
+                energy_model = np.zeros_like(t_diff)
 
-            data_power = np.array(data['Power_IV'])
-            data_energy = data_power * t_diff / 3600 / 1000
+            power_data = np.array(data['Power_data'])
+            energy_data = power_data * t_diff / 3600 / 1000
 
-            if 'Predicted_Power' in data.columns:
-                predicted_power = data['Predicted_Power']
-                predicted_power = np.array(predicted_power)
-                predicted_energy = predicted_power * t_diff / 3600 / 1000
-                dis_predicted_energy = ((total_distance / 1000) / (predicted_energy.cumsum()[-1])) if \
-                    predicted_energy.cumsum()[-1] != 0 else 0
-                dis_predicted_energies.append(dis_predicted_energy)
+            if 'Power_hybrid' in data.columns:
+                power_hybrid = data['Power_hybrid']
+                power_hybrid = np.array(power_hybrid)
+                energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+                dis_energy_hybrid = ((total_distance / 1000) / (energy_hybrid.cumsum()[-1])) if \
+                    energy_hybrid.cumsum()[-1] != 0 else 0
+                dis_energies_hybrid.append(dis_energy_hybrid)
 
             # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-            dis_mod_energy = ((total_distance / 1000) / (model_energy.cumsum()[-1])) if model_energy.cumsum()[
+            dis_energy_phys = ((total_distance / 1000) / (energy_model.cumsum()[-1])) if energy_model.cumsum()[
                                                                                                 -1] != 0 else 0
-            dis_mod_energies.append(dis_mod_energy)
+            dis_energies_phys.append(dis_energy_phys)
 
-            dis_data_energy = ((total_distance / 1000) / (data_energy.cumsum()[-1])) if data_energy.cumsum()[
+            dis_energy_data = ((total_distance / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
                                                                                                 -1] != 0 else 0
-            dis_data_energies.append(dis_data_energy)
+            dis_energies_data.append(dis_energy_data)
 
             total_distances.append(total_distance / 1000)
 
             average_speed = np.mean(v) * 3.6  # converting m/s to km/h
             average_speeds.append(average_speed)
-        if Target == 'model' :
+        if Target == 'physics' :
             # Create bins
             x_bins = np.linspace(min(total_distances), max(total_distances), 20)
             y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
 
-            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_mod_energies)
+            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_energies_phys)
             counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
 
             # Avoid division by zero
@@ -942,7 +934,7 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
             etamax = 11
             plt.figure(figsize=(12, 6))
             plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
-            cb = plt.colorbar(label='Average Model Energy Efficiency (km/kWh)')
+            cb = plt.colorbar(label='Average Physics model Energy Efficiency (km/kWh)')
 
             plt.xlabel('Trip Distance (km)')
             plt.ylabel('Average Speed (km/h)')
@@ -955,7 +947,7 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
             y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
 
             heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins],
-                                           weights=dis_data_energies)
+                                           weights=dis_energies_data)
             counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
 
             # Avoid division by zero
@@ -976,13 +968,13 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
                 f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)
             plt.show()
-        elif Target == 'learning':
+        elif Target == 'hybrid':
             # Create bins
             x_bins = np.linspace(min(total_distances), max(total_distances), 20)
             y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
 
             heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins],
-                                           weights=dis_predicted_energies)
+                                           weights=dis_energies_hybrid)
             counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
 
             # Avoid division by zero

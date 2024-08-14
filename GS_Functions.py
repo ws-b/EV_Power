@@ -1,13 +1,44 @@
 import os
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from GS_vehicle_dict import vehicle_dict
-from concurrent.futures import ThreadPoolExecutor
+def get_vehicle_files(car_options, folder_path, vehicle_dict):
+    selected_cars = []
+    vehicle_files = {}
+    while True:
+        print("Available Cars:")
+        for idx, car_name in car_options.items():
+            print(f"{idx}: {car_name}")
+        print("0: Done selecting cars")
+        car_input = input("Select Cars you want to include 콤마로 구분 (e.g.: 1,2,3): ")
 
-# Directory containing CSV files
-directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
+        try:
+            car_list = [int(car.strip()) for car in car_input.split(',')]
+        except ValueError:
+            print("Invalid input. Please enter numbers separated by commas.")
+            continue
 
+        if 0 in car_list:
+            car_list.remove(0)
+            for car in car_list:
+                if car in car_options:
+                    selected_car = car_options[car]
+                    if selected_car not in selected_cars:
+                        selected_cars.append(selected_car)
+                        vehicle_files = vehicle_files | load_data_by_vehicle(folder_path, vehicle_dict, selected_car)
+                else:
+                    print(f"Invalid choice: {car}. Please try again.")
+            break
+        else:
+            for car in car_list:
+                if car in car_options:
+                    selected_car = car_options[car]
+                    if selected_car not in selected_cars:
+                        selected_cars.append(selected_car)
+                        vehicle_files= vehicle_files | load_data_by_vehicle(folder_path, vehicle_dict, selected_car)
+                else:
+                    print(f"Invalid choice: {car}. Please try again.")
+
+    return selected_cars, vehicle_files
 def process_file(file_path):
     try:
         # Load the CSV file
@@ -19,7 +50,6 @@ def process_file(file_path):
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
         return None, None, None
-
 
 def sample_grid(speed, acceleration, grid_size=100, max_per_grid=30):
     grid = {}
@@ -48,7 +78,7 @@ def sample_grid(speed, acceleration, grid_size=100, max_per_grid=30):
 
 
 def calculate_rrmse(y_test, y_pred):
-    relative_errors = (y_test - y_pred) / np.mean(y_test)
+    relative_errors = (y_test - y_pred) / np.mean(np.abs(y_test))
     rrmse = np.sqrt(np.mean(relative_errors ** 2))
     return rrmse
 
@@ -67,12 +97,12 @@ def compute_rrmse(vehicle_files, selected_car):
 
     data = read_and_process_files(vehicle_files[selected_car])
 
-    if 'Power' not in data.columns or 'Power_IV' not in data.columns:
-        print(f"Columns 'Power' and/or 'Power_IV' not found in the data")
+    if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
+        print(f"Columns 'Power_phys' and/or 'Power_data' not found in the data")
         return
 
-    y_pred = data['Power'].to_numpy()
-    y_test = data['Power_IV'].to_numpy()
+    y_pred = data['Power_phys'].to_numpy()
+    y_test = data['Power_data'].to_numpy()
 
     rrmse = calculate_rrmse(y_test, y_pred)
     print(f"RRMSE for {selected_car}  : {rrmse}")
@@ -85,12 +115,12 @@ def compute_rmse(vehicle_files, selected_car):
 
     data = read_and_process_files(vehicle_files[selected_car])
 
-    if 'Power' not in data.columns or 'Power_IV' not in data.columns:
-        print(f"Columns 'Power' and/or 'Power_IV' not found in the data")
+    if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
+        print(f"Columns 'Power_phys' and/or 'Power_data' not found in the data")
         return
 
-    y_pred = data['Power'].to_numpy()
-    y_test = data['Power_IV'].to_numpy()
+    y_pred = data['Power_phys'].to_numpy()
+    y_test = data['Power_data'].to_numpy()
 
     rmse = calculate_rmse(y_test, y_pred)
     print(f"RMSE for {selected_car}  : {rmse}")
