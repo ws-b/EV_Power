@@ -230,7 +230,7 @@ def main():
                                 only_ml_rrmse.append(np.mean(only_ml_values))
                                 only_ml_std.append(2 * np.std(only_ml_values))  # 2σ 95%
 
-                        plt.figure(figsize=(10, 6))
+                        plt.figure(figsize=(10, 8))
 
                         # Physics-Based Model
                         plt.plot(sizes, phys_rrmse, label='Physics-Based', linestyle='--', color='r')
