@@ -24,7 +24,8 @@ def plot_power(file_lists, selected_car, target):
         t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
         t_diff = t.diff().dt.total_seconds().fillna(0)
         t_diff = np.array(t_diff.fillna(0))
-        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60
+        date = t.iloc[0].strftime('%Y-%m-%d')
 
         power_data = np.array(data['Power_data']) / 1000
         power_phys = np.array(data['Power_phys']) / 1000
@@ -34,40 +35,52 @@ def plot_power(file_lists, selected_car, target):
             power_hybrid = np.array(data['Power_hybrid']) / 1000
         
         if target == 'stacked':
-            A = data['A'] / 1000
-            B = data['B'] / 1000
-            C = data['C'] / 1000
-            D = data['D'] / 1000
-            E = data['E'] / 1000
+            # Check if the necessary columns exist in the data
+            if all(col in data.columns for col in ['A', 'B', 'C', 'D', 'E', 'F']):
+                A = data['A'] / 1000
+                B = data['B'] / 1000
+                C = data['C'] / 1000
+                D = data['D'] / 1000
+                E = data['E'] / 1000
+                F = data['F'] / 1000
 
-            plt.figure(figsize=(12, 6))
+                plt.figure(figsize=(12, 6))
 
-            plt.stackplot(t_min, A, B, C, D, E,
-                          labels=['A (First)', 'B (Second)', 'C (Third)', 'D (Accel)', 'E (Aux,Idle)'],
-                          colors=['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#c2c2f0'], edgecolor=None)
-            plt.title('Power Stacked Graph Term by Term')
-            plt.xlabel('Time')
-            plt.ylabel('Power (W)')
-            plt.legend(loc='upper left')
+                # Use lighter colors for the stackplot
+                plt.stackplot(t_min, A, B, C, D, E, F,
+                              labels=['A (First)', 'B (Second)', 'C (Third)', 'D (Accel)', 'E (Aux,Idle)', 'F (Altitude)'],
+                              edgecolor=None,
+                              colors=['#D3D3D3', '#ADD8E6', '#90EE90', '#FFB6C1', '#FFA07A', '#FFD700'])
 
-            plt.show()
+
+                plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
+                         verticalalignment='top', horizontalalignment='right', color='black')
+                plt.text(0.01, 0.99, f'{selected_car}: ' + trip_info, transform=plt.gca().transAxes, fontsize=12,
+                         verticalalignment='top', horizontalalignment='left', color='black')
+
+                plt.title('Power Stacked Graph Term by Term')
+                plt.xlabel('Time (minutes)')
+                plt.ylabel('Power (kW)')
+                plt.legend(loc='upper left')
+                plt.show()
+            else:
+                print(f"Error: Missing required columns in file {file_name}")
 
         elif target == 'physics':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('Data Power and Physics Model Power (kW)')
-            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
 
             # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
             plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
             plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Physics Model Power vs. Data Power')
+            plt.title('Physics Model Power')
             plt.tight_layout()
             plt.show()
 
@@ -76,10 +89,49 @@ def plot_power(file_lists, selected_car, target):
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('Data Power (kW)')
-            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
 
             # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Data Power')
+            plt.tight_layout()
+            plt.show()
+        elif target == 'hybrid':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('Data Power and Physics Model Power (kW)')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
+            plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
+            plt.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green', alpha=0.6)
+            plt.ylim([-100, 100])
+
+            # Add date and file name
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Data Power vs. Physics Model Power and hybrid Model Power')
+            plt.tight_layout()
+            plt.show()
+
+        elif target == 'comparison':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('Data Power and Physics Model Power (kW)')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
+            plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
+            plt.ylim([-100, 100])
+
+            # Add date and file name
             plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
                      verticalalignment='top', horizontalalignment='right', color='black')
             plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
@@ -90,31 +142,10 @@ def plot_power(file_lists, selected_car, target):
             plt.tight_layout()
             plt.show()
 
-        elif target == 'comparison':
-            # Plot the comparison graph
-            plt.figure(figsize=(10, 6))  # Set the size of the graph
-            plt.xlabel('Time (minutes)')
-            plt.ylabel('Data Power and Physics Model Power (kW)')
-            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
-            plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red')
-            plt.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green')
-            plt.ylim([-100, 100])
-
-            # Add date and file name
-            date = t.iloc[0].strftime('%Y-%m-%d')
-            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
-
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Data Power vs.  Physics Model Power')
-            plt.tight_layout()
-            plt.show()
-
-        elif target == 'd_altitude' and 'delta altitude' in data.columns:
-            # 고도 데이터
-            d_altitude = np.array(data['delta altitude'])
+        elif target == 'altitude' and 'altitude' in data.columns:
+            # 고도 차이 계산 (마지막 값은 0으로 설정)
+            d_altitude = np.diff(data['altitude'])
+            d_altitude = np.append(d_altitude, 0)
 
             # 그래프 그리기
             fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -122,19 +153,18 @@ def plot_power(file_lists, selected_car, target):
             # 첫 번째 y축 (왼쪽): 에너지 데이터
             ax1.set_xlabel('Time (minutes)')
             ax1.set_ylabel('Power (kW)')
-            ax1.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue')
-            ax1.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red')
+            ax1.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
+            ax1.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
             ax1.tick_params(axis='y')
 
             # 두 번째 y축 (오른쪽): 고도 데이터
             ax2 = ax1.twinx()
             ax2.set_ylabel('Altitude (m)', color='tab:green')
             ax2.set_ylim([-2, 2])
-            ax2.plot(t_min, d_altitude, label='Delta Altitude (m)', color='tab:green')
+            ax2.step(t_min, d_altitude, label='Delta Altitude (m)', color='tab:green', where='mid', alpha=0.6)
             ax2.tick_params(axis='y', labelcolor='tab:green')
 
             # 파일과 날짜 추가
-            date = t.iloc[0].strftime('%Y-%m-%d')
             fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
             fig.text(0.01, 0.99, f'{selected_car}: ' + trip_info, verticalalignment='top', color='black', fontsize=12)
 
@@ -187,7 +217,7 @@ def plot_energy(file_lists, selected_car, target):
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('Physics Model Energy (kWh)')
-            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red')
+            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -206,7 +236,7 @@ def plot_energy(file_lists, selected_car, target):
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('Data Energy (kWh)')
-            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -221,11 +251,12 @@ def plot_energy(file_lists, selected_car, target):
             plt.show()
 
         elif target == 'hybrid':
-            # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
-            plt.ylabel('Hybrid Model Energy (kWh)')
-            plt.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:blue')
+            plt.ylabel('BMS Energy and Physics Model Energy (kWh)')
+            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
+            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
+            plt.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:green', alpha=0.6)
 
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
@@ -235,20 +266,17 @@ def plot_energy(file_lists, selected_car, target):
                      verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
-            plt.title('Hybrid Model Energy')
+            plt.title('Physics Model Energy vs. Data Energy and Hybrid Model Energy')
             plt.tight_layout()
             plt.show()
-
 
         elif target == 'comparison':
             # Plot the comparison graph
             plt.figure(figsize=(10, 6))  # Set the size of the graph
             plt.xlabel('Time (minutes)')
             plt.ylabel('BMS Energy and Physics Model Energy (kWh)')
-            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red')
-            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue')
-            plt.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:green')
-
+            plt.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
+            plt.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
             # Add date and file name
             date = t.iloc[0].strftime('%Y-%m-%d')
             plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
@@ -270,8 +298,8 @@ def plot_energy(file_lists, selected_car, target):
             # 첫 번째 y축 (왼쪽): 에너지 데이터
             ax1.set_xlabel('Time (minutes)')
             ax1.set_ylabel('Energy (kWh)')
-            ax1.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red')
-            ax1.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue')
+            ax1.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
+            ax1.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
             ax1.tick_params(axis='y')
             # 두 번째 y축 (오른쪽): 고도 데이터
             ax2 = ax1.twinx()
@@ -509,7 +537,7 @@ def plot_power_scatter(file_lists, folder_path):
 
         # Plotting for each file
         plt.figure(figsize=(10, 6))
-        plt.scatter(d_altitude, diff_power, alpha=0.5)  # alpha for transparency
+        plt.scatter(d_altitude, diff_power, alpha=0.6)  # alpha for transparency
 
         plt.xlabel('Delta Altitude')
         plt.xlim(-2, 2)

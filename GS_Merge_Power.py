@@ -64,7 +64,6 @@ def process_file_power(file, EV):
     target_temp = 22
     E_hvac = abs(target_temp - ext_temp) * EV.hvac * Eff_hvac
     E = np.where(v <= 0.5, EV.aux + EV.idle + E_hvac, EV.aux + E_hvac)
-
     """
     if 'altitude' in data.columns:
         data['altitude'] = data['altitude'].bfill()
@@ -94,11 +93,16 @@ def process_file_power(file, EV):
 
     else:
         F = np.zeros_like(v)
-    """
+        """
     F = np.zeros_like(v)
-    Power = np.array(A) + np.array(B) + np.array(C) + np.array(D) + np.array(E) + np.array(F)
-    data['Power_phys'] = Power
-
+    # data['A'] = A
+    # data['B'] = B
+    # data['C'] = C
+    # data['D'] = D
+    # data['E'] = E
+    # data['F'] = F
+    data['Power_phys'] = np.array(A) + np.array(B) + np.array(C) + np.array(D) + np.array(E) + np.array(F)
+    # data = data.drop(columns=['A', 'B', 'C', 'D', 'E', 'F'])
     data.to_csv(file, index=False)
 
 def process_files_power(file_lists, EV):
