@@ -53,61 +53,43 @@ def process_file_power(file, EV):
     A = EV.Ca * v / EV.eff
     B = EV.Cb * v**2 / EV.eff
     C = EV.Cc * v**3 / EV.eff
-    D = []
 
-    for i in range(len(a)):
-        if EV.re_brake == 1:
-            exp_term = np.exp(0.0411 / max(abs(a[i]), 0.001))
-            if a[i] >= 0:
-                D.append(((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]) / EV.eff)
-            else:
-                D.append((((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i] / exp_term)) * EV.eff)
-        else:
-            D.append(((1 + inertia) * (EV.mass + EV.load) * a[i] * v[i]) / EV.eff if a[i] >= 0 else 0)
+    exp_term = np.exp(0.0411 / np.maximum(np.abs(a), 0.001))
+
+    D_positive = ((1 + inertia) * (EV.mass + EV.load) * a * v) / EV.eff
+    D_negative = (((1 + inertia) * (EV.mass + EV.load) * a * v / exp_term)) * EV.eff
+    D = np.where(a >= 0, D_positive, D_negative if EV.re_brake == 1 else 0)
 
     Eff_hvac = 0.81  # Auxiliary power efficiency
     target_temp = 22
     E_hvac = abs(target_temp - ext_temp) * EV.hvac * Eff_hvac
+    E = np.where(v <= 0.5, EV.aux + EV.idle + E_hvac, EV.aux + E_hvac)
 
-    E = []
-    for i in range(len(v)):
-        if v[i] <= 0.5:
-            E.append(EV.aux + EV.idle + E_hvac[i])
-        else:
-            E.append(EV.aux + E_hvac[i])
-    """vv
+    """
     if 'altitude' in data.columns:
-        # 처음과 마지막의 NaN 값을 bfill과 ffill로 채우기
         data['altitude'] = data['altitude'].bfill()
         data['altitude'] = data['altitude'].ffill()
 
-        # 중간의 NaN 값을 선형 보간법으로 채우기
         data['altitude'] = data['altitude'].interpolate(method='linear')
 
-        # 고도 데이터를 numpy 배열로 변환
         altitude = data['altitude'].to_numpy()
 
-        # 고도 차이 구하기
         altitude_diff = np.diff(altitude)
-        altitude_diff = np.append(altitude_diff, 0)  # 마지막 값을 0으로 설정
+        altitude_diff = np.append(altitude_diff, 0)
 
-        # 시간 간격 계산 (초 단위)
         time_diff = np.diff(t.astype(np.int64) // 10 ** 9)
 
         if time_diff.size == 0:
             print(f"Error: 'time_diff' is 0 in file '{file}'")
 
-        time_diff = np.append(time_diff, time_diff[-1])  # 마지막 값을 이전 값으로 설정
+        time_diff = np.append(time_diff, time_diff[-1])
 
-        # 거리 계산 (속도 * 시간 간격)
         distance_diff = v * time_diff
 
-        # 각도 계산
         with np.errstate(divide='ignore', invalid='ignore'):
             slope = np.arctan2(altitude_diff, distance_diff)
-            slope = np.where(distance_diff == 0, 0, slope)  # 거리가 0일 때 각도를 0으로 설정
+            slope = np.where(distance_diff == 0, 0, slope)
 
-        # 힘 계산
         F = EV.mass * g * np.sin(slope) * v / EV.eff
 
     else:
