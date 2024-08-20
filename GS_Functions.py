@@ -105,7 +105,16 @@ def compute_rrmse(vehicle_files, selected_car):
     y_pred = data['Power_phys'].to_numpy()
     y_test = data['Power_data'].to_numpy()
 
-    rrmse = calculate_rrmse(y_test, y_pred)
+    data['time'] = pd.to_datetime(data['time'])
+
+    data['minute'] = data['time'].dt.floor('min')
+    grouped = data.groupby('minute')
+
+    y_test_integrated = grouped['Power_data'].apply(lambda x: np.trapz(x, dx=1))
+    y_pred_integrated = grouped['Power_phys'].apply(lambda x: np.trapz(x, dx=1))
+
+    rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
+    # rrmse = calculate_rrmse(y_test, y_pred)
     print(f"RRMSE for {selected_car}  : {rrmse}")
     return rrmse
 
@@ -123,6 +132,15 @@ def compute_rmse(vehicle_files, selected_car):
     y_pred = data['Power_phys'].to_numpy()
     y_test = data['Power_data'].to_numpy()
 
-    rmse = calculate_rmse(y_test, y_pred)
+    data['time'] = pd.to_datetime(data['time'])
+
+    data['minute'] = data['time'].dt.floor('min')
+    grouped = data.groupby('minute')
+
+    y_test_integrated = grouped['Power_data'].apply(lambda x: np.trapz(x, dx=1))
+    y_pred_integrated = grouped['Power_phys'].apply(lambda x: np.trapz(x, dx=1))
+
+    rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
+    # rmse = calculate_rmse(y_test, y_pred)
     print(f"RMSE for {selected_car}  : {rmse}")
     return rmse
