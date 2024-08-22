@@ -29,3 +29,4 @@ models/XGB_scaler_Ioniq5.pkl
 models/XGB_scaler_Ioniq6.pkl
 models/XGB_scaler_KonaEV.pkl
 models/XGB_scaler_NiroEV.pkl
+temp.py
