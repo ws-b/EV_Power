@@ -444,8 +444,8 @@ def plot_energy_scatter(file_lists, selected_car, target):
         ax.set_ylim(0, None)
 
         # RMSE & NRMSE
-        rmse_before, relative_rmse_before = calculate_rmse(all_energies_data, all_energies_phys), calculate_rrmse(all_energies_data, all_energies_phys)
-        rmse_after, relative_rmse_after = calculate_rmse(all_energies_data, all_energies_hybrid), calculate_rrmse(all_energies_data, all_energies_hybrid)
+        rmse_before, relative_rmse_before = calculate_rmse(np.array(all_energies_data), np.array(all_energies_phys)), calculate_rrmse(np.array(all_energies_data), np.array(all_energies_phys))
+        rmse_after, relative_rmse_after = calculate_rmse(np.array(all_energies_data), np.array(all_energies_hybrid)), calculate_rrmse(np.array(all_energies_data), np.array(all_energies_hybrid))
         plt.text(0.6, 0.15, f'RMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
                  transform=ax.transAxes, fontsize=10, verticalalignment='top')
 
@@ -503,8 +503,8 @@ def plot_driver_energy_scatter(file_lists_dict, selected_car):
         ax.plot(np.array(energies_data[id]), intercept + slope * np.array(energies_data[id]), color=color_map[id])
 
         # Calculate RMSE & NRMSE for each id
-        rmse_before, relative_rmse_before = calculate_rmse(energies_data[id], energies_phys[id]), calculate_rrmse(energies_data[id], energies_phys[id])
-        rmse_after, relative_rmse_after = calculate_rmse(energies_data[id], energies_hybrid[id]), calculate_rrmse(energies_data[id], energies_hybrid[id])
+        rmse_before, relative_rmse_before = calculate_rmse(np.array(energies_data[id]), np.array(energies_phys[id])), calculate_rrmse(np.array(energies_data[id]), np.array(energies_phys[id]))
+        rmse_after, relative_rmse_after = calculate_rmse(np.array(energies_data[id]), np.array(energies_hybrid[id])), calculate_rrmse(np.array(energies_data[id]), np.array(energies_hybrid[id]))
         ax.text(0.05, 0.95 - i * 0.1, f'{id}\nRMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
                 transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 
