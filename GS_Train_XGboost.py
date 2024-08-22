@@ -15,7 +15,7 @@ def process_single_file(file):
         data = pd.read_csv(file)
         if 'Power_phys' in data.columns and 'Power_data' in data.columns:
             data['Residual'] = data['Power_data'] - data['Power_phys']
-            return data[['time', 'speed', 'acceleration', 'Residual', 'Power_phys', 'Power_data']]
+            return data[['time', 'speed', 'acceleration', 'ext_temp', 'Residual', 'Power_phys', 'Power_data']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -25,6 +25,8 @@ def process_files(files, scaler=None):
     SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
     ACCELERATION_MIN = -15 # m/s^2
     ACCELERATION_MAX = 9 # m/s^2
+    TEMP_MIN = -30
+    TEMP_MAX = 50
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -49,9 +51,9 @@ def process_files(files, scaler=None):
 
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN], [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX]], columns=['speed', 'acceleration','ext_temp']))
 
-    full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
+    full_data[['speed', 'acceleration', 'ext_temp']] = scaler.transform(full_data[['speed', 'acceleration', 'ext_temp']])
 
     return full_data, scaler
 
@@ -110,10 +112,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         train_data, scaler = process_files(train_files)
         test_data, _ = process_files(test_files)
 
-        X_train = train_data[['speed', 'acceleration']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         if best_lambda is None:
@@ -133,22 +135,22 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         #model = xgb.train(params, dtrain, num_boost_round=150, evals=evals, obj=custom_obj)
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
+        #
+        # test_data['y_test'] = y_test + test_data['Power_phys']
+        # test_data['y_pred'] = y_pred + test_data['Power_phys']
+        # test_data['time'] = pd.to_datetime(test_data['time'])
+        #
+        # test_data['minute'] = test_data['time'].dt.floor('min')
+        # grouped = test_data.groupby('minute')
+        #
+        # y_test_integrated = grouped.apply(lambda group: np.trapz(group['y_test'], x=group['time'].astype('int64') / 1e9))
+        # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['y_pred'], x=group['time'].astype('int64') / 1e9))
 
-        test_data['y_test'] = y_test + test_data['Power_phys']
-        test_data['y_pred'] = y_pred + test_data['Power_phys']
-        test_data['time'] = pd.to_datetime(test_data['time'])
+        # rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
+        # rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
 
-        test_data['minute'] = test_data['time'].dt.floor('min')
-        grouped = test_data.groupby('minute')
-
-        y_test_integrated = grouped['y_test'].apply(lambda x: np.trapz(x, dx=1))
-        y_pred_integrated = grouped['y_pred'].apply(lambda x: np.trapz(x, dx=1))
-
-        rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
-        rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
-
-        # rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
-        # rrmse = calculate_rrmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
+        rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
+        rrmse = calculate_rrmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
         residual2 = y_test - y_pred
         results.append((fold_num, rrmse, rmse))
         models.append(model)
@@ -169,11 +171,11 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
             surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
             best_model.save_model(model_file)
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
-            if plot:
-                #plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
-
-                plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400, min_samples=5)
-                plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400, min_samples=5)
+            # if plot:
+            #     # plot_3d(X_test, y_test, y_pred, fold_num, selected_car, scaler, 400, 30, output_file=surface_plot)
+            #
+            #     plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
+            #     plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]', num_grids=400)
 
         # Save the scaler
         scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')

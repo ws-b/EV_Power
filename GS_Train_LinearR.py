@@ -16,7 +16,7 @@ def process_single_file(file):
         data = pd.read_csv(file)
         if 'Power_phys' in data.columns and 'Power_data' in data.columns:
             data['Residual'] = data['Power_data'] - data['Power_phys']
-            return data[['speed', 'acceleration', 'Residual', 'Power_phys', 'Power_data']]
+            return data[['time', 'speed', 'acceleration', 'ext_temp', 'Residual', 'Power_phys', 'Power_data']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -27,6 +27,8 @@ def process_files(files, scaler=None):
     SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
     ACCELERATION_MIN = -15 # m/s^2
     ACCELERATION_MAX = 9 # m/s^2
+    TEMP_MIN = -30
+    TEMP_MAX = 50
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -51,9 +53,9 @@ def process_files(files, scaler=None):
 
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN], [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX]], columns=['speed', 'acceleration','ext_temp']))
 
-    full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
+    full_data[['speed', 'acceleration', 'ext_temp']] = scaler.transform(full_data[['speed', 'acceleration', 'ext_temp']])
 
     return full_data, scaler
 
@@ -78,10 +80,10 @@ def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
         train_data, scaler = process_files(train_files)
         test_data, _ = process_files(test_files)
 
-        X_train = train_data[['speed', 'acceleration']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         model = LinearRegression()
@@ -107,9 +109,9 @@ def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
             model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.joblib")
             joblib.dump(best_model, model_file)
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
-            if plot:
-                plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
-                plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
+            # if plot:
+            #     plot_contour(X_test, y_pred, scaler, selected_car, 'Predicted Residual[1]', num_grids=400)
+            #     plot_contour(X_test, residual2, scaler, selected_car, 'Residual[2]',  num_grids=400)
 
         # Save the scaler
         scaler_path = os.path.join(save_dir, f"{model_name}_scaler_{selected_car}.pkl")

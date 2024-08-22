@@ -773,7 +773,7 @@ def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples
         fig.write_html(output_file)
     else:
         fig.show()
-"""
+
 def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
     if X.shape[1] != 2:
         raise ValueError("Error: X should have 2 columns.")
@@ -798,57 +798,57 @@ def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
     plt.ylabel('Acceleration (m/s²)')
     plt.title(f'{selected_car} : Contour Plot of {terminology}')
     plt.show()
-"""
 
 
-def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400, min_samples=5):
-    if X.shape[1] != 2:
-        raise ValueError("Error: X should have 2 columns.")
-
-    # Inverse transform to original scale
-    X_orig = scaler.inverse_transform(X)
-
-    # Convert speed to km/h
-    X_orig[:, 0] *= 3.6
-
-    # Create grid
-    grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
-    grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
-    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-
-    # Create empty grid to hold the counts
-    sample_count = np.zeros_like(grid_x)
-
-    # Calculate grid cell size
-    grid_x_size = np.mean(np.diff(grid_x[0]))
-    grid_y_size = np.mean(np.diff(grid_y[:, 0]))
-
-    # Count the number of samples in each grid cell
-    for i in range(len(X_orig)):
-        x_idx = np.searchsorted(grid_x[0], X_orig[i, 0]) - 1
-        y_idx = np.searchsorted(grid_y[:, 0], X_orig[i, 1]) - 1
-
-        if 0 <= x_idx < num_grids and 0 <= y_idx < num_grids:
-            sample_count[y_idx, x_idx] += 1
-
-    # Initialize grid_z with NaNs
-    grid_z = np.full_like(grid_x, np.nan)
-
-    # Assign values to grid_z only if sample count meets the minimum requirement
-    for i in range(num_grids):
-        for j in range(num_grids):
-            if sample_count[i, j] >= min_samples:
-                grid_z[i, j] = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x[i, j], grid_y[i, j]),
-                                        method='linear')
-
-    # Contour plot
-    plt.figure(figsize=(10, 8))
-    contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
-    plt.colorbar(contour)
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title(f'{selected_car} : Contour Plot of {terminology}')
-    plt.show()
+#
+# def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400, min_samples=5):
+#     if X.shape[1] != 2:
+#         raise ValueError("Error: X should have 2 columns.")
+#
+#     # Inverse transform to original scale
+#     X_orig = scaler.inverse_transform(X)
+#
+#     # Convert speed to km/h
+#     X_orig[:, 0] *= 3.6
+#
+#     # Create grid
+#     grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
+#     grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
+#     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+#
+#     # Create empty grid to hold the counts
+#     sample_count = np.zeros_like(grid_x)
+#
+#     # Calculate grid cell size
+#     grid_x_size = np.mean(np.diff(grid_x[0]))
+#     grid_y_size = np.mean(np.diff(grid_y[:, 0]))
+#
+#     # Count the number of samples in each grid cell
+#     for i in range(len(X_orig)):
+#         x_idx = np.searchsorted(grid_x[0], X_orig[i, 0]) - 1
+#         y_idx = np.searchsorted(grid_y[:, 0], X_orig[i, 1]) - 1
+#
+#         if 0 <= x_idx < num_grids and 0 <= y_idx < num_grids:
+#             sample_count[y_idx, x_idx] += 1
+#
+#     # Initialize grid_z with NaNs
+#     grid_z = np.full_like(grid_x, np.nan)
+#
+#     # Assign values to grid_z only if sample count meets the minimum requirement
+#     for i in range(num_grids):
+#         for j in range(num_grids):
+#             if sample_count[i, j] >= min_samples:
+#                 grid_z[i, j] = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x[i, j], grid_y[i, j]),
+#                                         method='linear')
+#
+#     # Contour plot
+#     plt.figure(figsize=(10, 8))
+#     contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
+#     plt.colorbar(contour)
+#     plt.xlabel('Speed (km/h)')
+#     plt.ylabel('Acceleration (m/s²)')
+#     plt.title(f'{selected_car} : Contour Plot of {terminology}')
+#     plt.show()
 def plot_contour2(file_lists, selected_car, num_grids=400):
     all_data = []
 

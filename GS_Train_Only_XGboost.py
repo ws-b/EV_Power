@@ -14,7 +14,7 @@ def process_single_file(file):
     try:
         data = pd.read_csv(file)
         if 'Power_data' in data.columns:
-            return data[['time', 'speed', 'acceleration', 'Power_data']]
+            return data[['time', 'speed', 'acceleration', 'ext_temp', 'Power_data']]
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
@@ -24,6 +24,8 @@ def process_files(files, scaler=None):
     SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
     ACCELERATION_MIN = -15 # m/s^2
     ACCELERATION_MAX = 9 # m/s^2
+    TEMP_MIN = -30
+    TEMP_MAX = 50
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -48,9 +50,9 @@ def process_files(files, scaler=None):
 
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN], [SPEED_MAX, ACCELERATION_MAX]], columns=['speed', 'acceleration']))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN], [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX]], columns=['speed', 'acceleration', 'ext_temp']))
 
-    full_data[['speed', 'acceleration']] = scaler.transform(full_data[['speed', 'acceleration']])
+    full_data[['speed', 'acceleration', 'ext_temp']] = scaler.transform(full_data[['speed', 'acceleration', 'ext_temp']])
 
     return full_data, scaler
 
@@ -119,22 +121,22 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
         y_pred = model.predict(dtest)
 
+        #
+        # test_data['y_test'] = y_test
+        # test_data['y_pred'] = y_pred
+        # test_data['time'] = pd.to_datetime(test_data['time'])
+        #
+        # test_data['minute'] = test_data['time'].dt.floor('min')
+        # grouped = test_data.groupby('minute')
+        #
+        # y_test_integrated = grouped.apply(lambda group: np.trapz(group['y_test'], x=group['time'].astype('int64') / 1e9))
+        # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['y_pred'], x=group['time'].astype('int64') / 1e9))
 
-        test_data['y_test'] = y_test
-        test_data['y_pred'] = y_pred
-        test_data['time'] = pd.to_datetime(test_data['time'])
+        # rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
+        # rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
 
-        test_data['minute'] = test_data['time'].dt.floor('min')
-        grouped = test_data.groupby('minute')
-
-        y_test_integrated = grouped['y_test'].apply(lambda x: np.trapz(x, dx=1))
-        y_pred_integrated = grouped['y_pred'].apply(lambda x: np.trapz(x, dx=1))
-
-        rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
-        rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
-
-        # rmse = calculate_rmse(y_test, y_pred)
-        # rrmse = calculate_rrmse(y_test, y_pred)
+        rmse = calculate_rmse(y_test, y_pred)
+        rrmse = calculate_rrmse(y_test, y_pred)
         results.append((fold_num, rrmse, rmse))
         models.append(model)
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
@@ -155,8 +157,8 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
 
             Residual = y_test - y_pred
-            if plot:
-                plot_contour(X_test, Residual, scaler, selected_car, '(Data Power - ML only Model Power)', num_grids=400, min_samples=5)
+            # if plot:
+            #     plot_contour(X_test, Residual, scaler, selected_car, '(Data Power - ML only Model Power)', num_grids=400)
 
         # Save the scaler
         scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')
