@@ -328,8 +328,8 @@ def main():
                 print("1: Plotting Stacked Power Plot Term by Term")
                 print("2: Plotting Model's Power Graph")
                 print("3: Plotting Data's Power Graph")
-                print("4: Plotting Comparison Graph(Phys, Data, Hybrid)")
-                print("5: Plotting Data & Physics Model Power Comparison Graph")
+                print("4: Plotting Data & Physics Model Power Comparison Graph ")
+                print("5: Plotting Comparison Graph(Phys, Data, Hybrid)")
                 print("6: Plotting Power & Altitude Graph")
                 print("7: Plotting Model's Energy Graph")
                 print("8: Plotting Data's Energy Graph")
@@ -359,9 +359,9 @@ def main():
                         elif plot == 3:
                             plot_power(sample_files, selected_car, 'data')
                         elif plot == 4:
-                            plot_power(sample_files, selected_car, 'hybrid')
-                        elif plot == 5:
                             plot_power(sample_files, selected_car, 'comparison')
+                        elif plot == 5:
+                            plot_power(sample_files, selected_car, 'hybrid')
                         elif plot == 6:
                             plot_power(sample_alt_files, selected_car, 'altitude')
                         elif plot == 7:

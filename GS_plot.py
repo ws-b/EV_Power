@@ -101,26 +101,6 @@ def plot_power(file_lists, selected_car, target):
             plt.title('Data Power')
             plt.tight_layout()
             plt.show()
-        elif target == 'hybrid':
-            # Plot the comparison graph
-            plt.figure(figsize=(10, 6))  # Set the size of the graph
-            plt.xlabel('Time (minutes)')
-            plt.ylabel('Data Power and Physics Model Power (kW)')
-            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
-            plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
-            plt.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green', alpha=0.6)
-            plt.ylim([-100, 100])
-
-            # Add date and file name
-            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
-
-            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
-            plt.title('Data Power vs. Physics Model Power and hybrid Model Power')
-            plt.tight_layout()
-            plt.show()
 
         elif target == 'comparison':
             # Plot the comparison graph
@@ -142,6 +122,27 @@ def plot_power(file_lists, selected_car, target):
             plt.tight_layout()
             plt.show()
 
+        elif target == 'hybrid':
+            # Plot the comparison graph
+            plt.figure(figsize=(10, 6))  # Set the size of the graph
+            plt.xlabel('Time (minutes)')
+            plt.ylabel('Data Power and Physics Model Power (kW)')
+            plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
+            plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
+            plt.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green', alpha=0.6)
+            plt.ylim([-100, 100])
+
+            # Add date and file name
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
+
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
+            plt.title('Data Power vs. Physics Model Power and hybrid Model Power')
+            plt.tight_layout()
+            plt.show()
+            
         elif target == 'altitude' and 'altitude' in data.columns:
             # 고도 차이 계산 (마지막 값은 0으로 설정)
             d_altitude = np.diff(data['altitude'])
