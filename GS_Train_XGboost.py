@@ -191,7 +191,7 @@ def process_file_with_trained_model(file, model, scaler):
         data = pd.read_csv(file)
         if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_phys' in data.columns:
             # Use the provided scaler
-            features = data[['speed', 'acceleration']]
+            features = data[['speed', 'acceleration', 'ext_temp']]
             features_scaled = scaler.transform(features)
 
             predicted_residual = model.predict(features_scaled)

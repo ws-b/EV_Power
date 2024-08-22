@@ -98,10 +98,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         train_data, scaler = process_files(train_files)
         test_data, _ = process_files(test_files)
 
-        X_train = train_data[['speed', 'acceleration']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
         y_train = train_data['Power_data'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
         y_test = test_data['Power_data'].to_numpy()
 
         if best_lambda is None:
@@ -174,7 +174,7 @@ def process_file_with_trained_model(file, model, scaler):
         data = pd.read_csv(file)
         if 'speed' in data.columns and 'acceleration' in data.columns:
             # Use the provided scaler
-            features = data[['speed', 'acceleration']]
+            features = data[['speed', 'acceleration', 'ext_temp']]
             features_scaled = scaler.transform(features)
 
             data['Power_ml'] = model.predict(features_scaled)
