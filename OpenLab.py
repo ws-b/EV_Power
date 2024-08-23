@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import pickle
 import matplotlib.pyplot as plt
 import xgboost as xgb
 from sklearn.preprocessing import MinMaxScaler
@@ -29,11 +30,6 @@ def plot_power(file_lists, selected_car, target):
             plt.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
             plt.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
             plt.ylim([-100, 100])
-
-            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='right', color='black')
-            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
-                     verticalalignment='top', horizontalalignment='left', color='black')
 
             plt.legend(loc='upper left', bbox_to_anchor=(0, 0.97))
             plt.title('Data Power vs. Physics Model Power')
@@ -184,9 +180,8 @@ def add_predicted_power_column(files, model_path, scaler):
             future.result()
 
 def main():
-    # 파일 리스트, 차량 정보, target 설정
     file_lists = ['path_to_file_1.csv', 'path_to_file_2.csv', ...]
-    selected_car = 'YourCarModel'
+    selected_car = 'EV6'
 
     # 1단계: 'comparison' 그래프 플로팅
     plot_power(file_lists, selected_car, target='comparison')
