@@ -5,8 +5,7 @@ import pickle
 import matplotlib.pyplot as plt
 import xgboost as xgb
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import KFold, GridSearchCV
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from sklearn.model_selection import KFold
 
 def plot_power(file_lists, target):
     for file in file_lists:
@@ -45,10 +44,9 @@ def plot_power(file_lists, target):
             plt.ylim([-100, 100])
 
             plt.legend(loc='upper left')
-            plt.title('Data Power vs. Physics Model Power')
+            plt.title('Data Power vs. Hybrid Model Power')
             plt.tight_layout()
             plt.show()
-
 
 def process_files(files, scaler=None):
     SPEED_MIN = 0 / 3.6
@@ -147,21 +145,16 @@ def add_predicted_power(files, model_path, scaler):
     model = xgb.XGBRegressor()
     model.load_model(model_path)
 
-    # 파일을 순차적으로 처리
     for file in files:
         data = pd.read_csv(file)
         if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_phys' in data.columns:
-            # 필요한 피처 추출 및 스케일링
             features = data[['speed', 'acceleration', 'ext_temp']]
             features_scaled = scaler.transform(features)
 
-            # 모델 예측 수행
             predicted_residual = model.predict(features_scaled)
 
-            # 예측된 값을 이용해 'Power_hybrid' 열 추가
             data['Power_hybrid'] = predicted_residual + data['Power_phys']
 
-            # 수정된 데이터 저장
             data.to_csv(file, index=False)
             print(f"Processed file {file}")
 
@@ -180,11 +173,11 @@ selected_car = 'EV6'
 # 1단계: 'comparison' 그래프 플로팅
 plot_power(file_lists[0:4], target='comparison')
 
-# 2단계: 머신러닝 모델 학습 및 검증
-boost_rounds = 50
+# # 2단계: 머신러닝 모델 학습 및 검증
+boost_rounds = 100
 results, scaler = cross_validate(file_lists, selected_car, boost_rounds, root_directory)
 
-# # 3단계: 'hybrid' 컬럼 추가 및 그래프 플로팅
+# 3단계: 'hybrid' 컬럼 추가 및 그래프 플로팅
 model_path = os.path.join(root_directory, "models", f"XGB_best_model_{selected_car}.json")
 add_predicted_power(file_lists, model_path, scaler)
 plot_power(file_lists[0:4], target='hybrid')
