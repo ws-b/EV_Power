@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
-from GS_Functions import calculate_rrmse, calculate_rmse
+from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
@@ -134,12 +134,12 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
 
         # rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
         # rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
-
+        mape = calculate_mape(y_test, y_pred)
         rmse = calculate_rmse(y_test, y_pred)
         rrmse = calculate_rrmse(y_test, y_pred)
-        results.append((fold_num, rrmse, rmse))
+        results.append((fold_num, rrmse, rmse, mape))
         models.append(model)
-        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse}, MAPE: {mape}")
 
         # Calculate the median RRMSE
         median_rrmse = np.median([result[1] for result in results])
