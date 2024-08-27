@@ -2,8 +2,8 @@ import os
 import pandas as pd
 
 # 경로 설정
-gps_altitude_base_path = r"C:\Users\WSONG\Desktop\BMS_GPS_ZIP\gps_altitude"
-merged_base_path = r"C:\Users\WSONG\Desktop\BMS_GPS_ZIP\merged"
+gps_altitude_base_path = r"C:\Users\BSL\Desktop\BMS_GPS_ZIP\gps_altitude"
+merged_base_path = r"C:\Users\BSL\Desktop\BMS_GPS_ZIP\merged"
 
 # 차종 리스트만 사용
 vehicles = ['NiroEV', 'Ioniq5', 'Ioniq6', 'KonaEV', 'EV6', 'GV60', 'Porter2EV', 'Bongo3EV']
