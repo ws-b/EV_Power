@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import pickle
 import joblib
-from GS_Functions import calculate_rrmse, calculate_rmse
+from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
@@ -89,12 +89,13 @@ def cross_validate(vehicle_files, selected_car, plot = None, save_dir="models"):
         model = LinearRegression()
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
+        mape = calculate_mape((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
         rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
         rrmse = calculate_rrmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
         residual2 = y_test - y_pred
-        results.append((fold_num, rrmse, rmse))
+        results.append((fold_num, rrmse, rmse, mape))
         models.append(model)
-        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RRMSE: {rrmse}")
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse}, MAPE: {mape}")
 
         # Calculate the median RRMSE
         median_rrmse = np.median([result[1] for result in results])

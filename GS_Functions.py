@@ -78,6 +78,14 @@ def sample_grid(speed, acceleration, grid_size=100, max_per_grid=30):
     return sampled_speeds, sampled_accelerations
 
 
+def calculate_mape(y_test, y_pred):
+    # y_test가 0이 아닌 값들만 선택하여 MAPE 계산
+    non_zero_indices = y_test != 0
+    y_test_non_zero = y_test[non_zero_indices]
+    y_pred_non_zero = y_pred[non_zero_indices]
+
+    mape = np.mean(np.abs((y_test_non_zero - y_pred_non_zero) / y_test_non_zero)) * 100
+    return mape
 def calculate_rrmse(y_test, y_pred):
     relative_errors = (y_test - y_pred) / np.mean(np.abs(y_test))
     rrmse = np.sqrt(np.mean(relative_errors ** 2))
@@ -144,3 +152,32 @@ def compute_rmse(vehicle_files, selected_car):
     rmse = calculate_rmse(y_test, y_pred)
     print(f"RMSE for {selected_car}  : {rmse}")
     return rmse
+
+def compute_mape(vehicle_files, selected_car):
+    if not vehicle_files:
+        print("No files provided")
+        return
+
+    data = read_and_process_files(vehicle_files[selected_car])
+
+    if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
+        print(f"Columns 'Power_phys' and/or 'Power_data' not found in the data")
+        return
+
+    y_pred = data['Power_phys'].to_numpy()
+    y_test = data['Power_data'].to_numpy()
+
+    # data['time'] = pd.to_datetime(data['time'])
+    #
+    # data['minute'] = data['time'].dt.floor('min')
+    # grouped = data.groupby('minute')
+    #
+    # y_test_integrated = grouped.apply(lambda group: np.trapz(group['Power_data'], x=group['time'].astype('int64') / 1e9))
+    # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['Power_phys'], x=group['time'].astype('int64') / 1e9))
+    #
+    # mape = calculate_mape(y_test_integrated, y_pred_integrated)
+    mape = calculate_mape(y_test, y_pred)
+    print(f"MAPE for {selected_car}  : {mape}%")
+    return mape
+
+

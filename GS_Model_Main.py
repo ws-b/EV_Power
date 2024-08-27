@@ -4,7 +4,7 @@ import random
 import pickle
 import matplotlib.pyplot as plt
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_Functions import get_vehicle_files, compute_rrmse, compute_rmse
+from GS_Functions import get_vehicle_files, compute_rrmse, compute_rmse, compute_mape
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
@@ -81,15 +81,18 @@ def main():
                         results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
 
                         if results:
+                            mape_values = []
                             rmse_values = []
                             rrmse_values = []
-                            for fold_num, rrmse, rmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                            for fold_num, rrmse, rmse, mape in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
+                                mape_values.append(mape)
                                 rmse_values.append(rmse)
                                 rrmse_values.append(rrmse)
                             XGB[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
                             }
 
                         else:
@@ -98,15 +101,18 @@ def main():
                         results, scaler = lr_cross_validate(vehicle_files, selected_car, True, save_dir=save_dir)
 
                         if results:
+                            mape_values = []
                             rmse_values = []
                             rrmse_values = []
-                            for fold_num, rrmse, rmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                            for fold_num, rrmse, rmse, mape in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
+                                mape_values.append(mape)
                                 rmse_values.append(rmse)
                                 rrmse_values.append(rrmse)
                             LR[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
@@ -114,15 +120,18 @@ def main():
                         results, scaler, _ = only_xgb_validate(vehicle_files, selected_car, None, True, save_dir=save_dir)
 
                         if results:
+                            mape_values = []
                             rmse_values = []
                             rrmse_values = []
-                            for fold_num, rrmse, rmse in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}")
+                            for fold_num, rrmse, rmse, mape in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
+                                mape_values.append(mape)
                                 rmse_values.append(rmse)
                                 rrmse_values.append(rrmse)
                             ONLY_ML[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
@@ -164,35 +173,43 @@ def main():
                                 sampled_vehicle_files = {selected_car: sampled_files}
 
                                 # Physics-based model RRMSE calculation
+                                mape_physics = compute
                                 rrmse_physics = compute_rrmse(sampled_vehicle_files, selected_car)
                                 if rrmse_physics is not None:
                                     results_dict[selected_car][size].append({
                                         'model': 'Physics-Based',
-                                        'rrmse': [rrmse_physics]
+                                        'rrmse': [rrmse_physics],
+                                        'mape' : [mape_physics]
                                     })
 
                                 results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB, None, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for _, rrmse, _ in results]
+                                    mape_values = [mape for _, _, _, mape in results]
+                                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(XGBoost)',
-                                        'rrmse': rrmse_values
+                                        'rrmse': rrmse_values,
+                                        'mape' : mape_values
                                     })
 
                                 results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, None, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for _, rrmse, _ in results]
+                                    mape_values = [mape for _, _, _, mape in results]
+                                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(Linear Regression)',
-                                        'rrmse': rrmse_values
+                                        'rrmse': rrmse_values,
+                                        'mape' : mape_values
                                     })
 
                                 results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML, None, save_dir=None)
                                 if results:
-                                    rrmse_values = [rrmse for _, rrmse, _ in results]
+                                    mape_values = [mape for _, _, _, mape in results]
+                                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Only ML(XGBoost)',
-                                        'rrmse': rrmse_values
+                                        'rrmse': rrmse_values,
+                                        'mape' : mape_values
                                     })
 
                         print(results_dict)
