@@ -2,10 +2,9 @@ import os
 import pandas as pd
 import pickle
 import numpy as np
-import xgboost as xgb
+import lightgbm as lgb
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
-from sklearn.model_selection import KFold
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
 from GS_plot import plot_3d, plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -40,13 +39,13 @@ def process_files(files, scaler=None):
                     data['abs_acceleration'] = data['acceleration'].abs()
 
                     # Calculate rolling mean and standard deviation for the last 5 rows
-                    data['mean_abs_accel'] = data['abs_acceleration'].rolling(window=5).mean()
-                    data['std_abs_accel'] = data['abs_acceleration'].rolling(window=5).std()
-                    data['mean_speed'] = data['speed'].rolling(window=5).mean()
-                    data['std_speed'] = data['speed'].rolling(window=5).std()
+                    data['mean_abs_accel_5'] = data['abs_acceleration'].rolling(window=5).mean()
+                    data['std_abs_accel_5'] = data['abs_acceleration'].rolling(window=5).std()
+                    data['mean_speed_5'] = data['speed'].rolling(window=5).mean()
+                    data['std_speed_5'] = data['speed'].rolling(window=5).std()
 
                     # Forward fill to replace NaNs with the first available value
-                    data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].ffill()
+                    data[['mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']] = data[['mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']].ffill()
 
                     df_list.append((files.index(file), data))
             except Exception as e:
@@ -63,16 +62,12 @@ def process_files(files, scaler=None):
 
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0],
-                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1]],
-                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN], [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX]], columns=['speed', 'acceleration','ext_temp']))
 
-    # Scale the features, including the rolling features
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']])
+    # Scale the features
+    full_data[['speed', 'acceleration', 'ext_temp']] = scaler.transform(full_data[['speed', 'acceleration', 'ext_temp']])
 
     return full_data, scaler
-
 
 def custom_obj(preds, dtrain):
     labels = dtrain.get_label()
@@ -88,27 +83,26 @@ def custom_obj(preds, dtrain):
     return grad, hess
 
 def grid_search_lambda(X_train, y_train):
-    dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
+    dtrain = lgb.Dataset(X_train, label=y_train, weight=X_train[:, 0])
     lambda_values = np.logspace(-3, 7, num=11)
     param_grid = {
-        'tree_method': ['hist'],
-        'device': ['cuda'],
-        'eval_metric': ['rmse'],
-        'lambda': lambda_values
+        'boosting_type': ['gbdt'],
+        'objective': ['regression'],
+        'metric': ['rmse'],
+        'lambda_l2': lambda_values
     }
 
-    model = xgb.XGBRegressor()
-    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_root_mean_squared_error', cv=5,
-                               verbose=1)
+    model = lgb.LGBMRegressor()
+    grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_root_mean_squared_error', cv=5, verbose=1)
     grid_search.fit(X_train, y_train)
 
-    best_lambda = grid_search.best_params_['lambda']
+    best_lambda = grid_search.best_params_['lambda_l2']
     print(f"Best lambda found: {best_lambda}")
 
     return best_lambda
 
 def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, save_dir="models"):
-    model_name = "XGB"
+    model_name = "LightGBM"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
@@ -130,28 +124,28 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         test_data, _ = process_files(test_files)
 
         # Include the new features in the training and test sets
-        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         if best_lambda is None:
             best_lambda = grid_search_lambda(X_train, y_train)
 
-        dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
-        dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
+        dtrain = lgb.Dataset(X_train, label=y_train, weight=X_train[:, 0])
+        dtest = lgb.Dataset(X_test, label=y_test, weight=X_test[:, 0])
 
         params = {
-            'tree_method': 'hist',
-            'device': 'cuda',
-            'eval_metric': ['rmse'],
-            'lambda': best_lambda
+            'boosting_type': 'gbdt',
+            'objective': 'regression',
+            'metric': 'rmse',
+            'lambda_l2': best_lambda
         }
 
-        evals = [(dtrain, 'train'), (dtest, 'test')]
-        model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
-        y_pred = model.predict(dtest)
+        evals_result = {}
+        model = lgb.train(params, dtrain, num_boost_round=150, valid_sets=[dtrain, dtest], evals_result=evals_result)
+        y_pred = model.predict(X_test)
 
         mape = calculate_mape(y_test + test_data['Power_phys'], y_pred + test_data['Power_phys'])
         rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred + test_data['Power_phys']))
@@ -172,8 +166,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
             os.makedirs(save_dir)
         # Save the best model
         if best_model:
-            model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.json")
-            surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
+            model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.txt")
             best_model.save_model(model_file)
             print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
 
@@ -185,6 +178,8 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
 
     return results, scaler, best_lambda
 
+
+
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
@@ -193,16 +188,16 @@ def process_file_with_trained_model(file, model, scaler):
             data['abs_acceleration'] = data['acceleration'].abs()
 
             # Calculate rolling mean and standard deviation for the last 5 rows
-            data['mean_abs_accel'] = data['abs_acceleration'].rolling(window=5).mean()
-            data['std_abs_accel'] = data['abs_acceleration'].rolling(window=5).std()
-            data['mean_speed'] = data['speed'].rolling(window=5).mean()
-            data['std_speed'] = data['speed'].rolling(window=5).std()
+            data['mean_abs_accel_5'] = data['abs_acceleration'].rolling(window=5).mean()
+            data['std_abs_accel_5'] = data['abs_acceleration'].rolling(window=5).std()
+            data['mean_speed_5'] = data['speed'].rolling(window=5).mean()
+            data['std_speed_5'] = data['speed'].rolling(window=5).std()
 
             # Forward fill to replace NaNs with the first available value
-            data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].ffill()
+            data[['mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']] = data[['mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']].ffill()
 
             # Use the provided scaler to scale all necessary features
-            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']]
+            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_5', 'std_abs_accel_5', 'mean_speed_5', 'std_speed_5']]
             features_scaled = scaler.transform(features)
 
             # Predict the residual using the trained model
@@ -222,8 +217,7 @@ def process_file_with_trained_model(file, model, scaler):
 
 def add_predicted_power_column(files, model_path, scaler):
     try:
-        model = xgb.XGBRegressor()
-        model.load_model(model_path)
+        model = lgb.Booster(model_file=model_path)
     except Exception as e:
         print(f"Error loading model: {e}")
         return

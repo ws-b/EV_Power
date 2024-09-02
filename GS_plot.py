@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import random
 import plotly.graph_objects as go
-from GS_Functions import calculate_rrmse, calculate_rmse
+from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.interpolate import griddata
 from scipy.stats import linregress
 from tqdm import tqdm
@@ -444,9 +444,9 @@ def plot_energy_scatter(file_lists, selected_car, target):
         ax.set_ylim(0, None)
 
         # RMSE & NRMSE
-        rmse_before, relative_rmse_before = calculate_rmse(np.array(all_energies_data), np.array(all_energies_phys)), calculate_rrmse(np.array(all_energies_data), np.array(all_energies_phys))
-        rmse_after, relative_rmse_after = calculate_rmse(np.array(all_energies_data), np.array(all_energies_hybrid)), calculate_rrmse(np.array(all_energies_data), np.array(all_energies_hybrid))
-        plt.text(0.6, 0.15, f'RMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
+        mape_before, relative_rmse_before = calculate_mape(np.array(all_energies_data), np.array(all_energies_phys)), calculate_rrmse(np.array(all_energies_data), np.array(all_energies_phys))
+        mape_after, relative_rmse_after = calculate_mape(np.array(all_energies_data), np.array(all_energies_hybrid)), calculate_rrmse(np.array(all_energies_data), np.array(all_energies_hybrid))
+        plt.text(0.6, 0.15, f'MAPE (Before): {mape_before:.2f}%\nRRMSE (Before): {relative_rmse_before:.2%}\nMAPE (After): {mape_after:.2f}%\nRRMSE (After): {relative_rmse_after:.2%}',
                  transform=ax.transAxes, fontsize=10, verticalalignment='top')
 
         plt.legend()
@@ -503,9 +503,9 @@ def plot_driver_energy_scatter(file_lists_dict, selected_car):
         ax.plot(np.array(energies_data[id]), intercept + slope * np.array(energies_data[id]), color=color_map[id])
 
         # Calculate RMSE & NRMSE for each id
-        rmse_before, relative_rmse_before = calculate_rmse(np.array(energies_data[id]), np.array(energies_phys[id])), calculate_rrmse(np.array(energies_data[id]), np.array(energies_phys[id]))
-        rmse_after, relative_rmse_after = calculate_rmse(np.array(energies_data[id]), np.array(energies_hybrid[id])), calculate_rrmse(np.array(energies_data[id]), np.array(energies_hybrid[id]))
-        ax.text(0.05, 0.95 - i * 0.1, f'{id}\nRMSE (Before): {rmse_before:.2f}kWh\nRRMSE (Before): {relative_rmse_before:.2%}\nRMSE (After): {rmse_after:.2f}kWh\nRRMSE (After): {relative_rmse_after:.2%}',
+        mape_before, relative_rmse_before = calculate_mape(np.array(energies_data[id]), np.array(energies_phys[id])), calculate_rrmse(np.array(energies_data[id]), np.array(energies_phys[id]))
+        mape_after, relative_rmse_after = calculate_mape(np.array(energies_data[id]), np.array(energies_hybrid[id])), calculate_rrmse(np.array(energies_data[id]), np.array(energies_hybrid[id]))
+        ax.text(0.05, 0.95 - i * 0.1, f'{id}\nMAPE (Before): {mape_before:.2f}%\nRRMSE (Before): {relative_rmse_before:.2%}\nMAPE (After): {mape_after:.2f}%\nRRMSE (After): {relative_rmse_after:.2%}',
                 transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 
     lims = [

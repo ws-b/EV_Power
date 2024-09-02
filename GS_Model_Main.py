@@ -10,6 +10,7 @@ from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
 from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
+from GS_Train_LightGBM import cross_validate as lgbm_cross_validate, add_predicted_power_column as lgbm_add_predicted_power_column
 
 def main():
     car_options = {
@@ -58,8 +59,9 @@ def main():
                 print("1: Hybrid(XGB) Model")
                 print("2: Hybrid(LR) Model")
                 print("3: Only ML(XGB) Model")
-                print("4: Train Models")
-                print("5: Return to previous menu")
+                print("4: Hybrid(LGBM) Model")
+                print("5: Train Models")
+                print("6: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -67,15 +69,16 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 5:
+                if train_choice == 6:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
                 XGB = {}
                 LR = {}
+                LGBM = {}
                 ONLY_ML = {}
-
+                
                 for selected_car in selected_cars:
                     if train_choice == 1:
                         results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
@@ -135,8 +138,27 @@ def main():
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-
                     if train_choice == 4:
+                        results, scaler, _ = lgbm_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
+
+                        if results:
+                            mape_values = []
+                            rmse_values = []
+                            rrmse_values = []
+                            for fold_num, rrmse, rmse, mape in results:
+                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
+                                mape_values.append(mape)
+                                rmse_values.append(rmse)
+                                rrmse_values.append(rrmse)
+                            LGBM[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
+                            }
+
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
+                    if train_choice == 5:
                         vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500,
                                               1000, 2000, 3000, 5000, 10000]
 
@@ -284,7 +306,8 @@ def main():
                 print("1: XGBoost Model")
                 print("2: Linear Regression")
                 print("3: Machine Learning Only(XGB)")
-                print("4: Return to previous menu")
+                print("4: LightGBM Model")
+                print("5: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     pred_choice = int(input("Enter number you want to run: "))
@@ -292,7 +315,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if pred_choice == 4:
+                if pred_choice == 5:
                     break
                 elif pred_choice == 0:
                     print("Quitting the program")
@@ -338,7 +361,19 @@ def main():
                             scaler = pickle.load(f)
 
                         only_xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+                    elif pred_choice == 4:
+                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_best_model_{selected_car}.json')
+                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_scaler_{selected_car}.pkl')
 
+                        if not vehicle_files[selected_car]:
+                            print(f"No files to process for the selected vehicle: {selected_car}")
+                            continue
+
+                        # Load the scaler
+                        with open(scaler_path, 'rb') as f:
+                            scaler = pickle.load(f)
+
+                        lgbm_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
 
         elif task_choice == 4:
             while True:
