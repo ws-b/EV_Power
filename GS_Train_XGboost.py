@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
-from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
+from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape, add_rush_hour_feature
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
@@ -36,23 +36,25 @@ def process_files(files, scaler=None):
             try:
                 data = future.result()
                 if data is not None:
-                    # Calculate absolute acceleration
+                    # 러시아워 특성 추가
+                    data = add_rush_hour_feature(data)
+
+                    # 나머지 처리 (예: 절대 가속도 계산 등)
                     data['abs_acceleration'] = data['acceleration'].abs()
 
-                    # Calculate rolling mean and standard deviation for the last 5 rows
+                    # 이동 평균 및 표준편차 계산
                     data['mean_abs_accel'] = data['abs_acceleration'].rolling(window=5).mean()
                     data['std_abs_accel'] = data['abs_acceleration'].rolling(window=5).std()
                     data['mean_speed'] = data['speed'].rolling(window=5).mean()
                     data['std_speed'] = data['speed'].rolling(window=5).std()
 
-                    # Forward fill to replace NaNs with the first available value
+                    # NaN 값 채우기
                     data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].ffill()
 
                     df_list.append((files.index(file), data))
             except Exception as e:
                 print(f"Error processing file {file}: {e}")
 
-    # Sort the list by the original file order
     df_list.sort(key=lambda x: x[0])
     df_list = [df for _, df in df_list]
 
@@ -63,13 +65,12 @@ def process_files(files, scaler=None):
 
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0],
-                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1]],
-                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0, 0],
+                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1, 1]],
+                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']))
 
-    # Scale the features, including the rolling features
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']])
+    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']] = scaler.transform(
+        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']])
 
     return full_data, scaler
 
@@ -130,10 +131,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         test_data, _ = process_files(test_files)
 
         # Include the new features in the training and test sets
-        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         if best_lambda is None:
@@ -201,8 +202,12 @@ def process_file_with_trained_model(file, model, scaler):
             # Forward fill to replace NaNs with the first available value
             data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].ffill()
 
+            # Add rush hour feature if not present
+            if 'is_rush_hour' not in data.columns:
+                data = add_rush_hour_feature(data)
+
             # Use the provided scaler to scale all necessary features
-            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']]
+            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']]
             features_scaled = scaler.transform(features)
 
             # Predict the residual using the trained model
@@ -232,3 +237,4 @@ def add_predicted_power_column(files, model_path, scaler):
         futures = [executor.submit(process_file_with_trained_model, file, model, scaler) for file in files]
         for future in as_completed(futures):
             future.result()
+

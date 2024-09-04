@@ -180,4 +180,33 @@ def compute_mape(vehicle_files, selected_car):
     print(f"MAPE for {selected_car}  : {mape}%")
     return mape
 
+def add_rush_hour_feature(data):
+    date_formats = ['%Y-%m-%d %H:%M:%S', '%y-%m-%d %H:%M:%S']
+    for date_format in date_formats:
+        try:
+            # Parse the date using the current format
+            data['time'] = pd.to_datetime(data['time'], format=date_format)
+            # Extract the hour
+            data['hour'] = data['time'].dt.hour
+            break
+        except ValueError as e:
+            print(f"Date format error with format {date_format}: {e}")
+            continue
+    else:
+        print("None of the provided date formats matched the data")
+        return data
+
+    # Define rush hour periods
+    rush_hour_morning = (data['hour'] >= 6) & (data['hour'] <= 9)
+    rush_hour_evening = (data['hour'] >= 17) & (data['hour'] <= 20)
+
+    # Create the rush hour feature
+    data['is_rush_hour'] = rush_hour_morning | rush_hour_evening
+    data['is_rush_hour'] = data['is_rush_hour'].astype(int)  # Convert to 0 or 1
+
+    # Optionally drop the 'hour' column if no longer needed
+    data.drop(columns=['hour'], inplace=True)
+
+    return data
+
 
