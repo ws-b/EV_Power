@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import numpy as np
 import xgboost as xgb
-from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape, add_rush_hour_feature
+from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape, add_rush_hour_and_weekend_feature
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
@@ -22,9 +22,9 @@ def process_single_file(file):
 
 def process_files(files, scaler=None):
     SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
-    ACCELERATION_MIN = -15 # m/s^2
-    ACCELERATION_MAX = 9 # m/s^2
+    SPEED_MAX = 230 / 3.6  # 230km/h 를 m/s 로
+    ACCELERATION_MIN = -15  # m/s^2
+    ACCELERATION_MAX = 9  # m/s^2
     TEMP_MIN = -30
     TEMP_MAX = 50
 
@@ -36,8 +36,8 @@ def process_files(files, scaler=None):
             try:
                 data = future.result()
                 if data is not None:
-                    # 러시아워 특성 추가
-                    data = add_rush_hour_feature(data)
+                    # 러시아워 및 주말/평일 특성 추가
+                    data = add_rush_hour_and_weekend_feature(data)
 
                     # 나머지 처리 (예: 절대 가속도 계산 등)
                     data['abs_acceleration'] = data['acceleration'].abs()
@@ -65,28 +65,14 @@ def process_files(files, scaler=None):
 
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0, 0],
-                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1, 1]],
-                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']))
+        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0, 0, 0, 0],
+                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1, 1, 1, 1]],
+                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour', 'is_weekday', 'is_weekend']))
 
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']])
+    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour', 'is_weekday', 'is_weekend']] = scaler.transform(
+        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour', 'is_weekday', 'is_weekend']])
 
     return full_data, scaler
-
-
-def custom_obj(preds, dtrain):
-    labels = dtrain.get_label()
-    speed = dtrain.get_weight()  # Use weight to store speed
-
-    grad = preds - labels
-    hess = np.ones_like(grad)
-
-    # speed가 0인 경우 제약 조건 반영
-    mask = (speed == 0)
-    grad[mask] = np.maximum(0, grad[mask])
-
-    return grad, hess
 
 def grid_search_lambda(X_train, y_train):
     dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
@@ -131,10 +117,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         test_data, _ = process_files(test_files)
 
         # Include the new features in the training and test sets
-        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour', 'is_weekday', 'is_weekend']].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour', 'is_weekday', 'is_weekend']].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         if best_lambda is None:
@@ -202,12 +188,12 @@ def process_file_with_trained_model(file, model, scaler):
             # Forward fill to replace NaNs with the first available value
             data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']] = data[['mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed']].ffill()
 
-            # Add rush hour feature if not present
-            if 'is_rush_hour' not in data.columns:
-                data = add_rush_hour_feature(data)
+            # Add rush hour and weekend/weekday feature if not present
+            if 'is_rush_hour' not in data.columns or 'is_weekday' not in data.columns or 'is_weekend' not in data.columns:
+                data = add_rush_hour_and_weekend_feature(data)
 
             # Use the provided scaler to scale all necessary features
-            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour']]
+            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel', 'std_abs_accel', 'mean_speed', 'std_speed', 'is_rush_hour', 'is_weekday', 'is_weekend']]
             features_scaled = scaler.transform(features)
 
             # Predict the residual using the trained model
@@ -227,6 +213,7 @@ def process_file_with_trained_model(file, model, scaler):
 
 def add_predicted_power_column(files, model_path, scaler):
     try:
+        # Load the trained model
         model = xgb.XGBRegressor()
         model.load_model(model_path)
     except Exception as e:
@@ -236,5 +223,7 @@ def add_predicted_power_column(files, model_path, scaler):
     with ProcessPoolExecutor() as executor:
         futures = [executor.submit(process_file_with_trained_model, file, model, scaler) for file in files]
         for future in as_completed(futures):
-            future.result()
-
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error in processing file: {e}")

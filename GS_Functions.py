@@ -180,14 +180,15 @@ def compute_mape(vehicle_files, selected_car):
     print(f"MAPE for {selected_car}  : {mape}%")
     return mape
 
-def add_rush_hour_feature(data):
+def add_rush_hour_and_weekend_feature(data):
     date_formats = ['%Y-%m-%d %H:%M:%S', '%y-%m-%d %H:%M:%S']
     for date_format in date_formats:
         try:
             # Parse the date using the current format
             data['time'] = pd.to_datetime(data['time'], format=date_format)
-            # Extract the hour
+            # Extract the hour and weekday
             data['hour'] = data['time'].dt.hour
+            data['weekday'] = data['time'].dt.weekday  # Monday=0, Sunday=6
             break
         except ValueError as e:
             print(f"Date format error with format {date_format}: {e}")
@@ -196,17 +197,18 @@ def add_rush_hour_feature(data):
         print("None of the provided date formats matched the data")
         return data
 
-    # Define rush hour periods
+    # Define weekend and weekdays
+    data['is_weekend'] = data['weekday'].isin([5, 6]).astype(int)  # Saturday=5, Sunday=6
+    data['is_weekday'] = (~data['is_weekend']).astype(int)
+
+    # Define rush hour periods for weekdays only
     rush_hour_morning = (data['hour'] >= 6) & (data['hour'] <= 9)
     rush_hour_evening = (data['hour'] >= 17) & (data['hour'] <= 20)
-
-    # Create the rush hour feature
-    data['is_rush_hour'] = rush_hour_morning | rush_hour_evening
+    data['is_rush_hour'] = (rush_hour_morning | rush_hour_evening) & (data['is_weekday'] == 1)
     data['is_rush_hour'] = data['is_rush_hour'].astype(int)  # Convert to 0 or 1
 
-    # Optionally drop the 'hour' column if no longer needed
-    data.drop(columns=['hour'], inplace=True)
+    # Optionally drop the 'hour' and 'weekday' columns if no longer needed
+    data.drop(columns=['hour', 'weekday'], inplace=True)
 
     return data
-
 
