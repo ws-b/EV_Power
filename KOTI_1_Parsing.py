@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 # CSV 파일이 있는 경로 지정
 directory = r'D:\SamsungSTF\Data\KOTI\2019년_팅크웨어_포인트경로데이터'
-processed_path = r'D:\SamsungSTF\Processed_Data\KOTI\OBU_ID'
+processed_path = r'D:\SamsungSTF\Processed_Data\KOTI'
 
 # 모든 CSV 파일 경로를 리스트로 불러오기
 csv_files = glob.glob(os.path.join(directory, "*.csv"))
@@ -39,7 +39,7 @@ for file in tqdm(csv_files):
             date_str = filtered_df['time'].dt.strftime('%Y%m%d').iloc[0]
 
             # 파일 저장 경로 및 이름 설정 (obu_id_연월일.csv 형식)
-            save_path = os.path.join(processed_path, f"{obu_id}_{date_str}.csv")
+            save_path = os.path.join(processed_path, f"{date_str}_{obu_id}.csv")
 
             # 새로운 CSV 파일로 저장
             try:
