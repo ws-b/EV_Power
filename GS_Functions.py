@@ -180,35 +180,61 @@ def compute_mape(vehicle_files, selected_car):
     print(f"MAPE for {selected_car}  : {mape}%")
     return mape
 
-def add_rush_hour_and_weekend_feature(data):
-    date_formats = ['%Y-%m-%d %H:%M:%S', '%y-%m-%d %H:%M:%S']
-    for date_format in date_formats:
-        try:
-            # Parse the date using the current format
-            data['time'] = pd.to_datetime(data['time'], format=date_format)
-            # Extract the hour and weekday
-            data['hour'] = data['time'].dt.hour
-            data['weekday'] = data['time'].dt.weekday  # Monday=0, Sunday=6
-            break
-        except ValueError as e:
-            print(f"Date format error with format {date_format}: {e}")
+def integrate_power(data, y_test, y_pred):
+    # 'time' 컬럼을 datetime으로 변환
+    data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+
+    # 첫 번째 시간값을 기준으로 차이값 계산
+    start_time = data['time'].iloc[0]
+    time_seconds = (data['time'] - start_time).dt.total_seconds().values
+
+    # 적분 계산
+    integrated_test = np.trapz(data[y_test].values, x=time_seconds)
+    integrated_pred = np.trapz(data[y_pred].values, x=time_seconds)
+
+    return integrated_test, integrated_pred
+
+def compute_energy_mape(vehicle_files):
+    mape_values = []
+
+    for file in vehicle_files:
+        data = pd.read_csv(file)
+
+        if 'Power_phys' not in data.columns or 'Power_hybrid' not in data.columns:
+            print(f"Columns 'Power_phys' and/or 'Power_hybrid' not found in {file}")
             continue
-    else:
-        print("None of the provided date formats matched the data")
-        return data
 
-    # Define weekend and weekdays
-    data['is_weekend'] = data['weekday'].isin([5, 6]).astype(int)  # Saturday=5, Sunday=6
-    data['is_weekday'] = (~data['is_weekend']).astype(int)
+        # 적분 수행
+        energy_test, energy_pred = integrate_power(data)
 
-    # Define rush hour periods for weekdays only
-    rush_hour_morning = (data['hour'] >= 6) & (data['hour'] <= 9)
-    rush_hour_evening = (data['hour'] >= 17) & (data['hour'] <= 20)
-    data['is_rush_hour'] = (rush_hour_morning | rush_hour_evening) & (data['is_weekday'] == 1)
-    data['is_rush_hour'] = data['is_rush_hour'].astype(int)  # Convert to 0 or 1
+        # MAPE 및 RRMSE 계산
+        mape = calculate_mape(np.array([energy_test]), np.array([energy_pred]))
 
-    # Optionally drop the 'hour' and 'weekday' columns if no longer needed
-    data.drop(columns=['hour', 'weekday'], inplace=True)
+        print(f"File: {file}, MAPE: {mape}%")
 
-    return data
+        # 결과 저장
+        mape_values.append(mape)
 
+    return mape_values
+
+def compute_energy_rrmse(vehicle_files):
+    rrmse_values = []
+
+    for file in vehicle_files:
+        data = pd.read_csv(file)
+
+        if 'Power_phys' not in data.columns or 'Power_hybrid' not in data.columns:
+            print(f"Columns 'Power_phys' and/or 'Power_hybrid' not found in {file}")
+            continue
+
+        # 적분 수행
+        energy_test, energy_pred = integrate_power(data)
+
+        rrmse = calculate_rrmse(np.array([energy_test]), np.array([energy_pred]))
+
+        print(f"File: {file}, RRMSE: {rrmse}")
+
+
+        rrmse_values.append(rrmse)
+
+    return rrmse_values
