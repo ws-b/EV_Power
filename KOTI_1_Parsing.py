@@ -17,7 +17,7 @@ for file in tqdm(file_lists):
         for obu_id in obu_ids:
             obu_df = df[df['obu_id'] == obu_id]
 
-            filtered_df = obu_df[['time', 'x', 'y', 'spd', 'acc']].copy()
+            filtered_df = obu_df[['time', 'x', 'y']].copy()
 
             try:
                 filtered_df['time'] = pd.to_datetime(filtered_df['time'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
@@ -32,6 +32,11 @@ for file in tqdm(file_lists):
             date_str = filtered_df['time'].dt.strftime('%Y%m%d').iloc[0]
 
             save_path = os.path.join(processed_path, f"{date_str}_{obu_id}.csv")
+
+            # 파일이 이미 존재하면 스킵
+            if os.path.exists(save_path):
+                print(f"파일이 이미 존재합니다: {save_path}. 스킵합니다.")
+                continue
 
             try:
                 filtered_df.to_csv(save_path, index=False)

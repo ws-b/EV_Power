@@ -548,12 +548,21 @@ def plot_power_scatter(file_lists, folder_path):
         plt.grid(True)
         plt.show()
 
-
 def plot_energy_dis(file_lists, selected_car, Target):
     dis_energies_phys = []
     dis_energies_data = []
     dis_energies_hybrid = []
     total_distances = []
+
+    # Official fuel efficiency data (km/kWh)
+    official_efficiency = {
+        'Ioniq5': [4.667, 5.371],
+        'EV6': [4.524, 5.515],
+        'NiroEV': [5.277],
+        'KonaEV': [5.655],
+        'Ioniq6': [4.855, 6.597],
+        'GV60': [4.241, 5.277]
+    }
 
     for file in tqdm(file_lists):
         data = pd.read_csv(file)
@@ -578,120 +587,81 @@ def plot_energy_dis(file_lists, selected_car, Target):
         energy_data = Power_data * t_diff / 3600 / 1000
 
         if 'Power_hybrid' in data.columns:
-            power_hybrid = data['Power_hybrid']
-            power_hybrid = np.array(power_hybrid)
+            power_hybrid = np.array(data['Power_hybrid'])
             energy_hybrid = power_hybrid * t_diff / 3600 / 1000
-            dis_energy_hybrid = ((total_distance[-1] / 1000) / (energy_hybrid.cumsum()[-1])) if \
-            energy_hybrid.cumsum()[-1] != 0 else 0
+            dis_energy_hybrid = ((total_distance[-1] / 1000) / (energy_hybrid.cumsum()[-1])) if energy_hybrid.cumsum()[-1] != 0 else 0
             dis_energies_hybrid.append(dis_energy_hybrid)
 
-        # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-        dis_energy_phys = ((total_distance[-1] / 1000) / (energy_phys.cumsum()[-1])) if energy_phys.cumsum()[
-                                                                                            -1] != 0 else 0
+        dis_energy_phys = ((total_distance[-1] / 1000) / (energy_phys.cumsum()[-1])) if energy_phys.cumsum()[-1] != 0 else 0
         dis_energies_phys.append(dis_energy_phys)
 
-        dis_data_energy = ((total_distance[-1] / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
-                                                                                            -1] != 0 else 0
+        dis_data_energy = ((total_distance[-1] / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[-1] != 0 else 0
         dis_energies_data.append(dis_data_energy)
 
-        # collect total distances for each file
         total_distances.append(total_distance[-1])
 
+    # Function to add the official efficiency lines and shaded area
+    def add_efficiency_lines(selected_car):
+        if selected_car in official_efficiency:
+            eff_range = official_efficiency[selected_car]
+            if len(eff_range) == 2:
+                # Shade between the efficiency range
+                plt.fill_betweenx(plt.gca().get_ylim(), eff_range[0], eff_range[1], color='green', alpha=0.3, hatch='/')
+                plt.text(eff_range[1] + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Official Mileage', color='green', fontsize=12, alpha=0.7)
+            else:
+                # For single value efficiency, draw a line
+                plt.axvline(eff_range[0], color='green', linestyle='--', alpha=0.5)
+                plt.text(eff_range[0] + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Official Mileage', color='green', alpha=0.7, fontsize=10)
+
     if Target == 'physics':
-        # compute mean value
         mean_value = np.mean(dis_energies_phys)
-
-        # plot histogram for all files
         hist_data = sns.histplot(dis_energies_phys, bins='auto', color='gray', kde=False)
-
-        # plot vertical line for mean value
         plt.axvline(mean_value, color='red', linestyle='--')
-        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}',
-                 color='red', fontsize=12)
-
-        # plot vertical line for median value
-        median_value = np.median(dis_energies_phys)
-        plt.axvline(median_value, color='blue', linestyle='--')
-        plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
-                 fontsize=12)
-
-        # display total number of samples at top right
+        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
         total_samples = len(dis_energies_phys)
-        plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
-                 verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
-
-        # set x-axis range (from 0 to 25)
+        plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right', verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
         plt.xlim(0, 25)
         plt.xlabel('Total Distance / Total Model Energy (km/kWh)')
         plt.ylabel('Number of trips')
         plt.title(f"{selected_car} : Total Distance / Total Model Energy Distribution")
+        add_efficiency_lines(selected_car)
         plt.grid(False)
         plt.show()
 
     elif Target == 'data':
-        # compute mean value
         mean_value = np.mean(dis_energies_data)
-
-        # plot histogram for all files
         hist_data = sns.histplot(dis_energies_data, bins='auto', color='gray', kde=False)
-
-        # plot vertical line for mean value
         plt.axvline(mean_value, color='red', linestyle='--')
-        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}',
-                 color='red', fontsize=12)
-
-        # plot vertical line for median value
-        median_value = np.median(dis_energies_data)
-        plt.axvline(median_value, color='blue', linestyle='--')
-        plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
-                 fontsize=12)
-
-        # display total number of samples at top right
+        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
         total_samples = len(dis_energies_data)
-        plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
-                 verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
-
-        # set x-axis range (from 0 to 25)
+        plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right', verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
         plt.xlim(0, 25)
         plt.xlabel('Total Distance / Total Data Energy (km/kWh)')
         plt.ylabel('Number of trips')
         plt.title(f"{selected_car} : Total Distance / Total Data Energy Distribution")
+        add_efficiency_lines(selected_car)
         plt.grid(False)
         plt.show()
 
     elif Target == 'hybrid' and 'Power_hybrid' in data.columns:
-        # compute mean value
         mean_value = np.mean(dis_energies_hybrid)
-        # plot histogram for all files
         hist_data = sns.histplot(dis_energies_hybrid, bins='auto', color='gray', kde=False)
-
-        # plot vertical line for mean value
         plt.axvline(mean_value, color='red', linestyle='--')
-        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}',
-                 color='red', fontsize=12)
-
-        # plot vertical line for median value
-        median_value = np.median(dis_energies_hybrid)
-        plt.axvline(median_value, color='blue', linestyle='--')
-        plt.text(median_value + 0.05, plt.gca().get_ylim()[1] * 0.8, f'Median: {median_value:.2f}', color='blue',
-                 fontsize=12)
-
-        # display total number of samples at top right
+        plt.text(mean_value + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value:.2f}', color='red', fontsize=12)
         total_samples = len(dis_energies_hybrid)
-        plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right',
-                 verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
-
-        # set x-axis range (from 0 to 25)
+        plt.text(0.95, 0.95, f'Total Samples: {total_samples}', horizontalalignment='right', verticalalignment='top', transform=plt.gca().transAxes, fontsize=12, color='black')
         plt.xlim(0, 25)
         plt.xlabel('Total Distance / Total Hybrid Model Energy (km/kWh)')
         plt.ylabel('Number of trips')
         plt.title(f"{selected_car} : Total Distance / Total Hybrid Model Energy Distribution")
+        add_efficiency_lines(selected_car)
         plt.grid(False)
         plt.show()
 
     else:
         print("Invalid Target. Please try again.")
         return
+
 def plot_3d(X, y_true, y_pred, fold_num, vehicle, scaler, num_grids=400, samples_per_grid=30, output_file=None):
     if X.shape[1] != 2:
         print("Error: X should have 2 columns.")

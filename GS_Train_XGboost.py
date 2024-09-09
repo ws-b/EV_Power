@@ -46,17 +46,21 @@ def process_files(files, scaler=None):
                     data['elapsed_time'] = (data['time'] - data['time'].iloc[0]).dt.total_seconds()
 
                     # 이동 평균 및 표준편차 계산
+                    data['mean_accel_10'] = data['acceleration'].rolling(window=5).mean()
+                    data['std_accel_10'] = data['acceleration'].rolling(window=5).std()
                     data['mean_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).mean()
                     data['std_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).std()
                     data['mean_speed_10'] = data['speed'].rolling(window=5).mean()
                     data['std_speed_10'] = data['speed'].rolling(window=5).std()
+                    data['mean_accel_40'] = data['acceleration'].rolling(window=20).mean()
+                    data['std_accel_40'] = data['acceleration'].rolling(window=20).std()
                     data['mean_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).mean()
                     data['std_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).std()
                     data['mean_speed_40'] = data['speed'].rolling(window=20).mean()
                     data['std_speed_40'] = data['speed'].rolling(window=20).std()
 
                     # NaN 값 채우기
-                    data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']] = data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']].ffill()
+                    data[['mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']] = data[['mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']].ffill()
 
                     df_list.append((files.index(file), data))
             except Exception as e:
@@ -73,13 +77,17 @@ def process_files(files, scaler=None):
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
         # 스케일링 범위에 'elapsed_time'의 최소값 0초, 최대값 21600초로 추가
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1, 1, 1, 1, 1, ELAPSED_TIME_MAX]],
-                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']))
+        scaler.fit(pd.DataFrame([
+            [SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            # Add two missing values here
+            [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ELAPSED_TIME_MAX]  # And here
+        ], columns=['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_abs_accel_10',
+                    'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40',
+                    'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']))  # Add the new column names
 
     # 모든 피쳐에 대해 스케일링 적용
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']])
+    full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']] = scaler.transform(
+        full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']])
 
     return full_data, scaler
 
@@ -126,10 +134,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         test_data, _ = process_files(test_files)
 
         # Include the new features in the training and test sets
-        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']].to_numpy()
+        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         if best_lambda is None:
@@ -195,20 +203,24 @@ def process_file_with_trained_model(file, model, scaler):
             data['elapsed_time'] = (data['time'] - data['time'].iloc[0]).dt.total_seconds()
 
             # 이동 평균 및 표준편차 계산
+            data['mean_accel_10'] = data['acceleration'].rolling(window=5).mean()
+            data['std_accel_10'] = data['acceleration'].rolling(window=5).std()
             data['mean_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).mean()
             data['std_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).std()
             data['mean_speed_10'] = data['speed'].rolling(window=5).mean()
             data['std_speed_10'] = data['speed'].rolling(window=5).std()
+            data['mean_accel_40'] = data['acceleration'].rolling(window=20).mean()
+            data['std_accel_40'] = data['acceleration'].rolling(window=20).std()
             data['mean_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).mean()
             data['std_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).std()
             data['mean_speed_40'] = data['speed'].rolling(window=20).mean()
             data['std_speed_40'] = data['speed'].rolling(window=20).std()
 
             # Forward fill to replace NaNs with the first available value
-            data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']] = data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']].ffill()
+            data[['mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']] = data[['mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']].ffill()
 
             # Use the provided scaler to scale all necessary features
-            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']]
+            features = data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10','std_accel_10', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_accel_40', 'std_accel_40', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']]
             features_scaled = scaler.transform(features)
 
             # Predict the residual using the trained model
