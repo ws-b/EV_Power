@@ -30,39 +30,43 @@ def get_file_lists(directory):
     return vehicle_files
 
 
-def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
-
-    # Load the two images
-    img1 = mpimg.imread(img1_path)
-    img2 = mpimg.imread(img2_path)
-
-    # Create a figure with two subplots
-    fig, axs = plt.subplots(2, 1, figsize=figsize)  # Adjust figure size as needed
-
-    # Display the images in the subplots
-    axs[0].imshow(img1)
-    axs[1].imshow(img2)
-
-    # Hide axes for both subplots
-    for ax in axs:
-        ax.axis('off')
-
-    # Add 'A' and 'B' labels to the top-left corner of each subplot
-    axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
-    axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
-
-    # Save the final image
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=dpi)
-    plt.show()
-
-img1_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\EV6_RRMSE.png"
-img2_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\Ioniq5_RRMSE.png"
-save_path = r'C:\Users\BSL\Desktop\figure3.png'
+# def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
+#
+#     # Load the two images
+#     img1 = mpimg.imread(img1_path)
+#     img2 = mpimg.imread(img2_path)
+#
+#     # Create a figure with two subplots
+#     fig, axs = plt.subplots(2, 1, figsize=figsize)  # Adjust figure size as needed
+#
+#     # Display the images in the subplots
+#     axs[0].imshow(img1)
+#     axs[1].imshow(img2)
+#
+#     # Hide axes for both subplots
+#     for ax in axs:
+#         ax.axis('off')
+#
+#     # Add 'A' and 'B' labels to the top-left corner of each subplot
+#     axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+#     axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+#
+#     # Save the final image
+#     plt.tight_layout()
+#     plt.savefig(save_path, dpi=dpi)
+#     plt.show()
+#
+# img1_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\EV6_RRMSE.png"
+# img2_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\Ioniq5_RRMSE.png"
+# save_path = r'C:\Users\BSL\Desktop\figure3.png'
 
 # Example usage of the function
 directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
 vehicle_files = get_file_lists(directory)
+selected_cars = ['EV6', 'Ioniq5']
+
+city_cycle1 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228132-2023-06-trip-67.csv"
+highway_cycle1 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228094-2023-11-trip-88.csv"
 
 #save_path
 fig_save_path = r"C:\Users\BSL\Desktop\Figures"
@@ -146,6 +150,96 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     # Save the figure with dpi 300
     save_path = os.path.join(fig_save_path, 'figure1.png')
     plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.show()
+
+
+def figure4(city_cycle1, highway_cycle1):
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+
+    def process_and_plot_power(file, ax, marker, title):
+        data = pd.read_csv(file)
+
+        # Time processing
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff)
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60
+        date = t.iloc[0].strftime('%Y-%m-%d')
+
+        # Power data
+        power_data = np.array(data['Power_data']) / 1000  # Convert to kW
+        power_phys = np.array(data['Power_phys']) / 1000  # Convert to kW
+
+        # Hybrid power (if available)
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = np.array(data['Power_hybrid']) / 1000
+
+        # Plot the comparison graph
+        ax.set_xlabel('Time (minutes)')
+        ax.set_ylabel('Power (kW)')
+        ax.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
+        ax.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
+
+        if 'Power_hybrid' in data.columns:
+            ax.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green', alpha=0.6)
+
+        ax.set_ylim([-200, 230])
+
+        ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
+        ax.set_title(title, pad=10)
+        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=14, weight='bold', ha='left')  # Add marker
+
+    def process_and_plot_energy(file, ax, marker, title):
+        data = pd.read_csv(file)
+
+        # Time processing
+        t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+        t_diff = t.diff().dt.total_seconds().fillna(0)
+        t_diff = np.array(t_diff)
+        t_min = (t - t.iloc[0]).dt.total_seconds() / 60  # Convert time difference to minutes
+
+        power_data = np.array(data['Power_data'])
+        energy_data = power_data * t_diff / 3600 / 1000
+        energy_data_cumulative = energy_data.cumsum()
+
+        if 'Power_phys' in data.columns:
+            power_phys = np.array(data['Power_phys'])
+            energy_phys = power_phys * t_diff / 3600 / 1000
+            energy_phys_cumulative = energy_phys.cumsum()
+
+        if 'Power_hybrid' in data.columns:
+            power_hybrid = np.array(data['Power_hybrid'])
+            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+            energy_hybrid_cumulative = energy_hybrid.cumsum()
+
+        # Plot the comparison graph
+        ax.set_xlabel('Time (minutes)')
+        ax.set_ylabel('BMS Energy and Physics Model Energy (kWh)')
+        ax.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
+        ax.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
+        if 'Power_hybrid' in data.columns:
+            ax.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:green', alpha=0.6)
+
+        ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
+        ax.set_title(title, pad=10)
+        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=14, weight='bold', ha='left')  # Add marker
+
+    # Plot for city_cycle1 power in the first row, first column
+    process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle - Power Comparison')
+
+    # Plot for highway_cycle1 power in the second row, first column
+    process_and_plot_power(highway_cycle1, axs[1, 0], 'C', 'Highway Cycle - Power Comparison')
+
+    # Plot for city_energy_file in the first row, second column
+    process_and_plot_energy(city_cycle1, axs[0, 1], 'B', 'City Cycle - Energy Comparison')
+
+    # Plot for highway_energy_file in the second row, second column
+    process_and_plot_energy(highway_cycle1, axs[1, 1], 'D', 'Highway Cycle - Energy Comparison')
+
+    # Adjust layout and save the figure
+    plt.tight_layout()
+    save_path = os.path.join(fig_save_path, 'figure4.png')  # Replace with your save path
     plt.savefig(save_path, dpi=300)
     plt.show()
 
@@ -333,7 +427,8 @@ def figure5(vehicle_files, selected_cars):
     plt.savefig(save_path, dpi=300)
     plt.show()
 
-selected_cars = ['EV6', 'Ioniq5']
+
 # figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
 # figure3(img1_path, img2_path, save_path)
-figure5(vehicle_files, selected_cars)
+figure4(city_cycle1, highway_cycle1)
+# figure5(vehicle_files, selected_cars)
