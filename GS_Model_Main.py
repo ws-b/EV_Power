@@ -11,7 +11,6 @@ from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
 from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate, add_predicted_power_column as lgbm_add_predicted_power_column
-
 def main():
     car_options = {
         1: 'EV6',
@@ -161,7 +160,7 @@ def main():
                     if train_choice == 5:
                         vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500,
                                               1000, 2000, 3000, 5000, 10000]
-
+                        save_path = r"C:\Users\BSL\Desktop\Figures\Result"
                         l2lambda = {selected_car: []}
                         results_dict = {selected_car: {}}
                         max_samples = len(vehicle_files[selected_car])
@@ -169,14 +168,14 @@ def main():
                         filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
                         _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None, None, save_dir=None)
                         l2lambda[selected_car].append({
-                                        'model': 'Hybrid Model(XGBoost)',
-                                        'lambda': lambda_XGB
-                                    })
+                            'model': 'Hybrid Model(XGBoost)',
+                            'lambda': lambda_XGB
+                        })
                         _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, None, save_dir=None)
                         l2lambda[selected_car].append({
-                                        'model': 'Only ML(XGBoost)',
-                                        'lambda': lambda_ML
-                                    })
+                            'model': 'Only ML(XGBoost)',
+                            'lambda': lambda_ML
+                        })
 
                         for size in filtered_vehicle_file_sizes:
                             if size not in results_dict[selected_car]:
@@ -201,37 +200,40 @@ def main():
                                     results_dict[selected_car][size].append({
                                         'model': 'Physics-Based',
                                         'rrmse': [rrmse_physics],
-                                        'mape' : [mape_physics]
+                                        'mape': [mape_physics]
                                     })
 
-                                results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB, None, save_dir=None)
+                                results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB,
+                                                                        None, save_dir=None)
                                 if results:
                                     mape_values = [mape for _, _, _, mape in results]
                                     rrmse_values = [rrmse for _, rrmse, _, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(XGBoost)',
                                         'rrmse': rrmse_values,
-                                        'mape' : mape_values
+                                        'mape': mape_values
                                     })
 
-                                results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, None, save_dir=None)
+                                results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, None,
+                                                                    save_dir=None)
                                 if results:
                                     mape_values = [mape for _, _, _, mape in results]
                                     rrmse_values = [rrmse for _, rrmse, _, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Hybrid Model(Linear Regression)',
                                         'rrmse': rrmse_values,
-                                        'mape' : mape_values
+                                        'mape': mape_values
                                     })
 
-                                results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML, None, save_dir=None)
+                                results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML,
+                                                                       None, save_dir=None)
                                 if results:
                                     mape_values = [mape for _, _, _, mape in results]
                                     rrmse_values = [rrmse for _, rrmse, _, _ in results]
                                     results_dict[selected_car][size].append({
                                         'model': 'Only ML(XGBoost)',
                                         'rrmse': rrmse_values,
-                                        'mape' : mape_values
+                                        'mape': mape_values
                                     })
 
                         print(results_dict)
@@ -256,13 +258,14 @@ def main():
                         only_ml_mape_std = []
 
                         for size in sizes:
-                            phys_values = [item for result in results_car[size] if result['model'] == 'Physics-Based' for item
-                                           in result['rrmse']]
-                            xgb_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(XGBoost)' for
-                                          item in result['rrmse']]
-                            lr_values = [item for result in results_car[size] if
-                                         result['model'] == 'Hybrid Model(Linear Regression)' for item in result['rrmse']]
-                            only_ml_values = [item for result in results_car[size] if result['model'] == 'Only ML(XGBoost)' for
+                            phys_values = [item for result in results_car[size] if result['model'] == 'Physics-Based'
+                                           for item in result['rrmse']]
+                            xgb_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(XGBoost)'
+                                           for item in result['rrmse']]
+                            lr_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(Linear Regression)'
+                                         for item in result['rrmse']]
+                            only_ml_values = [item for result in results_car[size] if
+                                              result['model'] == 'Only ML(XGBoost)' for
                                               item in result['rrmse']]
                             phys_mape_values = [item for result in results_car[size] if
                                                 result['model'] == 'Physics-Based' for item in result['mape']]
@@ -325,6 +328,7 @@ def main():
                         plt.xscale('log')
                         plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
                         plt.xlim(min(sizes) - 1, max(sizes) + 1000)
+                        plt.savefig(os.path.join(save_path, f"{selected_car}_rrmse.png"), dpi= 600)
                         plt.show()
 
                         # MAPE 플롯
@@ -353,6 +357,7 @@ def main():
                         plt.xscale('log')
                         plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
                         plt.xlim(min(sizes) - 1, max(sizes) + 1000)
+                        plt.savefig(os.path.join(save_path, f"{selected_car}_mape.png"), dpi=600)
                         plt.show()
                         print(f"{l2lambda}")
 

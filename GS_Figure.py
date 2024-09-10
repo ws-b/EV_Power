@@ -6,19 +6,17 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import random
 import plotly.graph_objects as go
-from GS_Functions import get_vehicle_files, compute_rrmse, compute_rmse, compute_mape
+from GS_Functions import get_vehicle_files, compute_rrmse, compute_rmse, compute_mape, calculate_rmse, calculate_mape, calculate_rrmse
 from scipy.interpolate import griddata
 from scipy.stats import linregress
 from tqdm import tqdm
 from GS_vehicle_dict import vehicle_dict
-from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
-from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
-from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
-from GS_Train_LightGBM import cross_validate as lgbm_cross_validate, add_predicted_power_column as lgbm_add_predicted_power_column
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 # Function to get file lists for each vehicle based on vehicle_dict
 def get_file_lists(directory):
-    vehicle_file_lists = {vehicle: [] for vehicle in vehicle_dict.keys()}
+    vehicle_files = {vehicle: [] for vehicle in vehicle_dict.keys()}
 
     # Iterate over files in the directory
     for filename in os.listdir(directory):
@@ -26,23 +24,49 @@ def get_file_lists(directory):
             # Match filename with vehicle IDs
             for vehicle, ids in vehicle_dict.items():
                 if any(vid in filename for vid in ids):
-                    vehicle_file_lists[vehicle].append(os.path.join(directory, filename))
+                    vehicle_files[vehicle].append(os.path.join(directory, filename))
                     break  # Stop searching once a match is found
 
-    return vehicle_file_lists
+    return vehicle_files
+
+
+def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
+
+    # Load the two images
+    img1 = mpimg.imread(img1_path)
+    img2 = mpimg.imread(img2_path)
+
+    # Create a figure with two subplots
+    fig, axs = plt.subplots(2, 1, figsize=figsize)  # Adjust figure size as needed
+
+    # Display the images in the subplots
+    axs[0].imshow(img1)
+    axs[1].imshow(img2)
+
+    # Hide axes for both subplots
+    for ax in axs:
+        ax.axis('off')
+
+    # Add 'A' and 'B' labels to the top-left corner of each subplot
+    axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+    axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+
+    # Save the final image
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=dpi)
+    plt.show()
+
+img1_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\EV6_RRMSE.png"
+img2_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\Ioniq5_RRMSE.png"
+save_path = r'C:\Users\BSL\Desktop\figure3.png'
 
 # Example usage of the function
-directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"  # Change this to your actual directory
-vehicle_file_lists = get_file_lists(directory)
+directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
+vehicle_files = get_file_lists(directory)
+
 #save_path
 fig_save_path = r"C:\Users\BSL\Desktop\Figures"
-# Now you can use the file lists for specific vehicles like EV6 and Ioniq5 in your figure1 function
-file_lists_ev6 = vehicle_file_lists['EV6']
-file_lists_ioniq5 = vehicle_file_lists['Ioniq5']
-file_lists_konaEV = vehicle_file_lists['KonaEV']
-file_lists_ioniq6 = vehicle_file_lists['Ioniq6']
-file_lists_niroEV = vehicle_file_lists['NiroEV']
-file_lists_GV60 = vehicle_file_lists['GV60']
+
 def figure1(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
     official_efficiency = {
@@ -120,178 +144,196 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     plt.grid(False)
 
     # Save the figure with dpi 300
-    save_path = os.path.join(fig_save_path, 'figure1_ev6_ioniq5.png')
+    save_path = os.path.join(fig_save_path, 'figure1.png')
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.show()
 
+def figure5(vehicle_files, selected_cars):
+    # Initialize dictionaries for storing data for selected vehicles
+    energies_dict = {car: {'data': [], 'phys': [], 'hybrid': []} for car in selected_cars}
+    all_energies_dict = {car: {'data': [], 'phys': [], 'hybrid': []} for car in selected_cars}
 
-def figure3(vehicle_files_ev6, vehicle_files_ioniq5):
-    vehicle_file_sizes = [50, 1000]
-    l2lambda = {'EV6': [], 'Ioniq5': []}
-    results_dict = {'EV6': {}, 'Ioniq5': {}}
+    # Calculate total energy using whole data
+    for selected_car in selected_cars:
 
-    # Function to process lambda and cross-validation results
-    def process_lambda_cross_validation(vehicle_files, selected_car):
-        l2lambda[selected_car] = []
-        results_dict[selected_car] = {}
-        max_samples = len(vehicle_files[selected_car])
+        for file in tqdm(vehicle_files[selected_car]):
+            data = pd.read_csv(file)
 
-        filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
+            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            t_diff = t.diff().dt.total_seconds().fillna(0)
+            t_diff = np.array(t_diff.fillna(0))
 
-        # Perform cross-validation for Hybrid Model (XGBoost)
-        _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None, None, save_dir=None)
-        l2lambda[selected_car].append({
-            'model': 'Hybrid Model(XGBoost)',
-            'lambda': lambda_XGB
-        })
+            power_data = np.array(data['Power_data'])
+            energy_data = power_data * t_diff / 3600 / 1000
+            all_energies_dict[selected_car]['data'].append(energy_data.cumsum()[-1])
 
-        # Perform cross-validation for Only ML (XGBoost)
-        _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, None, save_dir=None)
-        l2lambda[selected_car].append({
-            'model': 'Only ML(XGBoost)',
-            'lambda': lambda_ML
-        })
+            if 'Power_phys' in data.columns:
+                power_phys = np.array(data['Power_phys'])
+                energy_phys = power_phys * t_diff / 3600 / 1000
+                all_energies_dict[selected_car]['phys'].append(energy_phys.cumsum()[-1])
 
-        # Loop over vehicle file sizes
-        for size in filtered_vehicle_file_sizes:
-            if size not in results_dict[selected_car]:
-                results_dict[selected_car][size] = []
+            if 'Power_hybrid' in data.columns:
+                power_hybrid = np.array(data['Power_hybrid'])
+                energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+                all_energies_dict[selected_car]['hybrid'].append(energy_hybrid.cumsum()[-1])
 
-            # Define number of samplings based on size
-            if size < 20:
-                samplings = 200
-            elif 20 <= size < 50:
-                samplings = 10
-            elif 50 <= size <= 100:
-                samplings = 5
-            else:
-                samplings = 1
+    # Select 1000 samples in random
+    sample_size = min(1000, len(vehicle_files[selected_car]))
+    sampled_files = {car: random.sample(vehicle_files[car], sample_size) for car in selected_cars}
 
-            for _ in range(samplings):
-                sampled_files = random.sample(vehicle_files[selected_car], size)
-                sampled_vehicle_files = {selected_car: sampled_files}
+    for selected_car in selected_cars:
+        for file in tqdm(sampled_files[selected_car]):
+            data = pd.read_csv(file)
 
-                # Physics-based model RRMSE and MAPE
-                mape_physics = compute_mape(sampled_vehicle_files, selected_car)
-                rrmse_physics = compute_rrmse(sampled_vehicle_files, selected_car)
-                if rrmse_physics is not None:
-                    results_dict[selected_car][size].append({
-                        'model': 'Physics-Based',
-                        'rrmse': [rrmse_physics],
-                        'mape': [mape_physics]
-                    })
+            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            t_diff = t.diff().dt.total_seconds().fillna(0)
+            t_diff = np.array(t_diff.fillna(0))
 
-                # Hybrid Model (XGBoost)
-                results, _, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB, None, save_dir=None)
-                if results:
-                    mape_values = [mape for _, _, _, mape in results]
-                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
-                    results_dict[selected_car][size].append({
-                        'model': 'Hybrid Model(XGBoost)',
-                        'rrmse': rrmse_values,
-                        'mape': mape_values
-                    })
+            power_data = np.array(data['Power_data'])
+            energy_data = power_data * t_diff / 3600 / 1000
+            energies_dict[selected_car]['data'].append(energy_data.cumsum()[-1])
 
-                # Hybrid Model (Linear Regression)
-                results, _ = lr_cross_validate(sampled_vehicle_files, selected_car, None, save_dir=None)
-                if results:
-                    mape_values = [mape for _, _, _, mape in results]
-                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
-                    results_dict[selected_car][size].append({
-                        'model': 'Hybrid Model(Linear Regression)',
-                        'rrmse': rrmse_values,
-                        'mape': mape_values
-                    })
+            if 'Power_phys' in data.columns:
+                power_phys = np.array(data['Power_phys'])
+                energy_phys = power_phys * t_diff / 3600 / 1000
+                energies_dict[selected_car]['phys'].append(energy_phys.cumsum()[-1])
 
-                # Only ML (XGBoost)
-                results, _, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML, None, save_dir=None)
-                if results:
-                    mape_values = [mape for _, _, _, mape in results]
-                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
-                    results_dict[selected_car][size].append({
-                        'model': 'Only ML(XGBoost)',
-                        'rrmse': rrmse_values,
-                        'mape': mape_values
-                    })
+            if 'Power_hybrid' in data.columns:
+                power_hybrid = np.array(data['Power_hybrid'])
+                energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+                energies_dict[selected_car]['hybrid'].append(energy_hybrid.cumsum()[-1])
 
-        return l2lambda[selected_car], results_dict[selected_car]
+    # Create 2x2 subplots
+    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
 
-    # Process results for EV6
-    l2lambda_ev6, results_ev6 = process_lambda_cross_validation(vehicle_files_ev6, 'EV6')
+    for i, selected_car in enumerate(selected_cars):
+        ax = axs[0, i]
+        colors = cm.rainbow(np.linspace(0, 1, len(energies_dict[selected_car]['data'])))
 
-    # Process results for Ioniq5
-    l2lambda_ioniq5, results_ioniq5 = process_lambda_cross_validation(vehicle_files_ioniq5, 'Ioniq5')
+        ax.set_xlabel('Data Energy (kWh)')
+        ax.set_ylabel('Hybrid Model Energy (kWh)')
+        ax.text(-0.1, 1.05, chr(65 + i), transform=ax.transAxes, size=14, weight='bold')
 
-    # Print results for lambda values
-    print(f"Lambda values for EV6: {l2lambda_ev6}")
-    print(f"Lambda values for Ioniq5: {l2lambda_ioniq5}")
+        for j in range(len(energies_dict[selected_car]['data'])):
+            ax.scatter(energies_dict[selected_car]['data'][j], energies_dict[selected_car]['phys'][j], color=colors[j],
+                       facecolors='none',
+                       edgecolors=colors[j], label='Before learning' if j == 0 else "")
 
-    # Prepare plot data
-    def prepare_plot_data(results_car):
-        sizes = sorted(results_car.keys())
-        phys_rrmse, xgb_rrmse, lr_rrmse, only_ml_rrmse = [], [], [], []
+        for j in range(len(energies_dict[selected_car]['data'])):
+            ax.scatter(energies_dict[selected_car]['data'][j], energies_dict[selected_car]['hybrid'][j], color=colors[j],
+                       label='After learning' if j == 0 else "")
 
-        for size in sizes:
-            phys_values = [item for result in results_car[size] if result['model'] == 'Physics-Based' for item in
-                           result['rrmse']]
-            xgb_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(XGBoost)' for item in
-                          result['rrmse']]
-            lr_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(Linear Regression)'
-                         for item in result['rrmse']]
-            only_ml_values = [item for result in results_car[size] if result['model'] == 'Only ML(XGBoost)' for item in
-                              result['rrmse']]
+        slope_original, intercept_original, _, _, _ = linregress(all_energies_dict[selected_car]['data'],
+                                                                 all_energies_dict[selected_car]['phys'])
+        ax.plot(np.array(energies_dict[selected_car]['data']),
+                intercept_original + slope_original * np.array(energies_dict[selected_car]['data']),
+                color='lightblue')
 
-            # Append means
-            if phys_values:
-                phys_rrmse.append(np.mean(phys_values))
-            if xgb_values:
-                xgb_rrmse.append(np.mean(xgb_values))
-            if lr_values:
-                lr_rrmse.append(np.mean(lr_values))
-            if only_ml_values:
-                only_ml_rrmse.append(np.mean(only_ml_values))
+        slope, intercept, _, _, _ = linregress(all_energies_dict[selected_car]['data'],
+                                               all_energies_dict[selected_car]['hybrid'])
+        ax.plot(np.array(energies_dict[selected_car]['data']),
+                intercept + slope * np.array(energies_dict[selected_car]['data']), 'b')
 
-        return sizes, phys_rrmse, xgb_rrmse, lr_rrmse, only_ml_rrmse
+        lims = [
+            np.min([ax.get_xlim(), ax.get_ylim()]),
+            np.max([ax.get_xlim(), ax.get_ylim()]),
+        ]
+        ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
+        ax.set_aspect('equal')
+        ax.set_xlim(0, None)
+        ax.set_ylim(0, None)
 
-    sizes_ev6, phys_rrmse_ev6, xgb_rrmse_ev6, lr_rrmse_ev6, only_ml_rrmse_ev6 = prepare_plot_data(results_ev6)
-    sizes_ioniq5, phys_rrmse_ioniq5, xgb_rrmse_ioniq5, lr_rrmse_ioniq5, only_ml_rrmse_ioniq5 = prepare_plot_data(
-        results_ioniq5)
+        # Add legend for A and B
+        ax.legend(loc='upper left')
 
-    # Create subplots
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
+        # Add subplot title
+        ax.set_title(f"{selected_car} : Data Energy vs. Hybrid Model Energy")
 
-    # Plot for EV6
-    ax1.plot(sizes_ev6, phys_rrmse_ev6, label='Physics-Based', linestyle='--', color='r')
-    ax1.plot(sizes_ev6, xgb_rrmse_ev6, label='Hybrid Model(XGBoost)', marker='o')
-    ax1.plot(sizes_ev6, lr_rrmse_ev6, label='Hybrid Model(Linear Regression)', marker='o')
-    ax1.plot(sizes_ev6, only_ml_rrmse_ev6, label='Only ML(XGBoost)', marker='o')
+    for i, selected_car in enumerate(selected_cars):
+        # Select random sample ids for this car
+        sample_ids = random.sample(vehicle_dict[selected_car], 4)
+        sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in sample_ids}
 
-    ax1.set_xlabel('Number of Trips')
-    ax1.set_ylabel('RRMSE')
-    ax1.set_title('RRMSE vs Number of Trips for EV6')
-    ax1.legend()
-    ax1.grid(True)
-    ax1.set_xscale('log')
+        energies_data = {}
+        energies_phys = {}
+        energies_hybrid = {}
 
-    # Plot for Ioniq5
-    ax2.plot(sizes_ioniq5, phys_rrmse_ioniq5, label='Physics-Based', linestyle='--', color='r')
-    ax2.plot(sizes_ioniq5, xgb_rrmse_ioniq5, label='Hybrid Model(XGBoost)', marker='o')
-    ax2.plot(sizes_ioniq5, lr_rrmse_ioniq5, label='Hybrid Model(Linear Regression)', marker='o')
-    ax2.plot(sizes_ioniq5, only_ml_rrmse_ioniq5, label='Only ML(XGBoost)', marker='o')
+        colors = cm.rainbow(np.linspace(0, 1, len(sample_files_dict)))
+        color_map = {}
+        ax = axs[1, i]  # C and D are in the second row
 
-    ax2.set_xlabel('Number of Trips')
-    ax2.set_ylabel('RRMSE')
-    ax2.set_title('RRMSE vs Number of Trips for Ioniq5')
-    ax2.legend()
-    ax2.grid(True)
-    ax2.set_xscale('log')
+        for j, (id, files) in enumerate(sample_files_dict.items()):
+            energies_data[id] = []
+            energies_phys[id] = []
+            energies_hybrid[id] = []
+            color_map[id] = colors[j]
+            driver_label = f"Driver {j+1}"
+            for file in tqdm(files, desc=f'Processing {selected_car} - Driver {id}'):
+                data = pd.read_csv(file)
 
-    # Save the figure with dpi 300
-    save_path = os.path.join(fig_save_path, 'figure3_rrmse_ev6_ioniq5.png')
+                t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+                t_diff = t.diff().dt.total_seconds().fillna(0)
+                t_diff = np.array(t_diff.fillna(0))
+
+                power_data = np.array(data['Power_data'])
+                energy_data = power_data * t_diff / 3600 / 1000
+                energies_data[id].append(energy_data.cumsum()[-1])
+
+                if 'Power_phys' in data.columns:
+                    power_phys = np.array(data['Power_phys'])
+                    energy_phys = power_phys * t_diff / 3600 / 1000
+                    energies_phys[id].append(energy_phys.cumsum()[-1])
+
+                if 'Power_hybrid' in data.columns:
+                    power_hybrid = np.array(data['Power_hybrid'])
+                    predicted_energy = power_hybrid * t_diff / 3600 / 1000
+                    energies_hybrid[id].append(predicted_energy.cumsum()[-1])
+
+            # Scatter plot and regression line
+            ax.scatter(energies_data[id], energies_hybrid[id], facecolors='none',
+                       edgecolors=color_map[id], label=f'{driver_label} After learning')
+
+            slope, intercept, _, _, _ = linregress(energies_data[id], energies_hybrid[id])
+            ax.plot(np.array(energies_data[id]), intercept + slope * np.array(energies_data[id]),
+                    color=color_map[id])
+
+            # Calculate RMSE & NRMSE for each car
+            mape_before, relative_rmse_before = calculate_mape(np.array(energies_data[id]),
+                                                               np.array(energies_phys[id])), calculate_rrmse(
+                np.array(energies_data[id]), np.array(energies_phys[id]))
+            mape_after, relative_rmse_after = calculate_mape(np.array(energies_data[id]),
+                                                             np.array(energies_hybrid[id])), calculate_rrmse(
+                np.array(energies_data[id]), np.array(energies_hybrid[id]))
+
+            ax.text(0.05, 0.95 - j * 0.13,
+                    f'{selected_car} {driver_label}\nMAPE (Before): {mape_before:.2f}%\nRRMSE (Before): {relative_rmse_before:.2%}\nMAPE (After): {mape_after:.2f}%\nRRMSE (After): {relative_rmse_after:.2%}',
+                    transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
+
+        # Set subplot limits and aspects
+        lims = [
+            np.min([ax.get_xlim(), ax.get_ylim()]),
+            np.max([ax.get_xlim(), ax.get_ylim()]),
+        ]
+        ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
+        ax.set_aspect('equal')
+        ax.set_xlim(0, None)
+        ax.set_ylim(0, None)
+
+        # Add legend for C and D
+        ax.legend(loc='upper right')
+        # Set titles, labels, and markers for C and D
+        ax.set_xlabel('Data Energy (kWh)')
+        ax.set_ylabel('Hybrid Model Energy (kWh)')
+        ax.text(-0.1, 1.05, chr(67 + i), transform=ax.transAxes, size=14, weight='bold')
+        ax.set_title(f"{selected_car}'s Driver : Data Energy vs. Hybrid Model Energy")
+
+    save_path = os.path.join(fig_save_path, 'figure5.png')
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.show()
 
-# figure1(file_lists_ev6, file_lists_ioniq5)
-figure3(file_lists_ev6, file_lists_ioniq5)
+selected_cars = ['EV6', 'Ioniq5']
+# figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
+# figure3(img1_path, img2_path, save_path)
+figure5(vehicle_files, selected_cars)

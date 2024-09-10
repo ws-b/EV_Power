@@ -457,19 +457,19 @@ def plot_energy_scatter(file_lists, selected_car, target):
         print('Invalid Target')
         return
 
-def plot_driver_energy_scatter(file_lists_dict, selected_car):
+def plot_driver_energy_scatter(vehicle_files, selected_car):
     energies_data = {}
     energies_phys = {}
     energies_hybrid = {}
 
-    colors = cm.rainbow(np.linspace(0, 1, len(file_lists_dict)))
+    colors = cm.rainbow(np.linspace(0, 1, len(vehicle_files)))
     color_map = {}
 
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_xlabel('Data Energy (kWh)')
     ax.set_ylabel('Hybrid Model Energy (kWh)')
 
-    for i, (id, files) in enumerate(file_lists_dict.items()):
+    for i, (id, files) in enumerate(vehicle_files.items()):
         energies_data[id] = []
         energies_phys[id] = []
         energies_hybrid[id] = []
