@@ -119,7 +119,7 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
 
     # Create subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
 
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
@@ -354,7 +354,24 @@ def figure5(vehicle_files, selected_cars):
         ax.plot(np.array(energies_dict[selected_car]['data']),
                 np.exp(intercept + slope * np.log(energies_dict[selected_car]['data'])),
                 'b')
+        # MAPE & RRMSE calculations for display
+        mape_before = calculate_mape(np.array(energies_dict[selected_car]['data']),
+                                     np.array(energies_dict[selected_car]['phys']))
+        relative_rmse_before = calculate_rrmse(np.array(energies_dict[selected_car]['data']),
+                                               np.array(energies_dict[selected_car]['phys']))
+        mape_after = calculate_mape(np.array(energies_dict[selected_car]['data']),
+                                    np.array(energies_dict[selected_car]['hybrid']))
+        relative_rmse_after = calculate_rrmse(np.array(energies_dict[selected_car]['data']),
+                                              np.array(energies_dict[selected_car]['hybrid']))
 
+        # Displaying the MAPE and RRMSE values in the plot
+        ax.text(0.6, 0.15,
+                f'MAPE (Before): {mape_before:.2f}%\n'
+                f'RRMSE (Before): {relative_rmse_before:.2%}\n'
+                f'MAPE (After): {mape_after:.2f}%\n'
+                f'RRMSE (After): {relative_rmse_after:.2%}',
+                transform=ax.transAxes, fontsize=10, verticalalignment='top')
+        
         # 축의 범위를 설정하고 대각선 비교선을 그리기 위한 lims 설정
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
@@ -378,7 +395,7 @@ def figure5(vehicle_files, selected_cars):
 
     for i, selected_car in enumerate(selected_cars):
         # Select random sample ids for this car
-        sample_ids = random.sample(vehicle_dict[selected_car], 4)
+        sample_ids = vehicle_dict[selected_car][0:3]
         sample_files_dict = {id: [f for f in vehicle_files[selected_car] if id in f] for id in sample_ids}
 
         energies_data = {}
@@ -537,7 +554,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
 
     # Create subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
 
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
@@ -601,8 +618,8 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     plt.savefig(save_path, dpi=300)
     plt.show()
 
-figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
+# figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
 # figure3(img1_path, img2_path, save_path)
 # figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2)
-# figure5(vehicle_files, selected_cars)
-figure6(vehicle_files['EV6'], vehicle_files['Ioniq5'])
+figure5(vehicle_files, selected_cars)
+# figure6(vehicle_files['EV6'], vehicle_files['Ioniq5'])
