@@ -67,15 +67,16 @@ selected_cars = ['EV6', 'Ioniq5']
 
 city_cycle1 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228132-2023-06-trip-67.csv"
 highway_cycle1 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228094-2023-11-trip-88.csv"
-
+city_cycle2 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228003-2023-08-trip-11.csv"
+highway_cycle2 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228107-2023-01-trip-15.csv"
 #save_path
 fig_save_path = r"C:\Users\BSL\Desktop\Figures"
 
 def figure1(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
     official_efficiency = {
-        'Ioniq5': [4.667, 5.371],
-        'EV6': [4.524, 5.515]
+        'Ioniq5': [4.148, 6.221],
+        'EV6': [4.085, 6.407]
     }
 
     # Function to process energy data
@@ -108,16 +109,17 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
         if selected_car in official_efficiency:
             eff_range = official_efficiency[selected_car]
             if len(eff_range) == 2:
-                plt.fill_betweenx(plt.gca().get_ylim(), eff_range[0], eff_range[1], color='green', alpha=0.3, hatch='/')
-                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'Official Efficiency',
-                         color='green', fontsize=12, alpha=0.7)
+                ylim = plt.gca().get_ylim()
+                plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
+                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'EPA Efficiency',
+                         color='orange', fontsize=12, alpha=0.7)
 
     # Process the data for EV6 and Ioniq5
     dis_energies_ev6 = process_energy_data(file_lists_ev6)
     dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
 
     # Create subplots
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
@@ -125,8 +127,9 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     sns.histplot(dis_energies_ev6, bins='auto', color='gray', kde=False)
     plt.axvline(mean_value_ev6, color='red', linestyle='--')
     plt.text(mean_value_ev6 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6:.2f}', color='red', fontsize=12, alpha=0.7)
-    plt.xlabel('Official Efficiency in km/kWh')
+    plt.xlabel('Efficiency in km/kWh')
     plt.xlim((0, 15))
+    plt.ylim(0, 1300)
     plt.ylabel('Number of trips')
     ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=14, weight='bold', ha='left')  # Move (a) to top-left
     ax1.set_title("Energy Consumption Distribution : EV6", pad=10)  # Title below (a)
@@ -138,9 +141,10 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     mean_value_ioniq5 = np.mean(dis_energies_ioniq5)
     sns.histplot(dis_energies_ioniq5, bins='auto', color='gray', kde=False)
     plt.axvline(mean_value_ioniq5, color='red', linestyle='--')
-    plt.text(mean_value_ioniq5 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ioniq5:.2f}', color='red', fontsize=12, alpha=0.7)
-    plt.xlabel('Official Efficiency in km/kWh')
+    plt.text(mean_value_ioniq5 + 0.05, plt.gca().get_ylim()[1] * 0.95, f'Mean: {mean_value_ioniq5:.2f}', color='red', fontsize=12, alpha=0.7)
+    plt.xlabel('Efficiency in km/kWh')
     plt.xlim(0, 15)
+    plt.ylim(0, 900)
     plt.ylabel('Number of trips')
     ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=14, weight='bold', ha='left')  # Move (b) to top-left
     ax2.set_title("Energy Consumption Distribution : Ioniq5", pad=10)  # Title below (b)
@@ -154,8 +158,8 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     plt.show()
 
 
-def figure4(city_cycle1, highway_cycle1):
-    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2):
+    fig, axs = plt.subplots(2, 4, figsize=(24, 10))
 
     def process_and_plot_power(file, ax, marker, title):
         data = pd.read_csv(file)
@@ -184,7 +188,7 @@ def figure4(city_cycle1, highway_cycle1):
         if 'Power_hybrid' in data.columns:
             ax.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green', alpha=0.6)
 
-        ax.set_ylim([-200, 230])
+        ax.set_ylim()
 
         ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
         ax.set_title(title, pad=10)
@@ -216,8 +220,8 @@ def figure4(city_cycle1, highway_cycle1):
         # Plot the comparison graph
         ax.set_xlabel('Time (minutes)')
         ax.set_ylabel('BMS Energy and Physics Model Energy (kWh)')
-        ax.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
         ax.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
+        ax.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
         if 'Power_hybrid' in data.columns:
             ax.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:green', alpha=0.6)
 
@@ -226,16 +230,28 @@ def figure4(city_cycle1, highway_cycle1):
         ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=14, weight='bold', ha='left')  # Add marker
 
     # Plot for city_cycle1 power in the first row, first column
-    process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle - Power Comparison')
+    process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle 1 - Power Comparison')
 
     # Plot for highway_cycle1 power in the second row, first column
-    process_and_plot_power(highway_cycle1, axs[1, 0], 'C', 'Highway Cycle - Power Comparison')
+    process_and_plot_power(highway_cycle1, axs[0, 1], 'C', 'Highway Cycle 1 - Power Comparison')
 
     # Plot for city_energy_file in the first row, second column
-    process_and_plot_energy(city_cycle1, axs[0, 1], 'B', 'City Cycle - Energy Comparison')
+    process_and_plot_energy(city_cycle1, axs[1, 0], 'B', 'City Cycle 1 - Energy Comparison')
 
     # Plot for highway_energy_file in the second row, second column
-    process_and_plot_energy(highway_cycle1, axs[1, 1], 'D', 'Highway Cycle - Energy Comparison')
+    process_and_plot_energy(highway_cycle1, axs[1, 1], 'D', 'Highway Cycle 1 - Energy Comparison')
+
+    # Plot for city_cycle1 power in the first row, first column
+    process_and_plot_power(city_cycle2, axs[0, 2], 'E', 'City Cycle 2 - Power Comparison')
+
+    # Plot for highway_cycle1 power in the second row, first column
+    process_and_plot_power(highway_cycle2, axs[0, 3], 'G', 'Highway Cycle 2 - Power Comparison')
+
+    # Plot for city_energy_file in the first row, second column
+    process_and_plot_energy(city_cycle2, axs[1, 2], 'F', 'City Cycle 2 - Energy Comparison')
+
+    # Plot for highway_energy_file in the second row, second column
+    process_and_plot_energy(highway_cycle2, axs[1, 3], 'H', 'Highway Cycle 2 - Energy Comparison')
 
     # Adjust layout and save the figure
     plt.tight_layout()
@@ -312,31 +328,47 @@ def figure5(vehicle_files, selected_cars):
         for j in range(len(energies_dict[selected_car]['data'])):
             ax.scatter(energies_dict[selected_car]['data'][j], energies_dict[selected_car]['phys'][j], color=colors[j],
                        facecolors='none',
-                       edgecolors=colors[j], label='Before learning' if j == 0 else "")
+                       edgecolors=colors[j], label='Physics-based Model' if j == 0 else "")
 
         for j in range(len(energies_dict[selected_car]['data'])):
-            ax.scatter(energies_dict[selected_car]['data'][j], energies_dict[selected_car]['hybrid'][j], color=colors[j],
-                       label='After learning' if j == 0 else "")
+            ax.scatter(energies_dict[selected_car]['data'][j], energies_dict[selected_car]['hybrid'][j],
+                       color=colors[j],
+                       label='Hybrid Model' if j == 0 else "")
 
-        slope_original, intercept_original, _, _, _ = linregress(all_energies_dict[selected_car]['data'],
-                                                                 all_energies_dict[selected_car]['phys'])
+        # 로그 스케일에 맞춰 데이터 변환
+        log_data_energy = np.log(energies_dict[selected_car]['data'])
+        log_phys_energy = np.log(energies_dict[selected_car]['phys'])
+        log_hybrid_energy = np.log(energies_dict[selected_car]['hybrid'])
+
+        # Physics 모델과의 로그 스케일 회귀 분석
+        slope_original, intercept_original, _, _, _ = linregress(log_data_energy, log_phys_energy)
+
+        # Hybrid 모델과의 로그 스케일 회귀 분석
+        slope, intercept, _, _, _ = linregress(log_data_energy, log_hybrid_energy)
+
+        # 로그 스케일에 맞는 회귀선을 그리기 위해 exp() 함수로 변환
         ax.plot(np.array(energies_dict[selected_car]['data']),
-                intercept_original + slope_original * np.array(energies_dict[selected_car]['data']),
+                np.exp(intercept_original + slope_original * np.log(energies_dict[selected_car]['data'])),
                 color='lightblue')
 
-        slope, intercept, _, _, _ = linregress(all_energies_dict[selected_car]['data'],
-                                               all_energies_dict[selected_car]['hybrid'])
         ax.plot(np.array(energies_dict[selected_car]['data']),
-                intercept + slope * np.array(energies_dict[selected_car]['data']), 'b')
+                np.exp(intercept + slope * np.log(energies_dict[selected_car]['data'])),
+                'b')
 
+        # 축의 범위를 설정하고 대각선 비교선을 그리기 위한 lims 설정
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
             np.max([ax.get_xlim(), ax.get_ylim()]),
         ]
         ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
+
+        # x축과 y축을 로그 스케일로 설정
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
         ax.set_aspect('equal')
-        ax.set_xlim(0, None)
-        ax.set_ylim(0, None)
+        ax.set_xlim(1, None)
+        ax.set_ylim(1, None)
 
         # Add legend for A and B
         ax.legend(loc='upper left')
@@ -362,7 +394,7 @@ def figure5(vehicle_files, selected_cars):
             energies_phys[id] = []
             energies_hybrid[id] = []
             color_map[id] = colors[j]
-            driver_label = f"Driver {j+1}"
+            driver_label = f"Driver {j + 1}"
             for file in tqdm(files, desc=f'Processing {selected_car} - Driver {id}'):
                 data = pd.read_csv(file)
 
@@ -384,12 +416,25 @@ def figure5(vehicle_files, selected_cars):
                     predicted_energy = power_hybrid * t_diff / 3600 / 1000
                     energies_hybrid[id].append(predicted_energy.cumsum()[-1])
 
-            # Scatter plot and regression line
-            ax.scatter(energies_data[id], energies_hybrid[id], facecolors='none',
-                       edgecolors=color_map[id], label=f'{driver_label} After learning')
+            # 로그 스케일을 위해 0 또는 음수 값을 제외하는 필터링
+            filtered_data_energy = np.array(energies_data[id])
+            filtered_hybrid_energy = np.array(energies_hybrid[id])
 
-            slope, intercept, _, _, _ = linregress(energies_data[id], energies_hybrid[id])
-            ax.plot(np.array(energies_data[id]), intercept + slope * np.array(energies_data[id]),
+            positive_mask = (filtered_data_energy > 0) & (filtered_hybrid_energy > 0)
+
+            filtered_data_energy = filtered_data_energy[positive_mask]
+            filtered_hybrid_energy = filtered_hybrid_energy[positive_mask]
+
+            # Scatter plot and regression line
+            ax.scatter(filtered_data_energy, filtered_hybrid_energy, facecolors='none',
+                       edgecolors=color_map[id], label=f'{driver_label} Hybrid Model')
+
+            # 로그 스케일 회귀 분석
+            log_data_energy = np.log(filtered_data_energy)
+            log_hybrid_energy = np.log(filtered_hybrid_energy)
+
+            slope, intercept, _, _, _ = linregress(log_data_energy, log_hybrid_energy)
+            ax.plot(filtered_data_energy, np.exp(intercept + slope * np.log(filtered_data_energy)),
                     color=color_map[id])
 
             # Calculate RMSE & NRMSE for each car
@@ -410,9 +455,14 @@ def figure5(vehicle_files, selected_cars):
             np.max([ax.get_xlim(), ax.get_ylim()]),
         ]
         ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
+
+        # x축과 y축을 로그 스케일로 설정
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
         ax.set_aspect('equal')
-        ax.set_xlim(0, None)
-        ax.set_ylim(0, None)
+        ax.set_xlim(1, None)
+        ax.set_ylim(1, None)
 
         # Add legend for C and D
         ax.legend(loc='upper right')
@@ -428,7 +478,131 @@ def figure5(vehicle_files, selected_cars):
     plt.show()
 
 
-# figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
+def figure6(file_lists_ev6, file_lists_ioniq5):
+    # Official fuel efficiency data (km/kWh)
+    official_efficiency = {
+        'Ioniq5': [4.148, 6.221],
+        'EV6': [4.085, 6.407]
+    }
+
+    # Function to process energy data
+    def process_energy_data(file_lists):
+        dis_energies_phys = []
+        dis_energies_data = []
+        dis_energies_hybrid = []
+        for file in tqdm(file_lists):
+            data = pd.read_csv(file)
+
+            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            t_diff = t.diff().dt.total_seconds().fillna(0)
+            t_diff = np.array(t_diff.fillna(0))
+
+            v = data['speed']
+            v = np.array(v)
+
+            distance = v * t_diff
+            total_distance = distance.cumsum()
+
+            Power_data = np.array(data['Power_data'])
+            energy_data = Power_data * t_diff / 3600 / 1000
+            power_phys = np.array(data['Power_phys'])
+            energy_phys = power_phys * t_diff / 3600 / 1000
+            power_hybrid = np.array(data['Power_hybrid'])
+            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+
+            dis_data_energy = ((total_distance[-1] / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
+                                                                                                -1] != 0 else 0
+            dis_energies_data.append(dis_data_energy)
+            dis_energy_phys = ((total_distance[-1] / 1000) / (energy_phys.cumsum()[-1])) if energy_phys.cumsum()[
+                                                                                                -1] != 0 else 0
+            dis_energies_phys.append(dis_energy_phys)
+            dis_energy_hybrid = ((total_distance[-1] / 1000) / (energy_hybrid.cumsum()[-1])) if energy_hybrid.cumsum()[
+                                                                                                    -1] != 0 else 0
+            dis_energies_hybrid.append(dis_energy_hybrid)
+
+        return dis_energies_phys, dis_energies_data, dis_energies_hybrid
+
+    # Function to add official efficiency range for a specific car
+    def add_efficiency_lines(selected_car):
+        if selected_car in official_efficiency:
+            eff_range = official_efficiency[selected_car]
+            if len(eff_range) == 2:
+                ylim = plt.gca().get_ylim()
+                plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
+                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'EPA Efficiency',
+                         color='orange', fontsize=12, alpha=0.7)
+
+    # Process the data for EV6 and Ioniq5
+    dis_energies_ev6 = process_energy_data(file_lists_ev6)
+    dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
+
+    # Create subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Plot for EV6
+    plt.sca(ax1)  # Set current axis to ax1
+    mean_value_ev6_phys = np.mean(dis_energies_ev6[0])
+    mean_value_ev6_data = np.mean(dis_energies_ev6[1])
+    mean_value_ev6_hybrid = np.mean(dis_energies_ev6[2])
+
+    sns.histplot(dis_energies_ev6[1], bins='auto', color='gray', kde=False, label='Data', alpha=0.5)
+    sns.histplot(dis_energies_ev6[0], bins='auto', color='blue', kde=False, label='Physics-based Model', alpha=0.5)
+    sns.histplot(dis_energies_ev6[2], bins='auto', color='green', kde=False, label='Hybrid Model', alpha=0.5)
+
+    plt.axvline(mean_value_ev6_phys, color='blue', linestyle='--')
+    plt.axvline(mean_value_ev6_data, color='gray', linestyle='--')
+    plt.axvline(mean_value_ev6_hybrid, color='green', linestyle='--')
+
+    plt.text(mean_value_ev6_data + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6_data:.2f}',
+             color='gray', fontsize=12, alpha=0.7)
+    plt.text(mean_value_ev6_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.65, f'Mean: {mean_value_ev6_hybrid:.2f}',
+             color='green', fontsize=12, alpha=0.7)
+    plt.xlabel('Efficiency in km/kWh')
+    plt.xlim((0, 15))
+    plt.ylim(0, 1300)
+    plt.ylabel('Number of trips')
+    ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=14, weight='bold', ha='left')  # Move (a) to top-left
+    ax1.set_title("Energy Consumption Distribution : EV6", pad=10)  # Title below (a)
+    add_efficiency_lines('EV6')
+    plt.grid(False)
+    plt.legend()
+
+    # Plot for Ioniq5
+    plt.sca(ax2)  # Set current axis to ax2
+    mean_value_ioniq5_phys = np.mean(dis_energies_ioniq5[0])
+    mean_value_ioniq5_data = np.mean(dis_energies_ioniq5[1])
+    mean_value_ioniq5_hybrid = np.mean(dis_energies_ioniq5[2])
+
+    sns.histplot(dis_energies_ioniq5[1], bins='auto', color='gray', kde=False, label='Data', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[0], bins='auto', color='blue', kde=False, label='Physics-based Model', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[2], bins='auto', color='green', kde=False, label='Hybrid Model', alpha=0.5)
+
+    plt.axvline(mean_value_ioniq5_phys, color='blue', linestyle='--')
+    plt.axvline(mean_value_ioniq5_data, color='gray', linestyle='--')
+    plt.axvline(mean_value_ioniq5_hybrid, color='green', linestyle='--')
+
+    plt.text(mean_value_ioniq5_data + 0.05, plt.gca().get_ylim()[1] * 0.95, f'Mean: {mean_value_ioniq5_data:.2f}',
+             color='gray', fontsize=12, alpha=0.7)
+    plt.text(mean_value_ioniq5_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.65, f'Mean: {mean_value_ioniq5_hybrid:.2f}',
+             color='green', fontsize=12, alpha=0.7)
+    plt.xlabel('Efficiency in km/kWh')
+    plt.xlim(0, 15)
+    plt.ylim(0, 900)
+    plt.ylabel('Number of trips')
+    ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=14, weight='bold', ha='left')  # Move (b) to top-left
+    ax2.set_title("Energy Consumption Distribution : Ioniq5", pad=10)  # Title below (b)
+    add_efficiency_lines('Ioniq5')
+    plt.grid(False)
+    plt.legend()
+
+    # Save the figure with dpi 300
+    save_path = os.path.join(fig_save_path, 'figure6.png')
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.show()
+
+figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
 # figure3(img1_path, img2_path, save_path)
-figure4(city_cycle1, highway_cycle1)
+# figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2)
 # figure5(vehicle_files, selected_cars)
+figure6(vehicle_files['EV6'], vehicle_files['Ioniq5'])

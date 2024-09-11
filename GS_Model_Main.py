@@ -501,13 +501,13 @@ def main():
 
         elif task_choice == 5:
             while True:
-                print("1: Plotting Energy Scatter Graph")
-                print("2: Plotting Learning Scatter Graph")
+                print("1: Plotting Physics-based Model Energy Scatter Graph")
+                print("2: Plotting Hybrid Model Scatter Graph")
                 print("3: Plotting Individual Driver's Scatter Graph")
                 print("4: Plotting Power and Delta_altitude Graph")
-                print("5: Plotting Physics Model Energy Distribution Graph")
+                print("5: Plotting Physics-based Model Energy Distribution Graph")
                 print("6: Plotting Data Energy Distribution Graph")
-                print("7: Plotting Learning Energy Distribution Graph")
+                print("7: Plotting Hybrid Model Energy Distribution Graph")
                 print("9: Return to previous menu.")
                 print("0: Quitting the program.")
 
