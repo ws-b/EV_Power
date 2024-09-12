@@ -371,7 +371,7 @@ def figure5(vehicle_files, selected_cars):
                 f'MAPE (After): {mape_after:.2f}%\n'
                 f'RRMSE (After): {relative_rmse_after:.2%}',
                 transform=ax.transAxes, fontsize=10, verticalalignment='top')
-        
+
         # 축의 범위를 설정하고 대각선 비교선을 그리기 위한 lims 설정
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),
