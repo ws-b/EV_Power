@@ -57,8 +57,8 @@ def main():
             while True:
                 print("1: Hybrid(XGB) Model")
                 print("2: Hybrid(LR) Model")
-                print("3: Only ML(XGB) Model")
-                print("4: Hybrid(LGBM) Model")
+                print("3: Hybrid(LGBM) Model")
+                print("4: Only ML(XGB) Model")
                 print("5: Train Models")
                 print("6: Return to previous menu")
                 print("0: Quitting the program")
@@ -83,14 +83,14 @@ def main():
                         results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
 
                         if results:
-                            mape_values = []
                             rmse_values = []
+                            mape_values = []
                             rrmse_values = []
-                            for fold_num, rrmse, rmse, mape in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
-                                mape_values.append(mape)
+                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
                                 rmse_values.append(rmse)
-                                rrmse_values.append(rrmse)
+                                mape_values.append(mape_test)
+                                rrmse_values.append(rrmse_test)
                             XGB[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
@@ -103,15 +103,15 @@ def main():
                         results, scaler = lr_cross_validate(vehicle_files, selected_car, True, save_dir=save_dir)
 
                         if results:
-                            mape_values = []
                             rmse_values = []
+                            mape_values = []
                             rrmse_values = []
-                            for fold_num, rrmse, rmse, mape in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
-                                mape_values.append(mape)
+                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
                                 rmse_values.append(rmse)
-                                rrmse_values.append(rrmse)
-                            LR[selected_car] = {
+                                mape_values.append(mape_test)
+                                rrmse_values.append(rrmse_test)
+                            XGB[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
                                 'MAPE': mape_values
@@ -119,16 +119,36 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 3:
+                        results, scaler, _ = lgbm_cross_validate(vehicle_files, selected_car, None, True,
+                                                                 save_dir=save_dir)
+                        if results:
+                            rmse_values = []
+                            mape_values = []
+                            rrmse_values = []
+                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                rmse_values.append(rmse)
+                                mape_values.append(mape_test)
+                                rrmse_values.append(rrmse_test)
+                            XGB[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
+                            }
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
+
+                    if train_choice == 4:
                         results, scaler, _ = only_xgb_validate(vehicle_files, selected_car, None, True, save_dir=save_dir)
 
                         if results:
                             mape_values = []
                             rmse_values = []
                             rrmse_values = []
-                            for fold_num, rrmse, rmse, mape in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
-                                mape_values.append(mape)
+                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
                                 rmse_values.append(rmse)
+                                mape_values.append(mape)
                                 rrmse_values.append(rrmse)
                             ONLY_ML[selected_car] = {
                                 'RMSE': rmse_values,
@@ -137,26 +157,7 @@ def main():
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if train_choice == 4:
-                        results, scaler, _ = lgbm_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
 
-                        if results:
-                            mape_values = []
-                            rmse_values = []
-                            rrmse_values = []
-                            for fold_num, rrmse, rmse, mape in results:
-                                print(f"Fold: {fold_num}, RRMSE: {rrmse}, MAPE: {mape}")
-                                mape_values.append(mape)
-                                rmse_values.append(rmse)
-                                rrmse_values.append(rrmse)
-                            LGBM[selected_car] = {
-                                'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
-                                'MAPE': mape_values
-                            }
-
-                        else:
-                            print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 5:
                         vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500,
                                               1000, 2000, 3000, 5000, 10000]

@@ -18,7 +18,6 @@ def process_single_file(file):
     except Exception as e:
         print(f"Error processing file {file}: {e}")
     return None
-
 def process_files(files, scaler=None):
     SPEED_MIN = 0 / 3.6
     SPEED_MAX = 230 / 3.6 # 230km/h 를 m/s 로
@@ -26,7 +25,6 @@ def process_files(files, scaler=None):
     ACCELERATION_MAX = 9 # m/s^2
     TEMP_MIN = -30
     TEMP_MAX = 50
-    ELAPSED_TIME_MAX = 21600 # 최대 21600초 (6시간)
 
     df_list = []
     with ProcessPoolExecutor() as executor:
@@ -36,33 +34,20 @@ def process_files(files, scaler=None):
             try:
                 data = future.result()
                 if data is not None:
-                    data['abs_acceleration'] = data['acceleration'].abs()
-
                     # 'time' 열을 datetime 형식으로 변환
                     data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
 
-                    # 첫 번째 시간으로부터의 초 차이를 계산한 'elapsed_time' 열 추가
-                    data['elapsed_time'] = (data['time'] - data['time'].iloc[0]).dt.total_seconds()
+                    # Trip 구분을 위해 각 데이터에 파일 인덱스(Trip ID) 추가
+                    data['trip_id'] = files.index(file)
 
-                    # 이동 평균 및 표준편차 계산
-                    data['mean_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).mean()
-                    data['std_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).std()
-                    data['mean_speed_10'] = data['speed'].rolling(window=5).mean()
-                    data['std_speed_10'] = data['speed'].rolling(window=5).std()
-                    data['mean_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).mean()
-                    data['std_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).std()
-                    data['mean_speed_40'] = data['speed'].rolling(window=20).mean()
-                    data['std_speed_40'] = data['speed'].rolling(window=20).std()
+                    data['mean_accel_10'] = data['acceleration'].rolling(window=5).mean().bfill()
+                    data['std_accel_10'] = data['acceleration'].rolling(window=5).std().bfill()
+                    data['mean_speed_10'] = data['speed'].rolling(window=5).mean().bfill()
+                    data['std_speed_10'] = data['speed'].rolling(window=5).std().bfill()
 
-                    # NaN 값 채우기
-                    data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']] = data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']].ffill()
-
-                    df_list.append((files.index(file), data))
+                    df_list.append(data)
             except Exception as e:
                 print(f"Error processing file {file}: {e}")
-
-    df_list.sort(key=lambda x: x[0])
-    df_list = [df for _, df in df_list]
 
     if not df_list:
         raise ValueError("No valid data files found. Please check the input files and try again.")
@@ -72,15 +57,33 @@ def process_files(files, scaler=None):
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(0, 1))
         # 스케일링 범위에 'elapsed_time'의 최소값 0초, 최대값 21600초로 추가
-        scaler.fit(pd.DataFrame([[SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                                 [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1, 1, 1, 1, 1, ELAPSED_TIME_MAX]],
-                                columns=['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']))
+        scaler.fit(pd.DataFrame([
+            [SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0],
+            [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1]
+        ], columns=['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']))
 
     # 모든 피쳐에 대해 스케일링 적용
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']])
+    full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']] = scaler.transform(
+        full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']])
 
     return full_data, scaler
+
+def integrate_and_compare(trip_data):
+    # 'time'을 기준으로 정렬
+    trip_data = trip_data.sort_values(by='time')
+
+    # 'time'을 초 단위로 변환
+    time_seconds = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds().values
+
+    # 'Power_phys + y_pred' 적분 (trapz 사용)
+    trip_data['Power_ml'] = trip_data['y_pred']
+    hybrid_integral = np.trapz(trip_data['Power_ml'].values, time_seconds)
+
+    # 'Power_data' 적분 (trapz 사용)
+    data_integral = np.trapz(trip_data['Power_data'].values, time_seconds)
+
+    # 적분된 값 반환
+    return hybrid_integral, data_integral
 
 def grid_search_lambda(X_train, y_train):
     dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
@@ -101,8 +104,7 @@ def grid_search_lambda(X_train, y_train):
     print(f"Best lambda found: {best_lambda}")
 
     return best_lambda
-
-def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None, save_dir="models"):
+def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, save_dir="models"):
     model_name = "XGB_Only"
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -121,71 +123,90 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
         train_files = [files[i] for i in train_index]
         test_files = [files[i] for i in test_index]
 
+        # Train set과 test set을 처리
         train_data, scaler = process_files(train_files)
         test_data, _ = process_files(test_files)
 
-        X_train = train_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
+        # 각 Trip별로 그룹화하여 적분 수행
+        train_trip_groups = train_data.groupby('trip_id')
+        test_trip_groups = test_data.groupby('trip_id')
+
+        # 학습에 사용할 데이터 준비
+        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].to_numpy()
         y_train = train_data['Power_data'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp']].to_numpy()
+        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].to_numpy()
         y_test = test_data['Power_data'].to_numpy()
 
+        # Best lambda 값이 없을 경우 GridSearch로 최적 lambda 찾기
         if best_lambda is None:
             best_lambda = grid_search_lambda(X_train, y_train)
 
-        dtrain = xgb.DMatrix(X_train, label=y_train, weight=X_train[:, 0])
-        dtest = xgb.DMatrix(X_test, label=y_test, weight=X_test[:, 0])
+        dtrain = xgb.DMatrix(X_train, label=y_train)
+        dtest = xgb.DMatrix(X_test, label=y_test)
 
+        # 모델 학습
         params = {
             'tree_method': 'hist',
             'device': 'cuda',
             'eval_metric': ['rmse'],
-            'lambda': best_lambda
+            'lambda': best_lambda,
+            'eta' : 0.3
         }
 
         evals = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(params, dtrain, num_boost_round=150, evals=evals)
+        train_data['y_pred'] = model.predict(dtrain)
+        test_data['y_pred'] = model.predict(dtest)
+
+        # Train set에서 Trip별로 적분을 계산하고 MAPE 및 RRMSE 계산
+        ml_integrals_train, data_integrals_train = [], []
+        for _, group in train_trip_groups:
+            hybrid_integral, data_integral = integrate_and_compare(group)
+            ml_integrals_train.append(hybrid_integral)
+            data_integrals_train.append(data_integral)
+
+        # MAPE 및 RRMSE 계산
+        mape_train = calculate_mape(np.array(data_integrals_train), np.array(ml_integrals_train))
+        rrmse_train = calculate_rrmse(np.array(data_integrals_train), np.array(ml_integrals_train))
+
+        # Test set에서도 동일한 방식으로 MAPE 및 RRMSE 계산
+        ml_integrals_test, data_integrals_test = [], []
+        for _, group in test_trip_groups:
+            hybrid_integral, data_integral = integrate_and_compare(group)
+            ml_integrals_test.append(hybrid_integral)
+            data_integrals_test.append(data_integral)
+
+        # MAPE 및 RRMSE 계산
+        mape_test = calculate_mape(np.array(data_integrals_test), np.array(ml_integrals_test))
+        rrmse_test = calculate_rrmse(np.array(data_integrals_test), np.array(ml_integrals_test))
+
         y_pred = model.predict(dtest)
-
-        # test_data['y_test'] = y_test
-        # test_data['y_pred'] = y_pred
-        # test_data['time'] = pd.to_datetime(test_data['time'])
-        #
-        # test_data['minute'] = test_data['time'].dt.floor('min')
-        # grouped = test_data.groupby('minute')
-        #
-        # y_test_integrated = grouped.apply(lambda group: np.trapz(group['y_test'], x=group['time'].astype('int64') / 1e9))
-        # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['y_pred'], x=group['time'].astype('int64') / 1e9))
-
-        # rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
-        # rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
-        mape = calculate_mape(y_test, y_pred)
         rmse = calculate_rmse(y_test, y_pred)
-        rrmse = calculate_rrmse(y_test, y_pred)
-        results.append((fold_num, rrmse, rmse, mape))
-        models.append(model)
-        print(f"Vehicle: {selected_car}, Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse}, MAPE: {mape}")
 
-        # Calculate the median RRMSE
-        median_rrmse = np.median([result[1] for result in results])
-        # Find the index of the model corresponding to the median RRMSE
-        median_index = np.argmin([abs(result[1] - median_rrmse) for result in results])
-        best_model = models[median_index]
+        results.append((fold_num, rmse, rrmse_train, mape_train, rrmse_test, mape_test))
+        models.append(model)
+
+        # 각 Fold별 결과 출력
+        print(f"Vehicle: {selected_car}, Fold: {fold_num}")
+        print(f"Train - MAPE: {mape_train:.2f}, RRMSE: {rrmse_train:.2f}")
+        print(f"Test - MAPE: {mape_test:.2f}, RRMSE: {rrmse_test:.2f}")
+
+    # 최종 모델 선택 (Test set에서 RRMSE 기준으로 중간값에 해당하는 모델)
+    median_mape = np.median([result[5] for result in results])
+    median_index = np.argmin([abs(result[3] - median_mape) for result in results])
+    best_model = models[median_index]
+
     if save_dir:
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        # Save the best model
+        # 최적 모델 저장
         if best_model:
             model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.json")
-            surface_plot = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}_plot.html")
             best_model.save_model(model_file)
-            print(f"Best model for {selected_car} saved with RRMSE: {median_rrmse}")
+            print(f"Best model for {selected_car} saved with RRMSE: {median_mape}")
 
-            Residual = y_test - y_pred
-            # if plot:
-            #     plot_contour(X_test, Residual, scaler, selected_car, '(Data Power - ML only Model Power)', num_grids=400)
-
-        # Save the scaler
+        # 스케일러 저장
         scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')
         with open(scaler_path, 'wb') as f:
             pickle.dump(scaler, f)
@@ -193,37 +214,35 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot = None,
 
     return results, scaler, best_lambda
 
+
 def process_file_with_trained_model(file, model, scaler):
     try:
         data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns:
-            # Calculate absolute acceleration
-            data['abs_acceleration'] = data['acceleration'].abs()
-
+        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_phys' in data.columns:
             # 'time' 열을 datetime 형식으로 변환
             data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
 
-            # 첫 번째 시간으로부터의 초 차이를 계산한 'elapsed_time' 열 추가
-            data['elapsed_time'] = (data['time'] - data['time'].iloc[0]).dt.total_seconds()
-
-            # 이동 평균 및 표준편차 계산
-            data['mean_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).mean()
-            data['std_abs_accel_10'] = data['abs_acceleration'].rolling(window=5).std()
+            data['mean_accel_10'] = data['acceleration'].rolling(window=5).mean()
+            data['std_accel_10'] = data['acceleration'].rolling(window=5).std()
             data['mean_speed_10'] = data['speed'].rolling(window=5).mean()
             data['std_speed_10'] = data['speed'].rolling(window=5).std()
-            data['mean_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).mean()
-            data['std_abs_accel_40'] = data['abs_acceleration'].rolling(window=20).std()
-            data['mean_speed_40'] = data['speed'].rolling(window=20).mean()
-            data['std_speed_40'] = data['speed'].rolling(window=20).std()
+            # data['mean_accel_40'] = data['acceleration'].rolling(window=20).mean()
+            # data['std_accel_40'] = data['acceleration'].rolling(window=20).std()
+            # data['mean_speed_40'] = data['speed'].rolling(window=20).mean()
+            # data['std_speed_40'] = data['speed'].rolling(window=20).std()
 
             # Forward fill to replace NaNs with the first available value
-            data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']] = data[['mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40']].ffill()
-
+            data[['mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']] = data[
+                ['mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].ffill()
             # Use the provided scaler to scale all necessary features
-            features = data[['speed', 'acceleration', 'ext_temp', 'mean_abs_accel_10', 'std_abs_accel_10', 'mean_speed_10', 'std_speed_10', 'mean_abs_accel_40', 'std_abs_accel_40', 'mean_speed_40', 'std_speed_40', 'elapsed_time']]
+            features = data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']]
             features_scaled = scaler.transform(features)
 
-            data['Power_ml'] = model.predict(features_scaled)
+            # Predict the residual using the trained model
+            predicted_residual = model.predict(features_scaled)
+
+            # Calculate the machine learning power
+            data['Power_hybrid'] = predicted_residual + data['Power_phys']
             save_column = ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh',
                     'chrg_cable_conn', 'pack_volt', 'pack_current', 'Power_data', 'Power_phys',
                     'Power_hybrid', 'Power_ml']
@@ -235,9 +254,9 @@ def process_file_with_trained_model(file, model, scaler):
             print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power_phys'.")
     except Exception as e:
         print(f"Error processing file {file}: {e}")
-
 def add_predicted_power_column(files, model_path, scaler):
     try:
+        # Load the trained model
         model = xgb.XGBRegressor()
         model.load_model(model_path)
     except Exception as e:
@@ -247,4 +266,7 @@ def add_predicted_power_column(files, model_path, scaler):
     with ProcessPoolExecutor() as executor:
         futures = [executor.submit(process_file_with_trained_model, file, model, scaler) for file in files]
         for future in as_completed(futures):
-            future.result()
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error in processing file: {e}")

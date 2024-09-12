@@ -88,7 +88,7 @@ def calculate_mape(y_test, y_pred):
     return mape
 def calculate_rrmse(y_test, y_pred):
     relative_errors = (y_test - y_pred) / np.mean(np.abs(y_test))
-    rrmse = np.sqrt(np.mean(relative_errors ** 2))
+    rrmse = np.sqrt(np.mean(relative_errors ** 2)) * 100
     return rrmse
 
 def calculate_rmse(y_test, y_pred):
