@@ -111,7 +111,7 @@ def main():
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
                                 rrmse_values.append(rrmse_test)
-                            XGB[selected_car] = {
+                            LR[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
                                 'MAPE': mape_values
@@ -130,7 +130,7 @@ def main():
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
                                 rrmse_values.append(rrmse_test)
-                            XGB[selected_car] = {
+                            LGBM[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
                                 'MAPE': mape_values
@@ -148,8 +148,8 @@ def main():
                             for fold_num, rmse, _, _, rrmse_test, mape_test in results:
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
                                 rmse_values.append(rmse)
-                                mape_values.append(mape)
-                                rrmse_values.append(rrmse)
+                                mape_values.append(mape_test)
+                                rrmse_values.append(rrmse_test)
                             ONLY_ML[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,

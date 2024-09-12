@@ -205,7 +205,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         if best_model:
             model_file = os.path.join(save_dir, f"{model_name}_best_model_{selected_car}.json")
             best_model.save_model(model_file)
-            print(f"Best model for {selected_car} saved with RRMSE: {median_mape}")
+            print(f"Best model for {selected_car} saved with MAPE: {median_mape}")
 
         # 스케일러 저장
         scaler_path = os.path.join(save_dir, f'{model_name}_scaler_{selected_car}.pkl')
