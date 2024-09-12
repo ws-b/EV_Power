@@ -121,8 +121,8 @@ def cross_validate(vehicle_files, selected_car, plot=None, save_dir="models"):
         # Linear Regression 모델 학습
         model = LinearRegression()
         model.fit(X_train, y_train)
-        y_pred_train = model.predict(X_train)
-        y_pred_test = model.predict(X_test)
+        train_data['y_pred'] = model.predict(X_train)
+        test_data['y_pred'] = model.predict(X_test)
 
         # Train set에서 Trip별로 적분을 계산하고 MAPE 및 RRMSE 계산
         hybrid_integrals_train, data_integrals_train = [], []
@@ -147,7 +147,7 @@ def cross_validate(vehicle_files, selected_car, plot=None, save_dir="models"):
         rrmse_test = calculate_rrmse(np.array(data_integrals_test), np.array(hybrid_integrals_test))
 
         # RMSE 계산 (Test set)
-        rmse = calculate_rmse((y_test + test_data['Power_phys']), (y_pred_test + test_data['Power_phys']))
+        rmse = calculate_rmse((y_test + test_data['Power_phys']), (test_data['y_pred'] + test_data['Power_phys']))
 
         # 결과 저장
         results.append((fold_num, rmse, rrmse_train, mape_train, rrmse_test, mape_test))

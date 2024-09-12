@@ -95,146 +95,31 @@ def calculate_rmse(y_test, y_pred):
     rmse = np.sqrt(np.mean((y_test-y_pred) ** 2))
     return rmse
 
-def read_and_process_files(files):
-    data = pd.concat([pd.read_csv(file) for file in files], ignore_index=True)
-    return data
+def integrate_and_compare(trip_data):
+    trip_data['time'] = pd.to_datetime(trip_data['time'], format='%Y-%m-%d %H:%M:%S')
+    trip_data = trip_data.sort_values(by='time')
 
-def compute_rrmse(vehicle_files, selected_car):
+    # 'time'을 초 단위로 변환
+    time_seconds = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds().values
+
+    physics_integral = np.trapz(trip_data['Power_phys'].values, time_seconds)
+    data_integral = np.trapz(trip_data['Power_data'].values, time_seconds)
+
+    # 적분된 값 반환
+    return physics_integral, data_integral
+def compute_mape_rrmse(vehicle_files, selected_car):
     if not vehicle_files:
         print("No files provided")
         return
-
-    data = read_and_process_files(vehicle_files[selected_car])
-
-    if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
-        print(f"Columns 'Power_phys' and/or 'Power_data' not found in the data")
-        return
-
-    y_pred = data['Power_phys'].to_numpy()
-    y_test = data['Power_data'].to_numpy()
-
-    # data['time'] = pd.to_datetime(data['time'])
-    #
-    # data['minute'] = data['time'].dt.floor('min')
-    # grouped = data.groupby('minute')
-    #
-    # y_test_integrated = grouped.apply(lambda group: np.trapz(group['Power_data'], x=group['time'].astype('int64') / 1e9))
-    # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['Power_phys'], x=group['time'].astype('int64') / 1e9))
-    #
-    # rrmse = calculate_rrmse(y_test_integrated, y_pred_integrated)
-    rrmse = calculate_rrmse(y_test, y_pred)
-    print(f"RRMSE for {selected_car}  : {rrmse}")
-    return rrmse
-
-def compute_rmse(vehicle_files, selected_car):
-    if not vehicle_files:
-        print("No files provided")
-        return
-
-    data = read_and_process_files(vehicle_files[selected_car])
-
-    if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
-        print(f"Columns 'Power_phys' and/or 'Power_data' not found in the data")
-        return
-
-    y_pred = data['Power_phys'].to_numpy()
-    y_test = data['Power_data'].to_numpy()
-
-    # data['time'] = pd.to_datetime(data['time'])
-    #
-    # data['minute'] = data['time'].dt.floor('min')
-    # grouped = data.groupby('minute')
-    #
-    # y_test_integrated = grouped.apply(lambda group: np.trapz(group['Power_data'], x=group['time'].astype('int64') / 1e9))
-    # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['Power_phys'], x=group['time'].astype('int64') / 1e9))
-    #
-    # rmse = calculate_rmse(y_test_integrated, y_pred_integrated)
-    rmse = calculate_rmse(y_test, y_pred)
-    print(f"RMSE for {selected_car}  : {rmse}")
-    return rmse
-
-def compute_mape(vehicle_files, selected_car):
-    if not vehicle_files:
-        print("No files provided")
-        return
-
-    data = read_and_process_files(vehicle_files[selected_car])
-
-    if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
-        print(f"Columns 'Power_phys' and/or 'Power_data' not found in the data")
-        return
-
-    y_pred = data['Power_phys'].to_numpy()
-    y_test = data['Power_data'].to_numpy()
-
-    # data['time'] = pd.to_datetime(data['time'])
-    #
-    # data['minute'] = data['time'].dt.floor('min')
-    # grouped = data.groupby('minute')
-    #
-    # y_test_integrated = grouped.apply(lambda group: np.trapz(group['Power_data'], x=group['time'].astype('int64') / 1e9))
-    # y_pred_integrated = grouped.apply(lambda group: np.trapz(group['Power_phys'], x=group['time'].astype('int64') / 1e9))
-    #
-    # mape = calculate_mape(y_test_integrated, y_pred_integrated)
-    mape = calculate_mape(y_test, y_pred)
-    print(f"MAPE for {selected_car}  : {mape}%")
-    return mape
-
-def integrate_power(data, y_test, y_pred):
-    # 'time' 컬럼을 datetime으로 변환
-    data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-
-    # 첫 번째 시간값을 기준으로 차이값 계산
-    start_time = data['time'].iloc[0]
-    time_seconds = (data['time'] - start_time).dt.total_seconds().values
-
-    # 적분 계산
-    integrated_test = np.trapz(data[y_test].values, x=time_seconds)
-    integrated_pred = np.trapz(data[y_pred].values, x=time_seconds)
-
-    return integrated_test, integrated_pred
-
-def compute_energy_mape(vehicle_files):
-    mape_values = []
-
-    for file in vehicle_files:
+    physics_integrals, data_integrals = [], []
+    for file in vehicle_files[selected_car]:
         data = pd.read_csv(file)
+        physics_integral, data_integral = integrate_and_compare(data)
+        physics_integrals.append(physics_integral)
+        data_integrals.append(data_integral)
 
-        if 'Power_phys' not in data.columns or 'Power_hybrid' not in data.columns:
-            print(f"Columns 'Power_phys' and/or 'Power_hybrid' not found in {file}")
-            continue
+    mape= calculate_mape(np.array(data_integrals), np.array(physics_integrals))
+    rrmse = calculate_rrmse(np.array(data_integrals), np.array(physics_integrals))
+    print(f"MAPE for {selected_car}  : {mape:.2f}%, RRMSE for {selected_car}: {rrmse:.2f}%")
 
-        # 적분 수행
-        energy_test, energy_pred = integrate_power(data)
-
-        # MAPE 및 RRMSE 계산
-        mape = calculate_mape(np.array([energy_test]), np.array([energy_pred]))
-
-        print(f"File: {file}, MAPE: {mape}%")
-
-        # 결과 저장
-        mape_values.append(mape)
-
-    return mape_values
-
-def compute_energy_rrmse(vehicle_files):
-    rrmse_values = []
-
-    for file in vehicle_files:
-        data = pd.read_csv(file)
-
-        if 'Power_phys' not in data.columns or 'Power_hybrid' not in data.columns:
-            print(f"Columns 'Power_phys' and/or 'Power_hybrid' not found in {file}")
-            continue
-
-        # 적분 수행
-        energy_test, energy_pred = integrate_power(data)
-
-        rrmse = calculate_rrmse(np.array([energy_test]), np.array([energy_pred]))
-
-        print(f"File: {file}, RRMSE: {rrmse}")
-
-
-        rrmse_values.append(rrmse)
-
-    return rrmse_values
+    return mape, rrmse

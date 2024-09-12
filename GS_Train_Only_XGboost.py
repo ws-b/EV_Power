@@ -181,8 +181,7 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         mape_test = calculate_mape(np.array(data_integrals_test), np.array(ml_integrals_test))
         rrmse_test = calculate_rrmse(np.array(data_integrals_test), np.array(ml_integrals_test))
 
-        y_pred = model.predict(dtest)
-        rmse = calculate_rmse(y_test, y_pred)
+        rmse = calculate_rmse(y_test, test_data['y_pred'])
 
         results.append((fold_num, rmse, rrmse_train, mape_train, rrmse_test, mape_test))
         models.append(model)

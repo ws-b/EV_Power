@@ -4,13 +4,14 @@ import random
 import pickle
 import matplotlib.pyplot as plt
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_Functions import get_vehicle_files, compute_rrmse, compute_rmse, compute_mape
+from GS_Functions import get_vehicle_files, compute_mape_rrmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
-from GS_Train_LinearR import cross_validate as lr_cross_validate, add_predicted_power_column as lr_add_predicted_power_column
-from GS_Train_LightGBM import cross_validate as lgbm_cross_validate, add_predicted_power_column as lgbm_add_predicted_power_column
+from GS_Train_LinearR import cross_validate as lr_cross_validate
+from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
+from GS_Train_Multi import run_evaluate, plot_mape_results, plot_rrmse_results
 def main():
     car_options = {
         1: 'EV6',
@@ -159,220 +160,21 @@ def main():
                             print(f"No results for the selected vehicle: {selected_car}")
 
                     if train_choice == 5:
-                        vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500,
-                                              1000, 2000, 3000, 5000, 10000]
                         save_path = r"C:\Users\BSL\Desktop\Figures\Result"
-                        l2lambda = {selected_car: []}
-                        results_dict = {selected_car: {}}
-                        max_samples = len(vehicle_files[selected_car])
+                        results_dict = run_evaluate(vehicle_files, selected_car)
+                        plot_mape_results(results_dict, selected_car, save_path)
+                        plot_rrmse_results(results_dict, selected_car, save_path)
 
-                        filtered_vehicle_file_sizes = [size for size in vehicle_file_sizes if size <= max_samples]
-                        _, _, lambda_XGB = xgb_cross_validate(vehicle_files, selected_car, None, None, save_dir=None)
-                        l2lambda[selected_car].append({
-                            'model': 'Hybrid Model(XGBoost)',
-                            'lambda': lambda_XGB
-                        })
-                        _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, None, save_dir=None)
-                        l2lambda[selected_car].append({
-                            'model': 'Only ML(XGBoost)',
-                            'lambda': lambda_ML
-                        })
-
-                        for size in filtered_vehicle_file_sizes:
-                            if size not in results_dict[selected_car]:
-                                results_dict[selected_car][size] = []
-                            if size < 20:
-                                samplings = 200
-                            elif 20 <= size < 50:
-                                samplings = 10
-                            elif 50 <= size <= 100:
-                                samplings = 5
-                            else:
-                                samplings = 1
-
-                            for sampling in range(samplings):
-                                sampled_files = random.sample(vehicle_files[selected_car], size)
-                                sampled_vehicle_files = {selected_car: sampled_files}
-
-                                # Physics-based model RRMSE calculation
-                                mape_physics = compute_mape(sampled_vehicle_files, selected_car)
-                                rrmse_physics = compute_rrmse(sampled_vehicle_files, selected_car)
-                                if rrmse_physics is not None:
-                                    results_dict[selected_car][size].append({
-                                        'model': 'Physics-Based',
-                                        'rrmse': [rrmse_physics],
-                                        'mape': [mape_physics]
-                                    })
-
-                                results, scaler, _ = xgb_cross_validate(sampled_vehicle_files, selected_car, lambda_XGB,
-                                                                        None, save_dir=None)
-                                if results:
-                                    mape_values = [mape for _, _, _, mape in results]
-                                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
-                                    results_dict[selected_car][size].append({
-                                        'model': 'Hybrid Model(XGBoost)',
-                                        'rrmse': rrmse_values,
-                                        'mape': mape_values
-                                    })
-
-                                results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car, None,
-                                                                    save_dir=None)
-                                if results:
-                                    mape_values = [mape for _, _, _, mape in results]
-                                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
-                                    results_dict[selected_car][size].append({
-                                        'model': 'Hybrid Model(Linear Regression)',
-                                        'rrmse': rrmse_values,
-                                        'mape': mape_values
-                                    })
-
-                                results, scaler, _ = only_xgb_validate(sampled_vehicle_files, selected_car, lambda_ML,
-                                                                       None, save_dir=None)
-                                if results:
-                                    mape_values = [mape for _, _, _, mape in results]
-                                    rrmse_values = [rrmse for _, rrmse, _, _ in results]
-                                    results_dict[selected_car][size].append({
-                                        'model': 'Only ML(XGBoost)',
-                                        'rrmse': rrmse_values,
-                                        'mape': mape_values
-                                    })
-
-                        print(results_dict)
-
-                        results_car = results_dict[selected_car]
-                        sizes = sorted(results_car.keys())
-
-                        phys_rrmse = []
-                        xgb_rrmse = []
-                        xgb_std = []
-                        lr_rrmse = []
-                        lr_std = []
-                        only_ml_rrmse = []
-                        only_ml_std = []
-
-                        phys_mape = []
-                        xgb_mape = []
-                        xgb_mape_std = []
-                        lr_mape = []
-                        lr_mape_std = []
-                        only_ml_mape = []
-                        only_ml_mape_std = []
-
-                        for size in sizes:
-                            phys_values = [item for result in results_car[size] if result['model'] == 'Physics-Based'
-                                           for item in result['rrmse']]
-                            xgb_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(XGBoost)'
-                                           for item in result['rrmse']]
-                            lr_values = [item for result in results_car[size] if result['model'] == 'Hybrid Model(Linear Regression)'
-                                         for item in result['rrmse']]
-                            only_ml_values = [item for result in results_car[size] if
-                                              result['model'] == 'Only ML(XGBoost)' for
-                                              item in result['rrmse']]
-                            phys_mape_values = [item for result in results_car[size] if
-                                                result['model'] == 'Physics-Based' for item in result['mape']]
-                            xgb_mape_values = [item for result in results_car[size] if
-                                               result['model'] == 'Hybrid Model(XGBoost)' for item in result['mape']]
-                            lr_mape_values = [item for result in results_car[size] if
-                                              result['model'] == 'Hybrid Model(Linear Regression)' for item in
-                                              result['mape']]
-                            only_ml_mape_values = [item for result in results_car[size] if
-                                                   result['model'] == 'Only ML(XGBoost)' for item in result['mape']]
-
-                            if phys_values:
-                                phys_rrmse.append(np.mean(phys_values))
-                            if xgb_values:
-                                xgb_rrmse.append(np.mean(xgb_values))
-                                xgb_std.append(2 * np.std(xgb_values))  # 2σ 95%
-                            if lr_values:
-                                lr_rrmse.append(np.mean(lr_values))
-                                lr_std.append(2 * np.std(lr_values))  # 2σ 95%
-                            if only_ml_values:
-                                only_ml_rrmse.append(np.mean(only_ml_values))
-                                only_ml_std.append(2 * np.std(only_ml_values))  # 2σ 95%
-
-                            # MAPE 수집
-                            if phys_mape_values:
-                                phys_mape.append(np.mean(phys_mape_values))
-                            if xgb_mape_values:
-                                xgb_mape.append(np.mean(xgb_mape_values))
-                                xgb_mape_std.append(2 * np.std(xgb_mape_values))  # 2σ 95%
-                            if lr_mape_values:
-                                lr_mape.append(np.mean(lr_mape_values))
-                                lr_mape_std.append(2 * np.std(lr_mape_values))  # 2σ 95%
-                            if only_ml_mape_values:
-                                only_ml_mape.append(np.mean(only_ml_mape_values))
-                                only_ml_mape_std.append(2 * np.std(only_ml_mape_values))  # 2σ 95%
-
-                        # RRMSE 플롯
-                        plt.figure(figsize=(10, 8))
-
-                        # Physics-Based Model (RRMSE)
-                        plt.plot(sizes, phys_rrmse, label='Physics-Based', linestyle='--', color='r')
-
-                        # Hybrid Model(XGBoost) (RRMSE)
-                        plt.errorbar(sizes, xgb_rrmse, yerr=xgb_std, label='Hybrid Model(XGBoost)', marker='o',
-                                     capsize=5)
-
-                        # Hybrid Model(Linear Regression) (RRMSE)
-                        plt.errorbar(sizes, lr_rrmse, yerr=lr_std, label='Hybrid Model(Linear Regression)', marker='o',
-                                     capsize=5)
-
-                        # Only ML(XGBoost) (RRMSE)
-                        plt.errorbar(sizes, only_ml_rrmse, yerr=only_ml_std, label='Only ML(XGBoost)', marker='o',
-                                     capsize=5)
-
-                        plt.xlabel('Number of Trips')
-                        plt.ylabel('RRMSE')
-                        plt.title(f'RRMSE vs Number of Trips for {selected_car}')
-                        plt.legend()
-                        plt.grid(True)
-                        plt.xscale('log')
-                        plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
-                        plt.xlim(min(sizes) - 1, max(sizes) + 1000)
-                        plt.savefig(os.path.join(save_path, f"{selected_car}_rrmse.png"), dpi= 600)
-                        plt.show()
-
-                        # MAPE 플롯
-                        plt.figure(figsize=(10, 8))
-
-                        # Physics-Based Model (MAPE)
-                        plt.plot(sizes, phys_mape, label='Physics-Based', linestyle='--', color='r')
-
-                        # Hybrid Model(XGBoost) (MAPE)
-                        plt.errorbar(sizes, xgb_mape, yerr=xgb_mape_std, label='Hybrid Model(XGBoost)', marker='o',
-                                     capsize=5)
-
-                        # Hybrid Model(Linear Regression) (MAPE)
-                        plt.errorbar(sizes, lr_mape, yerr=lr_mape_std, label='Hybrid Model(Linear Regression)',
-                                     marker='o', capsize=5)
-
-                        # Only ML(XGBoost) (MAPE)
-                        plt.errorbar(sizes, only_ml_mape, yerr=only_ml_mape_std, label='Only ML(XGBoost)', marker='o',
-                                     capsize=5)
-
-                        plt.xlabel('Number of Trips')
-                        plt.ylabel('MAPE')
-                        plt.title(f'MAPE vs Number of Trips for {selected_car}')
-                        plt.legend()
-                        plt.grid(True)
-                        plt.xscale('log')
-                        plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
-                        plt.xlim(min(sizes) - 1, max(sizes) + 1000)
-                        plt.savefig(os.path.join(save_path, f"{selected_car}_mape.png"), dpi=600)
-                        plt.show()
-                        print(f"{l2lambda}")
-
-                print(f"XGB RRMSE & RMSE: {XGB}")
-                print(f"LR RRMSE & RMSE: {LR}")
-                print(f"ONLY ML RRMSE & RMSE: {ONLY_ML}")
+                print(f"XGB RRMSE & MAPE: {XGB}")
+                print(f"LR RRMSE & MAPE: {LR}")
+                print(f"LGBM RRMSE & MAPE: {LGBM}")
+                print(f"ONLY ML RRMSE & MAPE: {ONLY_ML}")
 
         elif task_choice == 3:
             while True:
                 print("1: XGBoost Model")
-                print("2: Linear Regression")
-                print("3: Machine Learning Only(XGB)")
-                print("4: LightGBM Model")
-                print("5: Return to previous menu")
+                print("2: Machine Learning Only(XGB)")
+                print("3: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     pred_choice = int(input("Enter number you want to run: "))
@@ -380,7 +182,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if pred_choice == 5:
+                if pred_choice == 3:
                     break
                 elif pred_choice == 0:
                     print("Quitting the program")
@@ -400,20 +202,8 @@ def main():
                             scaler = pickle.load(f)
 
                         xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+
                     elif pred_choice == 2:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_best_model_{selected_car}.joblib')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'LR_scaler_{selected_car}.pkl')
-
-                        if not vehicle_files[selected_car]:
-                            print(f"No files to process for the selected vehicle: {selected_car}")
-                            continue
-
-                        # Load the scaler
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-
-                        lr_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
-                    elif pred_choice == 3:
                         model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_Only_best_model_{selected_car}.json')
                         scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_Only_scaler_{selected_car}.pkl')
 
@@ -426,13 +216,6 @@ def main():
                             scaler = pickle.load(f)
 
                         only_xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
-                    elif pred_choice == 4:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_best_model_{selected_car}.json')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_scaler_{selected_car}.pkl')
-
-                        if not vehicle_files[selected_car]:
-                            print(f"No files to process for the selected vehicle: {selected_car}")
-                            continue
 
                         # Load the scaler
                         with open(scaler_path, 'rb') as f:
@@ -547,7 +330,6 @@ def main():
                             plot_energy_dis(vehicle_files[selected_car], selected_car, 'data')
                         elif plot == 7:
                             plot_energy_dis(vehicle_files[selected_car], selected_car, 'hybrid')
-
                         else:
                             print(f"Invalid choice: {plot}. Please try again.")
                 else:
@@ -560,7 +342,7 @@ def main():
                 print("3: Plotting Data Energy Efficiency Graph")
                 print("4: Plotting Predicted Energy Efficiency Graph")
                 print("5: Driver's Energy Efficiency Graph")
-                print("6: Calculating physics-based RMSE & RRMSE")
+                print("6: Calculating MAPE, RRMSE for Physics Model")
                 print("7: Return to previous menu.")
                 print("0: Quitting the program.")
                 selections = input("Enter the numbers you want to run, separated by commas (e.g., 1,2,3): ")
@@ -598,8 +380,7 @@ def main():
                                     break
                             plot_2d_histogram(sample_files_dict, selected_car)
                         elif plot == 6:
-                            compute_rmse(vehicle_files, selected_car)
-                            compute_rrmse(vehicle_files, selected_car)
+                            mape, rrmse = compute_mape_rrmse(vehicle_files, selected_car)
 
         elif task_choice == 0:
             print("Quitting the program.")
