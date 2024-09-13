@@ -2,8 +2,8 @@ import os
 import numpy as np
 import random
 from GS_Functions import get_vehicle_files, compute_mape_rrmse
-from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
-from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
+from GS_Train_XGboost import cross_validate as xgb_cross_validate
+from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 import matplotlib as plt

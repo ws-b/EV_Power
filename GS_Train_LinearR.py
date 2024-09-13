@@ -7,7 +7,7 @@ from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_3d, plot_contour
+from GS_plot import plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # 데이터 전처리 함수

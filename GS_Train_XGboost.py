@@ -7,7 +7,7 @@ from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_3d, plot_contour
+from GS_plot import plot_contour, plot_shap_values
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def process_single_file(file):
@@ -213,6 +213,18 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         with open(scaler_path, 'wb') as f:
             pickle.dump(scaler, f)
         print(f"Scaler saved at {scaler_path}")
+
+        # Plot SHAP values for the best model
+        if plot:
+            # Reconstruct test data for the best fold
+            _, (train_index, test_index) = list(enumerate(kf.split(files), 1))[median_index]
+            test_files = [files[i] for i in test_index]
+            test_data, _ = process_files(test_files, scaler=scaler)
+            X_test = test_data[feature_cols].to_numpy()
+
+            feature_names = feature_cols
+            shap_save_path = os.path.join(r"C:\Users\BSL\Desktop\Figures", f"Figure7_{selected_car}.png")
+            plot_shap_values(best_model, X_test, feature_names, save_path=shap_save_path)
 
     return results, scaler, best_lambda
 

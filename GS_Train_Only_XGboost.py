@@ -7,7 +7,7 @@ from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_3d, plot_contour
+from GS_plot import plot_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def process_single_file(file):

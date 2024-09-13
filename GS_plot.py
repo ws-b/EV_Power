@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import random
+import shap
 import plotly.graph_objects as go
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.interpolate import griddata
@@ -871,3 +872,29 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
                 f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)
             plt.show()
+def plot_shap_values(model, X, feature_names, save_path=None):
+    """
+    Calculate SHAP values for the input features and plot them.
+
+    Parameters:
+    - model: Trained XGBoost model
+    - X: Input features as a NumPy array or pandas DataFrame
+    - feature_names: List of feature names
+    - save_path: Path to save the plot; if None, the plot will be displayed
+    """
+    # Initialize the SHAP explainer
+    explainer = shap.TreeExplainer(model)
+
+    # Calculate SHAP values
+    shap_values = explainer.shap_values(X)
+
+    # Create a summary plot of SHAP values
+    shap.summary_plot(shap_values, X, feature_names=feature_names, show=False)
+
+    # Save or display the plot
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi = 600)
+        plt.close()
+        print(f"SHAP summary plot saved at {save_path}")
+    else:
+        plt.show()
