@@ -25,7 +25,8 @@ def process_files(files, scaler=None):
     ACCELERATION_MAX = 9 # m/s^2
     TEMP_MIN = -30
     TEMP_MAX = 50
-
+    feature_cols = ['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10',
+                    'std_speed_10']
     df_list = []
     with ProcessPoolExecutor() as executor:
         future_to_file = {executor.submit(process_single_file, file): file for file in files}
@@ -60,11 +61,11 @@ def process_files(files, scaler=None):
         scaler.fit(pd.DataFrame([
             [SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0],
             [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1]
-        ], columns=['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']))
+        ], columns=feature_cols))
 
     # 모든 피쳐에 대해 스케일링 적용
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']])
+    full_data[feature_cols] = scaler.transform(
+        full_data[feature_cols])
 
     return full_data, scaler
 
@@ -131,11 +132,14 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         train_trip_groups = train_data.groupby('trip_id')
         test_trip_groups = test_data.groupby('trip_id')
 
+        feature_cols = ['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10',
+                        'std_speed_10']
+
         # 학습에 사용할 데이터 준비
-        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].to_numpy()
+        X_train = train_data[feature_cols].to_numpy()
         y_train = train_data['Power_data'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].to_numpy()
+        X_test = test_data[feature_cols].to_numpy()
         y_test = test_data['Power_data'].to_numpy()
 
         # Best lambda 값이 없을 경우 GridSearch로 최적 lambda 찾기
@@ -212,60 +216,3 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         print(f"Scaler saved at {scaler_path}")
 
     return results, scaler, best_lambda
-
-
-def process_file_with_trained_model(file, model, scaler):
-    try:
-        data = pd.read_csv(file)
-        if 'speed' in data.columns and 'acceleration' in data.columns and 'Power_phys' in data.columns:
-            # 'time' 열을 datetime 형식으로 변환
-            data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-
-            data['mean_accel_10'] = data['acceleration'].rolling(window=5).mean()
-            data['std_accel_10'] = data['acceleration'].rolling(window=5).std()
-            data['mean_speed_10'] = data['speed'].rolling(window=5).mean()
-            data['std_speed_10'] = data['speed'].rolling(window=5).std()
-            # data['mean_accel_40'] = data['acceleration'].rolling(window=20).mean()
-            # data['std_accel_40'] = data['acceleration'].rolling(window=20).std()
-            # data['mean_speed_40'] = data['speed'].rolling(window=20).mean()
-            # data['std_speed_40'] = data['speed'].rolling(window=20).std()
-
-            # Forward fill to replace NaNs with the first available value
-            data[['mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']] = data[
-                ['mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].ffill()
-            # Use the provided scaler to scale all necessary features
-            features = data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']]
-            features_scaled = scaler.transform(features)
-
-            # Predict the residual using the trained model
-            predicted_residual = model.predict(features_scaled)
-
-            # Calculate the machine learning power
-            data['Power_hybrid'] = predicted_residual + data['Power_phys']
-            save_column = ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh',
-                    'chrg_cable_conn', 'pack_volt', 'pack_current', 'Power_data', 'Power_phys',
-                    'Power_hybrid', 'Power_ml']
-            # Save the updated file
-            data.to_csv(file, columns = save_column, index=False)
-
-            print(f"Processed file {file}")
-        else:
-            print(f"File {file} does not contain required columns 'speed', 'acceleration', or 'Power_phys'.")
-    except Exception as e:
-        print(f"Error processing file {file}: {e}")
-def add_predicted_power_column(files, model_path, scaler):
-    try:
-        # Load the trained model
-        model = xgb.XGBRegressor()
-        model.load_model(model_path)
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        return
-
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_file_with_trained_model, file, model, scaler) for file in files]
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f"Error in processing file: {e}")

@@ -24,7 +24,8 @@ def process_files(files, scaler=None):
     ACCELERATION_MAX = 9 # m/s^2
     TEMP_MIN = -30
     TEMP_MAX = 50
-
+    feature_cols = ['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10',
+                    'std_speed_10']
     df_list = []
     with ProcessPoolExecutor() as executor:
         future_to_file = {executor.submit(process_single_file, file): file for file in files}
@@ -59,11 +60,11 @@ def process_files(files, scaler=None):
         scaler.fit(pd.DataFrame([
             [SPEED_MIN, ACCELERATION_MIN, TEMP_MIN, 0, 0, 0, 0],
             [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX, 1, 1, 1, 1]
-        ], columns=['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']))
+        ], columns=feature_cols))
 
     # 모든 피쳐에 대해 스케일링 적용
-    full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']] = scaler.transform(
-        full_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']])
+    full_data[feature_cols] = scaler.transform(
+        full_data[feature_cols])
 
     return full_data, scaler
 
@@ -125,11 +126,13 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda, plot=None, s
         train_data, scaler = process_files(train_files)
         test_data, _ = process_files(test_files)
 
+        feature_cols = ['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10',
+                        'std_speed_10']
         # Prepare training data
-        X_train = train_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].to_numpy()
+        X_train = train_data[feature_cols].to_numpy()
         y_train = train_data['Residual'].to_numpy()
 
-        X_test = test_data[['speed', 'acceleration', 'ext_temp', 'mean_accel_10', 'std_accel_10', 'mean_speed_10', 'std_speed_10']].to_numpy()
+        X_test = test_data[feature_cols].to_numpy()
         y_test = test_data['Residual'].to_numpy()
 
         # Find best lambda if not precomputed

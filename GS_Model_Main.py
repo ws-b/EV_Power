@@ -5,10 +5,10 @@ import pickle
 import matplotlib.pyplot as plt
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_Functions import get_vehicle_files, compute_mape_rrmse
-from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_contour2, plot_2d_histogram
+from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
-from GS_Train_Only_XGboost import cross_validate as only_xgb_validate, add_predicted_power_column as only_xgb_add_predicted_power_column
+from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 from GS_Train_Multi import run_evaluate, plot_mape_results, plot_rrmse_results
@@ -173,8 +173,7 @@ def main():
         elif task_choice == 3:
             while True:
                 print("1: XGBoost Model")
-                print("2: Machine Learning Only(XGB)")
-                print("3: Return to previous menu")
+                print("2: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     pred_choice = int(input("Enter number you want to run: "))
@@ -182,7 +181,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if pred_choice == 3:
+                if pred_choice == 2:
                     break
                 elif pred_choice == 0:
                     print("Quitting the program")
@@ -202,26 +201,6 @@ def main():
                             scaler = pickle.load(f)
 
                         xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
-
-                    elif pred_choice == 2:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_Only_best_model_{selected_car}.json')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_Only_scaler_{selected_car}.pkl')
-
-                        if not vehicle_files[selected_car]:
-                            print(f"No files to process for the selected vehicle: {selected_car}")
-                            continue
-
-                        # Load the scaler
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-
-                        only_xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
-
-                        # Load the scaler
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-
-                        lgbm_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
 
         elif task_choice == 4:
             while True:
