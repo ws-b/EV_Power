@@ -380,7 +380,7 @@ def main():
                                     break
                             plot_2d_histogram(sample_files_dict, selected_car)
                         elif plot == 6:
-                            mape, rrmse = compute_mape_rrmse(vehicle_files, selected_car)
+                            compute_mape_rrmse(vehicle_files, selected_car)
 
         elif task_choice == 0:
             print("Quitting the program.")

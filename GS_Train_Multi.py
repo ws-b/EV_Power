@@ -20,11 +20,7 @@ def run_evaluate(vehicle_files, selected_car):
         'model': 'Hybrid Model(XGBoost)',
         'lambda': lambda_XGB
     })
-    _, _, lambda_LGBM = lgbm_cross_validate(vehicle_files, selected_car, None, None, save_dir=None)
-    l2lambda[selected_car].append({
-        'model': 'Hybrid Model(LGBM)',
-        'lambda': lambda_LGBM
-    })
+
     _, _, lambda_ML = only_xgb_validate(vehicle_files, selected_car, None, None, save_dir=None)
     l2lambda[selected_car].append({
         'model': 'Only ML(XGBoost)',
