@@ -8,6 +8,7 @@ from GS_Functions import get_vehicle_files, compute_mape_rrmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
+from GS_Train_XGboost_Kmeans import cross_validate as xgb_kmeans_cross_validate
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
@@ -60,8 +61,9 @@ def main():
                 print("2: Hybrid(LR) Model")
                 print("3: Hybrid(LGBM) Model")
                 print("4: Only ML(XGB) Model")
-                print("5: Train Models")
-                print("6: Return to previous menu")
+                print("5: Hybrid(XGB, K-means) Model")
+                print("7: Train Models")
+                print("8: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -69,7 +71,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 6:
+                if train_choice == 8:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -80,6 +82,7 @@ def main():
                 ONLY_ML = {}
                 
                 for selected_car in selected_cars:
+                    XGB[selected_car] = {}
                     if train_choice == 1:
                         results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir)
 
@@ -158,8 +161,28 @@ def main():
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-
                     if train_choice == 5:
+                        for n_clusters in [3,4,5,6,7,8]:
+                            results, scaler, residual_scaler, kmeans = xgb_kmeans_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir, n_clusters = n_clusters)
+
+                            if results:
+                                rmse_values = []
+                                mape_values = []
+                                rrmse_values = []
+                                for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                                    print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                    rmse_values.append(rmse)
+                                    mape_values.append(mape_test)
+                                    rrmse_values.append(rrmse_test)
+                                XGB[selected_car][n_clusters] = {
+                                    'RMSE': rmse_values,
+                                    'RRMSE': rrmse_values,
+                                    'MAPE': mape_values
+                                }
+
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
+                    if train_choice == 7:
                         save_path = r"C:\Users\BSL\Desktop\Figures\Result"
                         results_dict = run_evaluate(vehicle_files, selected_car)
                         plot_mape_results(results_dict, selected_car, save_path)

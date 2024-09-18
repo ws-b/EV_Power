@@ -1,12 +1,13 @@
 import os
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 from GS_Functions import get_vehicle_files, compute_mape_rrmse
 from GS_Train_XGboost import cross_validate as xgb_cross_validate
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
-import matplotlib as plt
+
 def run_evaluate(vehicle_files, selected_car):
     vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 10000]
 

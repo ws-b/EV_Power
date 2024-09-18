@@ -872,29 +872,20 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
                 f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)
             plt.show()
-def plot_shap_values(model, X, feature_names, save_path=None):
+def plot_shap_values(model, X_train, feature_names):
     """
-    Calculate SHAP values for the input features and plot them.
+    Plot SHAP values for the best XGBoost model using interventional perturbation.
 
     Parameters:
-    - model: Trained XGBoost model
-    - X: Input features as a NumPy array or pandas DataFrame
-    - feature_names: List of feature names
-    - save_path: Path to save the plot; if None, the plot will be displayed
+    model: The best trained XGBoost model.
+    X_train: Training data used to calculate SHAP values.
+    feature_names: List of feature names.
     """
-    # Initialize the SHAP explainer
-    explainer = shap.TreeExplainer(model)
+    # Use SHAP with interventional perturbation
+    explainer = shap.TreeExplainer(model, feature_perturbation='interventional')
 
-    # Calculate SHAP values
-    shap_values = explainer.shap_values(X)
+    # Disable the additivity check when calling shap_values()
+    shap_values = explainer.shap_values(X_train, check_additivity=False)
 
-    # Create a summary plot of SHAP values
-    shap.summary_plot(shap_values, X, feature_names=feature_names, show=False)
-
-    # Save or display the plot
-    if save_path:
-        plt.savefig(save_path, bbox_inches='tight', dpi = 600)
-        plt.close()
-        print(f"SHAP summary plot saved at {save_path}")
-    else:
-        plt.show()
+    # Plot the SHAP beeswarm plot
+    shap.summary_plot(shap_values, X_train, feature_names=feature_names)
