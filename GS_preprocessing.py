@@ -123,28 +123,25 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
         if df is not None:
             df = df.loc[:, ~df.columns.str.contains('Unnamed')]
             df = df.drop_duplicates(subset='time')
-            df = df.iloc[::-1].reset_index(drop=True)
+            # 'time' 컬럼을 datetime 형식으로 변환 시도
+            date_formats = ['%y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']
+            for fmt in date_formats:
+                try:
+                    df['time'] = pd.to_datetime(df['time'], format=fmt, errors='raise')
+                    break  # 성공 시 루프 종료
+                except ValueError:
+                    continue  # 다음 형식 시도
+            else:
+                print(f"Time format error in file {file_path}. Skipping this file.")
+                continue  # 모든 형식이 실패하면 해당 파일 건너뜀
+
+            # 'time' 컬럼을 기준으로 정렬
+            df = df.sort_values(by='time').reset_index(drop=True)
             dfs.append(df)
 
     if dfs and device_no and year_month and not os.path.exists(output_file_path):
         combined_df = pd.concat(dfs, ignore_index=True)
-        print(f"Processing file: {output_file_path}")
-
-        combined_df['time'] = combined_df['time'].str.strip()
-        date_formats = ['%y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']
-        for date_format in date_formats:
-            try:
-                t = pd.to_datetime(combined_df['time'], format=date_format)
-                break
-            except ValueError as e:
-                print(f"Date format error: {e}")
-                continue
-        else:
-            print(f"Date format error for file {output_file_path}")
-            return
-
-        t_diff = t.diff().dt.total_seconds()
-        combined_df['time_diff'] = t_diff
+        combined_df['time_diff'] = combined_df['time'].diff().dt.total_seconds()
         combined_df['speed'] = combined_df['emobility_spd'] * 0.27778
 
         # Calculate acceleration using forward and backward differences

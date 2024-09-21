@@ -21,7 +21,7 @@ def pre_process():
         choice = int(choice)
 
         if choice == 1:
-            source_paths = r"C:\Users\WSONG\Desktop\drive-download-20240711T052431Z-001"
+            source_paths = r"C:\Users\BSL\Desktop\BMS"
             destination_root = r"D:\SamsungSTF\Data\GSmbiz\BMS_Data"
             process_device_folders(source_paths, destination_root, False)
             process_device_folders(source_paths, destination_root, True)
