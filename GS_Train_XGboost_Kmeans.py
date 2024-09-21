@@ -8,7 +8,9 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.cluster import KMeans
 from concurrent.futures import ProcessPoolExecutor, as_completed
-
+import seaborn as sns
+import matplotlib.pyplot as plt
+from GS_plot import plot_shap_values
 def process_single_file(file):
     try:
         data = pd.read_csv(file)
@@ -165,6 +167,10 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda=None, plot=No
         train_data['y_pred'] = model.predict(dtrain)
         test_data['y_pred'] = model.predict(dtest)
 
+        if plot:
+            # Calculate and plot SHAP values
+            plot_shap_values(model, X_train, feature_cols)
+
         # Train set에서 Trip별로 적분을 계산하고 MAPE 및 RRMSE 계산
         hybrid_integrals_train, data_integrals_train = [], []
         for _, group in train_trip_groups:
@@ -196,6 +202,93 @@ def cross_validate(vehicle_files, selected_car, precomputed_lambda=None, plot=No
         print(f"Vehicle: {selected_car}, Fold: {fold_num}, n_clusters: {n_clusters}")
         print(f"Train - MAPE: {mape_train:.2f}, RRMSE: {rrmse_train:.2f}")
         print(f"Test - MAPE: {mape_test:.2f}, RRMSE: {rrmse_test:.2f}")
+
+        # ===================== 클러스터별 분석 및 시각화 추가 ===================== #
+
+        # 1. (a) 클러스터별 통계 요약
+        cluster_summary = train_data.groupby('cluster_label').agg({
+            'Residual': ['mean', 'median', 'std', 'min', 'max'],
+            'speed': ['mean', 'median', 'std', 'min', 'max'],
+            'acceleration': ['mean', 'median', 'std', 'min', 'max'],
+            'jerk': ['mean', 'median', 'std', 'min', 'max']
+        }).reset_index()
+        print(f"\nCluster Summary for Fold {fold_num}:\n", cluster_summary)
+
+        # Define a consistent color palette based on the number of clusters
+        num_clusters = train_data['cluster_label'].nunique()
+        palette = sns.color_palette('viridis', num_clusters)
+
+
+        if plot:
+            # 1. (c) 클러스터별 특징 조합 시각화
+            plt.figure(figsize=(10, 6))
+            sns.scatterplot(x='speed', y='Residual', hue='cluster_label', data=train_data, palette=palette)
+            plt.title(f'Fold {fold_num} - Residual vs. Speed by Cluster')
+            plt.xlabel('Speed')
+            plt.ylabel('Residual')
+            plt.legend(title='Cluster Label')
+            plt.show()
+
+            # 2. (c) 속도와 가속도 분석
+            plt.figure(figsize=(10, 6))
+            sns.scatterplot(x='acceleration', y='Residual', hue='cluster_label', data=train_data, palette=palette)
+            plt.title(f'Fold {fold_num} - Residual vs. Acceleration by Cluster')
+            plt.xlabel('Acceleration')
+            plt.ylabel('Residual')
+            plt.legend(title='Cluster Label')
+            plt.show()
+
+        # 2. (d) 클러스터별 주행 상황 레이블링
+        # Residual과 가속도의 임계값 설정 (데이터 분포에 따라 조정)
+        residual_threshold_high = train_data['Residual'].quantile(0.75)
+        residual_threshold_low = train_data['Residual'].quantile(0.25)
+        acceleration_threshold = 0.1  # 가속도 임계값 (예시)
+
+        def infer_driving_situation(row):
+            residual = row['Residual']
+            acceleration = row['acceleration']
+
+            if residual > residual_threshold_high:
+                if acceleration > acceleration_threshold:
+                    return 'uphill_acceleration'
+                elif acceleration < -acceleration_threshold:
+                    return 'uphill_deceleration'
+                else:
+                    return 'uphill_cruise'
+            elif residual_threshold_low < residual < residual_threshold_high:
+                if acceleration > acceleration_threshold:
+                    return 'flatroad_acceleration'
+                elif acceleration < -acceleration_threshold:
+                    return 'flatroad_deceleration'
+                else:
+                    return 'flatroad_cruise'
+
+            elif residual < residual_threshold_low:
+                if acceleration > acceleration_threshold:
+                    return 'downhill_acceleration'
+                elif acceleration < -acceleration_threshold:
+                    return 'downhill_deceleration'
+                else:
+                    return 'downhill_cruise'
+            else:
+                return 'undefined'
+
+        train_data['driving_situation'] = train_data.apply(infer_driving_situation, axis=1)
+
+        # 클러스터별 주행 상황 분포 출력
+        cluster_driving_situations = train_data.groupby('cluster_label')['driving_situation'].value_counts(normalize=True).unstack().fillna(0)
+        print(f"\nCluster Driving Situations for Fold {fold_num}:\n", cluster_driving_situations)
+        if plot:
+        # 클러스터별 주행 상황 분포 시각화
+            cluster_driving_situations.plot(kind='bar', stacked=True, figsize=(10, 7), colormap='viridis')
+            plt.title(f'Fold {fold_num} - Cluster-wise Driving Situations Distribution')
+            plt.ylabel('Proportion')
+            plt.xlabel('Cluster Label')
+            plt.legend(title='Driving Situation', bbox_to_anchor=(1.05, 1), loc='upper left')
+            plt.tight_layout()
+            plt.show()
+
+        # ====================================================================== #
 
     # 최종 모델 선택 (Test set에서 MAPE 기준으로 중간값에 해당하는 모델)
     median_mape = np.median([result[5] for result in results])

@@ -162,7 +162,7 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 5:
-                        for n_clusters in [3,4,5,6,7,8]:
+                        for n_clusters in [3, 4, 9]:
                             results, scaler, residual_scaler, kmeans = xgb_kmeans_cross_validate(vehicle_files, selected_car, None, True,  save_dir=save_dir, n_clusters = n_clusters)
 
                             if results:
