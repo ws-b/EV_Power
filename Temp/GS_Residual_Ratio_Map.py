@@ -11,7 +11,7 @@ from io import BytesIO
 from matplotlib.backends.backend_pdf import PdfPages
 
 # Google Maps API Key
-api_key = 'AIzaSyAqsoklc9VL03MArm2H-Fb4LaAzIyi-y2E'
+api_key = ''
 
 # -------------------- 설정 --------------------
 
