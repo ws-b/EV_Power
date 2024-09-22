@@ -32,3 +32,5 @@ models/XGB_scaler_NiroEV.pkl
 temp.py
 *.png
 *.json
+Temp/GS_Altitude_Check.py
+Temp/GS_Residual_Ratio_Map.py
