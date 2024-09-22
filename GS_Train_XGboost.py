@@ -242,9 +242,14 @@ def process_file_with_trained_model(file, model, scaler):
 
             # Calculate the hybrid power
             data['Power_hybrid'] = predicted_residual + data['Power_phys']
-            save_column = ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh',
-                    'chrg_cable_conn', 'pack_volt', 'pack_current', 'Power_data', 'Power_phys',
-                    'Power_hybrid', 'Power_ml']
+            if 'altitude' in data.columns:
+                save_column = ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh',
+                               'chrg_cable_conn', 'pack_volt', 'pack_current', 'altitude', 'Power_data', 'Power_phys',
+                               'Power_hybrid', 'Power_ml']
+            else:
+                save_column = ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh',
+                               'chrg_cable_conn', 'pack_volt', 'pack_current', 'Power_data', 'Power_phys',
+                               'Power_hybrid', 'Power_ml']
             # Save the updated file
             data.to_csv(file, columns = save_column, index=False)
 
