@@ -11,16 +11,16 @@ from io import BytesIO
 from matplotlib.backends.backend_pdf import PdfPages
 
 # Google Maps API Key
-api_key = ''
+api_key = 'AIzaSyC_jcu6ChgPubv9RM30dBdlJG7kRIzTdUA'
 
 # -------------------- 설정 --------------------
 
 # CSV 파일들이 있는 디렉토리 경로를 설정합니다.
 directory = r'D:\SamsungSTF\Processed_Data\TripByTrip'
-selected_car = 'Ioniq5'
+selected_car = 'EV6'
 
 # 그래프를 저장할 PDF 파일의 경로를 설정합니다.
-output_pdf = rf'D:\SamsungSTF\Processed_Data\Graphs\all_graphs_{selected_car}.pdf'
+output_pdf = rf'D:\SamsungSTF\Processed_Data\Graphs\all_graphs_{selected_car}_Power_ratio.pdf'
 
 # 저장 디렉토리가 존재하지 않으면 생성합니다.
 os.makedirs(os.path.dirname(output_pdf), exist_ok=True)
@@ -162,7 +162,8 @@ def process_and_save_graphs(file, pdf, selected_car):
 
     # 'time' 컬럼을 datetime 형식으로 변환
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
-
+    # 'Power_Ratio' 계산
+    df['Power_Ratio'] = df['Power_data']/df['Power_phys']
     # 'Residual_Ratio' 컬럼 계산
     df['Residual_Ratio'] = (df['Power_data'] - df['Power_phys']) / df['Power_phys']
 
@@ -202,13 +203,13 @@ def process_and_save_graphs(file, pdf, selected_car):
     y_cols_grouped_1 = [
         ['Power_phys_kW', 'Power_data_kW'],  # Shared Y-axis
         ['altitude'],
-        ['Residual_Ratio']
+        ['Power_Ratio']
     ]
 
     labels_grouped_1 = [
         ['Power_phys (kW)', 'Power_data (kW)'],
         ['Altitude'],
-        ['Residual_Ratio']
+        ['Power_Ratio']
     ]
 
     colors_grouped_1 = [
@@ -223,7 +224,7 @@ def process_and_save_graphs(file, pdf, selected_car):
         y_cols_grouped=y_cols_grouped_1,
         labels_grouped=labels_grouped_1,
         colors_grouped=colors_grouped_1,
-        title=f"{selected_car} - Power, Altitude & Residual_Ratio over Time\nFile: {os.path.basename(file)}",
+        title=f"{selected_car} - Power, Altitude & Power_Ratio over Time\nFile: {os.path.basename(file)}",
         alpha=0.7  # 투명도 설정
     )
     pdf.savefig(fig1)
@@ -233,13 +234,13 @@ def process_and_save_graphs(file, pdf, selected_car):
     y_cols_grouped_2 = [
         ['Energy_phys', 'Energy_data'],  # Shared Y-axis
         ['altitude'],
-        ['Residual_Ratio']
+        ['Power_Ratio']
     ]
 
     labels_grouped_2 = [
         ['Energy_phys (kWh)', 'Energy_data (kWh)'],
         ['Altitude'],
-        ['Residual_Ratio']
+        ['Power_Ratio']
     ]
 
     colors_grouped_2 = [
@@ -254,7 +255,7 @@ def process_and_save_graphs(file, pdf, selected_car):
         y_cols_grouped=y_cols_grouped_2,
         labels_grouped=labels_grouped_2,
         colors_grouped=colors_grouped_2,
-        title=f"{selected_car} - Integrated Energy, Altitude & Residual_Ratio over Time\nFile: {os.path.basename(file)}",
+        title=f"{selected_car} - Integrated Energy, Altitude & Power_Ratio over Time\nFile: {os.path.basename(file)}",
         alpha=0.7  # 투명도 설정
     )
     pdf.savefig(fig2)

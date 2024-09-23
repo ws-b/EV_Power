@@ -52,7 +52,7 @@ def main():
                 EV = select_vehicle(selected_car)
                 filtered_files = [f for f in vehicle_files.get(selected_car, []) if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
                 unfiltered_files = vehicle_files.get(selected_car, [])
-                process_files_power(unfiltered_files, EV)
+                process_files_power(filtered_files, EV)
 
         elif task_choice == 2:
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
@@ -254,14 +254,16 @@ def main():
                         sample_files = random.sample(vehicle_files[selected_car] ,5)
                         altitude_files = [file for file in vehicle_files[selected_car] if 'altitude' in file]
                         sample_alt_files = random.sample(altitude_files, min(5, len(altitude_files)))
+                        filtered_files = [f for f in vehicle_files.get(selected_car, []) if
+                                          f.endswith('.csv') and 'bms' in f and 'altitude' in f]
                         if plot == 1:
-                            plot_power(sample_files, selected_car, 'stacked')
+                            plot_power(filtered_files[:5], selected_car, 'stacked')
                         elif plot == 2:
                             plot_power(sample_files, selected_car, 'physics')
                         elif plot == 3:
                             plot_power(sample_files, selected_car, 'data')
                         elif plot == 4:
-                            plot_power(sample_files, selected_car, 'comparison')
+                            plot_power(filtered_files[:5], selected_car, 'comparison')
                         elif plot == 5:
                             plot_power(sample_files, selected_car, 'hybrid')
                         elif plot == 6:
@@ -271,9 +273,9 @@ def main():
                         elif plot == 8:
                             plot_energy(sample_files, selected_car, 'data')
                         elif plot == 9:
-                            plot_energy(sample_files, selected_car, 'comparison')
+                            plot_energy(filtered_files[:5], selected_car, 'comparison')
                         elif plot == 10:
-                            plot_energy(sample_alt_files, selected_car, 'altitude')
+                            plot_energy(filtered_files[:5], selected_car, 'altitude')
                         elif plot == 13:
                             break
                         elif plot == 0:

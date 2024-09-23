@@ -62,7 +62,7 @@ def plot_power(file_lists, selected_car, target):
                 plt.title('Power Stacked Graph Term by Term')
                 plt.xlabel('Time (minutes)')
                 plt.ylabel('Power (kW)')
-                plt.legend(loc='upper left')
+                plt.legend(loc='upper left', bbox_to_anchor=(0.01, 0.95))
                 plt.show()
             else:
                 print(f"Error: Missing required columns in file {file_name}")
@@ -311,10 +311,12 @@ def plot_energy(file_lists, selected_car, target):
             ax2.tick_params(axis='y', labelcolor='tab:green')
             # 파일과 날짜 추가
             date = t.iloc[0].strftime('%Y-%m-%d')
-            fig.text(0.99, 0.01, date, horizontalalignment='right', color='black', fontsize=12)
-            fig.text(0.01, 0.99, f'{selected_car}: ' + trip_info, verticalalignment='top', color='black', fontsize=12)
+            plt.text(0.99, 0.99, date, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='right', color='black')
+            plt.text(0.01, 0.99, f'{selected_car}: '+ trip_info, transform=plt.gca().transAxes, fontsize=12,
+                     verticalalignment='top', horizontalalignment='left', color='black')
             # 범례와 타이틀
-            fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+            plt.legend(loc='upper left', bbox_to_anchor=(0, 0.96))
             plt.title('Physics Model Energy vs. Data Energy and Altitude')
             # 그래프 출력
             plt.tight_layout()
