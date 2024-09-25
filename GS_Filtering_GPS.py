@@ -73,6 +73,8 @@ for file_path in tqdm(all_files, desc="Processing files"):
             df = df.drop(columns=['altitude'])
             if 'lat' and 'lng' in df.columns:
                 df= df.drop(columns=['lat', 'lng'])
+            if 'altitude' in df.columns:
+                df= df.drop(columns=['altitude'])
             df.to_csv(new_file_path, index=False)
             logging.info(f"Renamed and updated file: {basename} -> {new_basename}")
 

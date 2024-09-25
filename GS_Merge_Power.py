@@ -99,7 +99,7 @@ def process_file_power(file, EV):
             with np.errstate(divide='ignore', invalid='ignore'):
                 slope = np.arctan2(altitude_diff, distance_diff)
                 slope = np.where(distance_diff == 0, 0, slope)  # 거리 차이가 0인 경우 경사각을 0으로 설정
-
+            data['slope'] = slope
             # 경사 저항 항 계산
             F = EV.mass * g * np.sin(slope) * v / EV.eff
 

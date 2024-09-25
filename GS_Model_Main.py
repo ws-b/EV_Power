@@ -52,7 +52,7 @@ def main():
                 EV = select_vehicle(selected_car)
                 filtered_files = [f for f in vehicle_files.get(selected_car, []) if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
                 unfiltered_files = vehicle_files.get(selected_car, [])
-                process_files_power(filtered_files, EV)
+                process_files_power(unfiltered_files, EV)
 
         elif task_choice == 2:
             save_dir = os.path.join(os.path.dirname(folder_path), 'Models')
