@@ -214,8 +214,7 @@ def main():
                     if train_choice == 7:
                         save_path = r"C:\Users\BSL\Desktop\Figures\Result"
                         results_dict = run_evaluate(vehicle_files, selected_car)
-                        plot_mape_results(results_dict, selected_car, save_path)
-                        plot_rrmse_results(results_dict, selected_car, save_path)
+                        plot_rmse_results(results_dict, selected_car, save_path)
 
                 print(f"XGB RRMSE & MAPE: {XGB}")
                 print(f"LR RRMSE & MAPE: {LR}")

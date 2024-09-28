@@ -129,7 +129,7 @@ def objective(trial, X_train, y_train, X_val, y_val):
         'reg_lambda': reg_lambda,
         'reg_alpha': reg_alpha,
         'early_stopping_rounds' : 15,
-        'verbosity': 1,
+        'verbosity': -1,
         'device': 'gpu',  # GPU 사용
         'gpu_device_id': 1
     }
