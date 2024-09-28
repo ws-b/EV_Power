@@ -7,12 +7,12 @@ from GS_Merge_Power import process_files_power, select_vehicle
 from GS_Functions import get_vehicle_files, compute_mape_rrmse
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter, plot_2d_histogram
 from GS_vehicle_dict import vehicle_dict
-from GS_Train_XGboost import cross_validate as xgb_cross_validate, add_predicted_power_column as xgb_add_predicted_power_column
+from GS_Train_XGboost import cross_validate as xgb_cross_validate, process_multiple_new_files as xgb_process_multiple_new_files, load_model_and_scaler as xgb_load_model_and_scaler
 from GS_Train_XGboost_Kmeans import cross_validate as xgb_kmeans_cross_validate
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
-from GS_Train_Multi import run_evaluate, plot_mape_results, plot_rrmse_results
+from GS_Train_Multi import run_evaluate, plot_rmse_results
 def main():
     car_options = {
         1: 'EV6',
@@ -80,7 +80,7 @@ def main():
                 LR = {}
                 LGBM = {}
                 ONLY_ML = {}
-                
+
                 for selected_car in selected_cars:
                     XGB[selected_car] = {}
                     if train_choice == 1:
@@ -90,11 +90,20 @@ def main():
                             rmse_values = []
                             mape_values = []
                             rrmse_values = []
-                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+
+                            for res in results:
+                                fold_num = res['fold']
+                                rmse = res['rmse']
+                                rrmse_test = res['test_rrmse']
+                                mape_test = res['test_mape']
+
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
                                 rrmse_values.append(rrmse_test)
+
+                            # XGB 딕셔너리에 결과 저장
                             XGB[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
@@ -104,17 +113,24 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 2:
-                        results, scaler = lr_cross_validate(vehicle_files, selected_car, True, save_dir=save_dir)
+                        results, scaler = lr_cross_validate(vehicle_files, selected_car)
 
                         if results:
                             rmse_values = []
                             mape_values = []
                             rrmse_values = []
-                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                            for res in results:
+                                fold_num = res['fold']
+                                rmse = res['rmse']
+                                rrmse_test = res['test_rrmse']
+                                mape_test = res['test_mape']
+
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
                                 rrmse_values.append(rrmse_test)
+
                             LR[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
@@ -123,17 +139,23 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 3:
-                        results, scaler, _ = lgbm_cross_validate(vehicle_files, selected_car, None, True,
-                                                                 save_dir=save_dir)
+                        results, scaler, _ = lgbm_cross_validate(vehicle_files, selected_car, None, None)
                         if results:
                             rmse_values = []
                             mape_values = []
                             rrmse_values = []
-                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                            for res in results:
+                                fold_num = res['fold']
+                                rmse = res['rmse']
+                                rrmse_test = res['test_rrmse']
+                                mape_test = res['test_mape']
+
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
                                 rrmse_values.append(rrmse_test)
+
                             LGBM[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
@@ -149,11 +171,18 @@ def main():
                             mape_values = []
                             rmse_values = []
                             rrmse_values = []
-                            for fold_num, rmse, _, _, rrmse_test, mape_test in results:
+                            for res in results:
+                                fold_num = res['fold']
+                                rmse = res['rmse']
+                                rrmse_test = res['test_rrmse']
+                                mape_test = res['test_mape']
+
                                 print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
                                 rrmse_values.append(rrmse_test)
+
                             ONLY_ML[selected_car] = {
                                 'RMSE': rmse_values,
                                 'RRMSE': rrmse_values,
@@ -194,36 +223,22 @@ def main():
                 print(f"ONLY ML RRMSE & MAPE: {ONLY_ML}")
 
         elif task_choice == 3:
-            while True:
-                print("1: XGBoost Model")
-                print("2: Return to previous menu")
-                print("0: Quitting the program")
-                try:
-                    pred_choice = int(input("Enter number you want to run: "))
-                except ValueError:
-                    print("Invalid input. Please enter a number.")
+            for selected_car in selected_cars:
+                model_path = os.path.join(os.path.dirname(folder_path), 'Models',
+                                          f'XGB_best_model_{selected_car}.model')
+                scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_scaler_{selected_car}.pkl')
+
+                if not vehicle_files[selected_car]:
+                    print(f"No files to process for the selected vehicle: {selected_car}")
                     continue
 
-                if pred_choice == 2:
-                    break
-                elif pred_choice == 0:
-                    print("Quitting the program")
-                    return
+                model, scaler = xgb_load_model_and_scaler(model_path, scaler_path)
 
-                for selected_car in selected_cars:
-                    if pred_choice == 1:
-                        model_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_best_model_{selected_car}.json')
-                        scaler_path = os.path.join(os.path.dirname(folder_path), 'Models', f'XGB_scaler_{selected_car}.pkl')
-
-                        if not vehicle_files[selected_car]:
-                            print(f"No files to process for the selected vehicle: {selected_car}")
-                            continue
-
-                        # Load the scaler
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-
-                        xgb_add_predicted_power_column(vehicle_files[selected_car], model_path, scaler)
+                xgb_process_multiple_new_files(
+                    vehicle_files[selected_car],
+                    model=model,
+                    scaler=scaler
+                )
 
         elif task_choice == 4:
             while True:

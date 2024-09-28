@@ -77,7 +77,7 @@ def process_file_power(file, EV):
         E = np.where(v <= 0.5, EV.aux + EV.idle + E_hvac, EV.aux + E_hvac)
 
         # 고도 데이터 처리
-        if 'altitude' in data.columns:
+        if 'altitude' in data.columns and 'NONE' in data.columns:
             # 고도 데이터를 숫자형으로 변환
             data['altitude'] = pd.to_numeric(data['altitude'], errors='coerce')
 
@@ -106,12 +106,12 @@ def process_file_power(file, EV):
         else:
             F = np.zeros_like(v)
 
-        data['A'] = A
-        data['B'] = B
-        data['C'] = C
-        data['D'] = D
-        data['E'] = E
-        data['F'] = F
+        # data['A'] = A
+        # data['B'] = B
+        # data['C'] = C
+        # data['D'] = D
+        # data['E'] = E
+        # data['F'] = F
         data['Power_phys'] =  A + B + C + D + E + F
         # data = data.drop(columns=['A', 'B', 'C', 'D', 'E', 'F'])
         data.to_csv(file, index=False)

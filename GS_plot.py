@@ -4,9 +4,11 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib as mpl
 import random
 import shap
 import plotly.graph_objects as go
+from scipy.stats import binned_statistic_2d
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.interpolate import griddata
 from scipy.stats import linregress
@@ -665,14 +667,14 @@ def plot_energy_dis(file_lists, selected_car, Target):
         print("Invalid Target. Please try again.")
         return
 
-def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
+def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400, min_count=5, save_path = None):
     if X.shape[1] != 2:
         raise ValueError("Error: X should have 2 columns.")
 
     # Inverse transform to original scale
-    X_orig = scaler.inverse_transform(X)
+    X_orig = scaler.inverse_transform(np.hstack([X, np.zeros((X.shape[0], scaler.scale_.shape[0] - 2))]))  # 원래 스케일로 역변환
 
-    # Convert speed to km/h
+    # Convert speed to km/h (assuming first feature is 'speed')
     X_orig[:, 0] *= 3.6
 
     # Create grid
@@ -681,6 +683,17 @@ def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
     grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
 
+    # Compute density (number of points per grid cell)
+    x_edges = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids + 1)
+    y_edges = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids + 1)
+    count_stat, _, _, _ = binned_statistic_2d(
+        X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
+    )
+
+    # Mask grid_z where count_stat is below the threshold
+    mask = count_stat < min_count
+    grid_z[mask] = np.nan  # 또는 다른 마스킹 방법을 사용할 수 있습니다.
+
     # Contour plot
     plt.figure(figsize=(10, 8))
     contour = plt.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
@@ -688,6 +701,11 @@ def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400):
     plt.xlabel('Speed (km/h)')
     plt.ylabel('Acceleration (m/s²)')
     plt.title(f'{selected_car} : Contour Plot of {terminology}')
+
+    # **고해상도로 저장**
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
     plt.show()
 
 def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
@@ -874,20 +892,202 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
                 f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)
             plt.show()
-def plot_shap_values(model, X_train, feature_names):
+
+
+def plot_shap_values(model, X_train, feature_names, save_path=None):
     """
     Plot SHAP values for the best XGBoost model using interventional perturbation.
 
     Parameters:
     model: The best trained XGBoost model.
     X_train: Training data used to calculate SHAP values.
-    feature_names: List of feature names.
+    feature_names: List of feature names in the desired order.
+    save_path: Optional. If provided, the plot will be saved to this path.
     """
+    # Ensure X_train is a DataFrame with the correct feature names
+    if not isinstance(X_train, pd.DataFrame):
+        X_train = pd.DataFrame(X_train, columns=feature_names)
+    else:
+        X_train = X_train[feature_names]
+
     # Use SHAP with interventional perturbation
     explainer = shap.TreeExplainer(model, feature_perturbation='interventional')
 
-    # Disable the additivity check when calling shap_values()
+    # Calculate SHAP values
     shap_values = explainer.shap_values(X_train, check_additivity=False)
 
-    # Plot the SHAP beeswarm plot
-    shap.summary_plot(shap_values, X_train, feature_names=feature_names)
+    # Plot the SHAP summary plot with sort=False to preserve feature order
+    shap.summary_plot(shap_values, X_train, feature_names=feature_names, sort=False, show=False)
+
+    # Get current axes
+    ax = plt.gca()
+
+    # Set black border for the plot
+    for spine in ax.spines.values():
+        spine.set_edgecolor('black')
+        spine.set_linewidth(1.5)
+
+    # SHAP summary_plot은 여러 컬렉션을 생성할 수 있으므로 색상 막대를 정확히 가져와야 합니다.
+    # 일반적으로 첫 번째 컬렉션이 점들의 컬렉션인 경우가 많습니다.
+    try:
+        colorbar = ax.collections[0].colorbar  # 첫 번째 컬렉션이 점들의 컬렉션인 경우
+        if colorbar is None and len(ax.collections) > 1:
+            colorbar = ax.collections[1].colorbar  # 두 번째 컬렉션을 시도
+    except AttributeError:
+        colorbar = None
+
+    if colorbar:
+        # 색상 막대의 위치와 범위 설정
+        cbar = colorbar
+        cbar.set_label('Feature Value', fontsize=12)  # 색상 막대 레이블 설정
+
+        # 색상 막대에 수치 라벨 추가
+        num_labels = 5
+        ticks = np.linspace(cbar.vmin, cbar.vmax, num_labels)
+        cbar.set_ticks(ticks)
+        cbar.set_ticklabels([f"{tick:.2f}" for tick in ticks])
+
+        # 글꼴 크기 조정
+        cbar.ax.tick_params(labelsize=10)
+        cbar.set_label('Feature Value', fontsize=12)
+
+
+    # 글꼴 크기 및 레이아웃 조정
+    plt.xlabel('SHAP Value', fontsize=12)
+    plt.ylabel('Features', fontsize=12)
+    plt.title('SHAP Summary Plot', fontsize=14)
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+
+    # 레이아웃 조정
+    plt.tight_layout()
+
+    # **고해상도로 저장**
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
+    # Display the plot
+    plt.show()
+
+
+def plot_composite_contour(
+        X_train, y_pred_train,
+        X_test, y_pred_test1, y_pred_test2,
+        scaler, selected_car,
+        terminology1='Train Residual',
+        terminology2='Residual[1]',
+        terminology3='Residual[2]',
+        num_grids=30,
+        min_count=10,
+        save_directory=r"C:\Users\BSL\Desktop\Figures",
+):
+    """
+    Creates a composite figure with three contour plots labeled A, B, and C.
+
+    Parameters:
+    - X_train (np.ndarray): Training features with two columns ['speed', 'acceleration'].
+    - y_pred_train (np.ndarray): Predicted values for training data.
+    - X_test (np.ndarray): Test features with two columns ['speed', 'acceleration'].
+    - y_pred_test1 (np.ndarray): First set of predicted values for test data.
+    - y_pred_test2 (np.ndarray): Second set of predicted values for test data.
+    - scaler (sklearn.preprocessing scaler): Scaler used for inverse transformation.
+    - selected_car (str): Identifier for the selected car.
+    - terminology1 (str): Title for the first subplot.
+    - terminology2 (str): Title for the second subplot.
+    - terminology3 (str): Title for the third subplot.
+    - num_grids (int): Number of grid points for the contour.
+    - min_count (int): Minimum number of points per grid cell to display.
+    - save_directory (str): Directory to save the composite figure.
+    - composite_filename (str): Filename for the composite figure. If None, a default name is used.
+    """
+
+    def create_contour(ax, X, y_pred, terminology):
+        if X.shape[1] != 2:
+            raise ValueError("Error: X should have 2 columns.")
+
+        # Inverse transform to original scale
+        X_orig = scaler.inverse_transform(
+            np.hstack([X, np.zeros((X.shape[0], scaler.scale_.shape[0] - 2))])
+        )
+
+        # Convert speed to km/h (assuming first feature is 'speed')
+        X_orig[:, 0] *= 3.6
+
+        # Create grid
+        grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
+        grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
+        grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+        grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
+
+        # Compute density (number of points per grid cell)
+        x_edges = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids + 1)
+        y_edges = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids + 1)
+        count_stat, _, _, _ = binned_statistic_2d(
+            X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
+        )
+
+        # Mask grid_z where count_stat is below the threshold
+        mask = count_stat < min_count
+        grid_z[mask] = np.nan
+
+        # Contour plot
+        contour = ax.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
+        ax.set_xlabel('Speed (km/h)', fontsize=12)
+        ax.set_ylabel('Acceleration (m/s²)', fontsize=12)
+        ax.set_title(f'{terminology}', fontsize=14)
+
+        return contour
+
+    # Ensure save directory exists
+    os.makedirs(save_directory, exist_ok=True)
+
+    # Create a figure with 1 row and 3 columns
+    fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
+
+    # Define plot configurations
+    plot_configs = [
+        {
+            'X': X_train,
+            'y_pred': y_pred_train,
+            'terminology': terminology1,
+            'label': 'D'
+        },
+        {
+            'X': X_test,
+            'y_pred': y_pred_test1,
+            'terminology': terminology2,
+            'label': 'E'
+        },
+        {
+            'X': X_test,
+            'y_pred': y_pred_test2,
+            'terminology': terminology3,
+            'label': 'F'
+        }
+    ]
+
+    # List to store contour objects for the colorbar
+    contour_plots = []
+
+    for ax, config in zip(axes, plot_configs):
+        contour = create_contour(ax, config['X'], config['y_pred'], config['terminology'])
+        contour_plots.append(contour)
+
+        # Add label (A, B, C) to the subplot
+        ax.text(
+            -0.1, 1.05, config['label'],
+            transform=ax.transAxes,
+            fontsize=14,
+            weight='bold',
+            ha='left',
+            va='bottom'
+        )
+
+    # Add a single colorbar for all subplots
+    fig.colorbar(contour_plots[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Prediction')
+
+    # Save the composite figure
+    save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
+    plt.show()
