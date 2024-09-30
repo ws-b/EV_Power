@@ -120,7 +120,7 @@ def objective(trial, X_train, y_train, X_val, y_val):
     # 파라미터 설정
     params = {
         'tree_method': 'gpu_hist',
-        'device': 'cuda:0',
+        'device': 'cuda:1',
         'eval_metric': 'rmse',
         'eta': eta,  # 학습률 설정
         'reg_lambda': reg_lambda,
@@ -173,7 +173,7 @@ def train_model(X_train, y_train, X_val, y_val, best_params):
     # 파라미터 설정
     params = {
         'tree_method': 'gpu_hist',
-        'device': 'cuda:0',
+        'device': 'cuda:1',
         'eval_metric': 'rmse',
         'eta': best_params['eta'],
         'reg_lambda': best_params['reg_lambda'],

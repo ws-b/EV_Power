@@ -1087,7 +1087,7 @@ def plot_composite_contour(
     fig.colorbar(contour_plots[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Prediction')
 
     # Save the composite figure
-    save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")
+    save_path = os.path.join(save_directory, f"Figure8_{selected_car}_Composite.png")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()

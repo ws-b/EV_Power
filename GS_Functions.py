@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from GS_preprocessing import load_data_by_vehicle
+from sklearn.metrics import mean_squared_error
 def get_vehicle_files(car_options, folder_path, vehicle_dict):
     selected_cars = []
     vehicle_files = {}
@@ -123,3 +124,31 @@ def compute_mape_rrmse(vehicle_files, selected_car):
     print(f"MAPE for {selected_car}  : {mape:.2f}%, RRMSE for {selected_car}: {rrmse:.2f}%")
 
     return mape, rrmse
+
+
+def compute_rmse(vehicle_files, selected_car):
+    if not vehicle_files:
+        print("No files provided")
+        return
+
+    power_phys_all, power_data_all = [], []
+
+    for file in vehicle_files[selected_car]:
+        data = pd.read_csv(file)
+
+        if 'Power_phys' not in data.columns or 'Power_data' not in data.columns:
+            print(f"Columns 'Power_phys' or 'Power_data' not found in {file}")
+            continue
+
+        power_phys = data['Power_phys'].values
+        power_data = data['Power_data'].values
+
+        # Store data to aggregate across all files
+        power_phys_all.extend(power_phys)
+        power_data_all.extend(power_data)
+
+    # Calculate RMSE over the aggregated data
+    rmse = np.sqrt(mean_squared_error(power_data_all, power_phys_all))
+    print(f"RMSE for {selected_car}: {rmse:.2f}")
+
+    return rmse
