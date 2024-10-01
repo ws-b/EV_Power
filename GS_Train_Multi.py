@@ -3,11 +3,10 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from threading import Thread
-from GS_Functions import get_vehicle_files, compute_mape_rrmse, compute_rmse
+from GS_Functions import compute_rmse
 from GS_Train_XGboost import cross_validate as xgb_cross_validate
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
-# LGBM imports and functions are commented out
 # from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 
 def run_xgb_cross_validate(sampled_vehicle_files, selected_car, adjusted_params_XGB, results_dict, size):
@@ -261,7 +260,7 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     normalized_phys_rmse_std = [0.0 for _ in phys_rmse_mean]  # 항상 1이므로 표준편차 없음
 
     # 비정규화된 RMSE 플롯
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(6, 5))
     plt.errorbar(sizes, phys_rmse_mean, yerr=2*np.array(phys_rmse_std), label='Physics-Based', linestyle='--', color='r', marker='o', capsize=5)
     plt.errorbar(sizes, xgb_rmse_mean, yerr=2*np.array(xgb_rmse_std), label='Hybrid Model(XGBoost)', marker='o', capsize=5)
     plt.errorbar(sizes, lr_rmse_mean, yerr=2*np.array(lr_rmse_std), label='Hybrid Model(Linear Regression)', marker='o', capsize=5)
@@ -270,18 +269,18 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     # plt.errorbar(sizes, lgbm_rmse_mean, yerr=2*np.array(lgbm_rmse_std), label='Hybrid Model(LightGBM)', marker='o', capsize=5)
     plt.xlabel('Number of Trips')
     plt.ylabel('RMSE')
-    plt.title(f'RMSE vs Number of Trips for {selected_car} (Unnormalized)')
+    plt.title(f'RMSE vs Number of Trips for {selected_car}')
     plt.legend()
-    plt.grid(True)
+    plt.grid(False)
     plt.xscale('log')
     plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
     plt.xlim(min(sizes) - 1, max(sizes) + 1000)
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_unnormalized.png"), dpi=600)
+    plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_unnormalized.png"), dpi=300)
     plt.show()
 
     # 정규화된 RMSE 플롯
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(6, 5))
     plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based (Normalized)', linestyle='--', color='r', marker='o', capsize=5)
     plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost) (Normalized)', marker='o', capsize=5)
     plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression) (Normalized)', marker='o', capsize=5)
@@ -292,10 +291,10 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     plt.ylabel('Normalized RMSE')
     plt.title(f'Normalized RMSE vs Number of Trips for {selected_car}')
     plt.legend()
-    plt.grid(True)
+    plt.grid(False)
     plt.xscale('log')
     plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
     plt.xlim(min(sizes) - 1, max(sizes) + 1000)
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_normalized.png"), dpi=600)
+    plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_normalized.png"), dpi=300)
     plt.show()

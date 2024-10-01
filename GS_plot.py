@@ -1042,7 +1042,7 @@ def plot_composite_contour(
     os.makedirs(save_directory, exist_ok=True)
 
     # Create a figure with 1 row and 3 columns
-    fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
 
     # Define plot configurations
     plot_configs = [

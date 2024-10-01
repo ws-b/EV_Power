@@ -98,7 +98,7 @@ def figure5(vehicle_files, selected_cars):
                 energies_dict[selected_car]['hybrid'].append(energy_hybrid.cumsum()[-1])
 
     # Create 2x2 subplots
-    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
 
     for i, selected_car in enumerate(selected_cars):
         ax = axs[0, i]
