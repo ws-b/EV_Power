@@ -4,5 +4,4 @@
 .DS_Store
 *.png
 *.json
-Temp/GS_Altitude_Check.py
-Temp/GS_Residual_Ratio_Map.py
+*.env
