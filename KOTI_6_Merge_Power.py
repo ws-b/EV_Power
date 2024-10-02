@@ -9,10 +9,10 @@ from concurrent.futures import ProcessPoolExecutor
 # =========================
 
 # 차량 종류를 지정하세요. 예: 'KonaEV', 'Ioniq5', 등
-car_type = 'KonaEV'
+car_type = 'EV6'
 
 # CSV 파일들이 위치한 폴더 경로를 지정하세요.
-folder_path = '/path/to/csv_folder'  # 실제 경로로 변경하세요.
+folder_path = "D:\SamsungSTF\Data\Cycle\HW_KOTI"  # 실제 경로로 변경하세요.
 
 # =========================
 # Vehicle 클래스 정의

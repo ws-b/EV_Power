@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-def figure3(img1_path, img2_path, save_path, figsize=(24, 10), dpi=300):
+def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
 
     # Load the two images
     img1 = mpimg.imread(img1_path)
     img2 = mpimg.imread(img2_path)
 
     # Create a figure with two subplots
-    fig, axs = plt.subplots(1, 2, figsize=figsize)  # Adjust figure size as needed
+    fig, axs = plt.subplots(2, 1, figsize=figsize)  # Adjust figure size as needed
 
     # Display the images in the subplots
     axs[0].imshow(img1)
@@ -26,8 +26,8 @@ def figure3(img1_path, img2_path, save_path, figsize=(24, 10), dpi=300):
     plt.savefig(save_path, dpi=dpi)
     plt.show()
 
-img1_path = r"C:\Users\BSL\Desktop\Figures\Result (2)\EV6_rmse_normalized.png"
-img2_path = r"C:\Users\BSL\Desktop\Figures\Result (2)\Ioniq5_rmse_normalized.png"
+img1_path = r"C:\Users\BSL\Desktop\Figures\Result\EV6_rmse_normalized.png"
+img2_path = r"C:\Users\BSL\Desktop\Figures\Result\Ioniq5_rmse_normalized.png"
 save_path = r'C:\Users\BSL\Desktop\Figures\figure3.png'
 
 figure3(img1_path, img2_path, save_path)
