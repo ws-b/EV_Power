@@ -256,7 +256,7 @@ def cross_validate(vehicle_files, selected_car, params=None, plot=False):
 
         if plot:
             # SHAP 값 계산 및 시각화
-            plot_shap_values(gbm, X_train, feature_cols, None)
+            plot_shap_values(gbm, X_train, feature_cols, selected_car, None)
 
         # 트립별로 적분 수행
         train_trip_groups = train_data.groupby('trip_id')

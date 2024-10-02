@@ -894,7 +894,7 @@ def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
             plt.show()
 
 
-def plot_shap_values(model, X_train, feature_names, save_path=None):
+def plot_shap_values(model, X_train, feature_names, selected_car, save_path=None):
     """
     Plot SHAP values for the best XGBoost model using interventional perturbation.
 
@@ -955,7 +955,7 @@ def plot_shap_values(model, X_train, feature_names, save_path=None):
     # 글꼴 크기 및 레이아웃 조정
     plt.xlabel('SHAP Value', fontsize=12)
     plt.ylabel('Features', fontsize=12)
-    plt.title('SHAP Summary Plot', fontsize=14)
+    plt.title(f'SHAP Summary Plot for {selected_car}', fontsize=14)
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
 
