@@ -1,182 +1,146 @@
-import os
-import glob
 import pandas as pd
+import numpy as np
+from dotenv import load_dotenv
+import os
+from scipy.spatial import cKDTree
 import requests
-from datetime import datetime
-from tqdm import tqdm
-from functools import lru_cache
-import math
+import time  # API 호출 간 시간 지연을 위해 추가
+from concurrent.futures import ThreadPoolExecutor, as_completed  # 병렬 처리를 위해 추가
 
-# 관측소 정보 불러오기 (KMA에서 제공하는 관측소 목록 CSV 파일 필요)
-# 예: 'observation_stations.csv' 파일에 'station_id', 'station_name', 'lat', 'lon' 컬럼이 포함되어 있어야 합니다.
-OBSERVATION_STATIONS_CSV = 'observation_stations.csv'
+# 1. 데이터 불러오기
+file = r"D:\SamsungSTF\Data\Cycle\HW_KOTI\20190420_903436.csv"
+df = pd.read_csv(file)
 
+# 'time' 컬럼을 datetime 형식으로 변환
+df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
 
-def load_observation_stations(csv_path):
-    """
-    관측소 목록을 CSV 파일에서 불러옵니다.
-    CSV 파일은 최소한 'station_id', 'station_name', 'lat', 'lon' 컬럼을 포함해야 합니다.
-    """
-    df = pd.read_csv(csv_path)
-    required_columns = {'station_id', 'station_name', 'lat', 'lon'}
-    if not required_columns.issubset(df.columns):
-        raise ValueError(f"CSV 파일은 {required_columns} 컬럼을 포함해야 합니다.")
-    return df
+# 지상관측소 데이터
+stations = pd.read_csv(r"D:\SamsungSTF\Data\KMA\Stations.csv")
 
+# 지상관측소의 경도와 위도가 숫자형인지 확인 및 변환
+stations['longitude'] = stations['LON'].astype(float)
+stations['latitude'] = stations['LAT'].astype(float)
 
-def haversine_distance(lat1, lon1, lat2, lon2):
-    """
-    두 지점 간의 거리를 계산합니다. (단위: km)
-    """
-    R = 6371  # 지구 반지름 (km)
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-    delta_phi = math.radians(lat2 - lat1)
-    delta_lambda = math.radians(lon2 - lon1)
+# 2. KDTree를 이용한 최근접 지상관측소 찾기
+# 지상관측소의 좌표 배열 생성
+station_coords = stations[['longitude', 'latitude']].values
+tree = cKDTree(station_coords)
 
-    a = math.sin(delta_phi / 2.0) ** 2 + \
-        math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+# 메인 데이터의 좌표 배열 생성
+data_coords = df[['longitude', 'latitude']].values
 
-    distance = R * c
-    return distance
+# 각 데이터 포인트에 대해 가장 가까운 지상관측소의 인덱스 찾기
+distances, indices = tree.query(data_coords, k=1)
 
+# 가장 가까운 지상관측소의 STN_ID를 메인 데이터에 추가
+df['STN_ID'] = stations.iloc[indices]['STN_ID'].values
 
-def find_nearest_station(stations_df, lat, lon):
-    """
-    주어진 위도와 경도에 가장 가까운 관측소를 찾습니다.
-    """
-    stations_df['distance'] = stations_df.apply(
-        lambda row: haversine_distance(lat, lon, row['lat'], row['lon']), axis=1
-    )
-    nearest_station = stations_df.loc[stations_df['distance'].idxmin()]
-    return nearest_station['station_id'], nearest_station['station_name']
+# 3. API 요청을 위한 시간 형식 변환
+# 'tm' 값을 정각으로 설정 (분을 00으로) - floor 대신 strftime을 사용하여 직접 설정
+df['tm'] = df['time'].dt.strftime('%Y%m%d%H00')  # 'yyyymmddHH00' 형식
 
+# 4. API 요청을 위한 고유한 (tm, STN_ID) 조합 생성
+unique_requests = df[['tm', 'STN_ID']].drop_duplicates()
 
-def read_all_csv(folder_path):
-    """
-    지정된 폴더 내 모든 CSV 파일을 읽어와 하나의 DataFrame으로 합칩니다.
-    """
-    csv_files = glob.glob(os.path.join(folder_path, '*.csv'))
-    if not csv_files:
-        raise FileNotFoundError(f"'{folder_path}' 경로에 CSV 파일이 없습니다.")
-
-    df_list = []
-    for file in csv_files:
-        try:
-            temp_df = pd.read_csv(file)
-            df_list.append(temp_df)
-            print(f"'{file}' 파일을 성공적으로 읽었습니다.")
-        except Exception as e:
-            print(f"'{file}' 파일을 읽는 중 오류 발생: {e}")
-
-    combined_df = pd.concat(df_list, ignore_index=True)
-    print(f"모든 CSV 파일을 합쳐 총 {combined_df.shape[0]}개의 행을 가진 데이터프레임을 생성했습니다.")
-    return combined_df
-
-
-def get_temperature_kma(station_id, date_time, api_key):
-    """
-    KMA Open API를 사용하여 특정 관측소의 특정 시간에 대한 온도 데이터를 가져옵니다.
-    - station_id: 관측소 ID
-    - date_time: datetime 객체
-    - api_key: 발급받은 KMA API 인증키
-    """
-    # 실제 API 엔드포인트와 파라미터는 KMA Open API 문서를 참고하여 수정하세요.
-    # 아래는 예시입니다.
-    url = "http://apis.data.go.kr/1360000/AsosHourlyInfoService/getWthrDataList"
-
+# 5. API 요청 함수 정의 (텍스트 응답 처리)
+def get_observation_data_text(tm, stn, auth_key, help_param=0):
+    url = 'https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php'
     params = {
-        'serviceKey': api_key,
-        'pageNo': 1,
-        'numOfRows': 1,
-        'dataType': 'JSON',
-        'dataCd': 'ASOS',
-        'dateCd': 'HR',  # 시간별 데이터
-        'startDt': date_time.strftime('%Y%m%d'),
-        'startHh': date_time.strftime('%H'),
-        'endDt': date_time.strftime('%Y%m%d'),
-        'endHh': date_time.strftime('%H'),
-        'stnIds': station_id
+        'tm': tm,
+        'stn': stn,
+        'help': help_param,
+        'authKey': auth_key
     }
-
     try:
         response = requests.get(url, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            # JSON 구조는 API 문서에 따라 다릅니다. 예시:
-            items = data.get('response', {}).get('body', {}).get('items', {})
-            if 'item' in items:
-                # 'ta'는 기온을 나타내는 예시 필드입니다. 실제 필드명을 확인하세요.
-                if isinstance(items['item'], list):
-                    temp = items['item'][0].get('ta')  # 기온
-                else:
-                    temp = items['item'].get('ta')
-                return temp
-            else:
-                print(f"데이터 없음: station_id={station_id}, date_time={date_time}")
-                return None
-        else:
-            print(f"API 요청 실패: {response.status_code}, {response.text}")
-            return None
+        response.raise_for_status()  # HTTP 에러 발생 시 예외 발생
+        return response.text  # 텍스트 형식으로 응답을 반환
     except requests.exceptions.RequestException as e:
-        print(f"요청 예외 발생: {e}")
+        print(f"Request failed for tm={tm}, stn={stn}: {e}")
         return None
 
+# 6. API 키 설정
+# .env 파일 로드
+load_dotenv()
+auth_key = os.getenv('KMA_API_KEY')
+help_param = 0
 
-@lru_cache(maxsize=10000)
-def get_temperature_cached_kma(station_id, date_time_str, api_key):
-    """
-    캐시된 KMA 온도 데이터 가져오기 함수.
-    - station_id: 관측소 ID
-    - date_time_str: 'YYYY-MM-DD HH:MM:SS' 형식의 시간 문자열
-    - api_key: KMA API 인증키
-    """
-    date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
-    return get_temperature_kma(station_id, date_time, api_key)
+# 7. API 호출 및 데이터 수집
+observation_data = {}
 
+# 병렬 처리를 위한 함수 정의
+def fetch_and_store_text(row):
+    tm = row['tm']
+    stn = row['STN_ID']
+    data = get_observation_data_text(tm, stn, auth_key, help_param)
+    if data:
+        observation_data[(tm, stn)] = data
+    # API 호출 간 간단한 지연을 추가하여 서버 부하를 줄일 수 있습니다.
+    time.sleep(0.1)
+    return
 
-def add_temperature_data_kma(df, stations_df, api_key):
-    """
-    DataFrame에 'ext_temp' 컬럼을 추가하고, 각 행에 해당하는 온도 데이터를 저장합니다.
-    """
-    df['ext_temp'] = None  # 'ext_temp' 컬럼 초기화
+# 병렬로 API 호출 수행
+with ThreadPoolExecutor(max_workers=10) as executor:
+    futures = [executor.submit(fetch_and_store_text, row) for idx, row in unique_requests.iterrows()]
+    for future in as_completed(futures):
+        pass  # 모든 작업이 완료될 때까지 대기
 
-    temperatures = []
+# 8. API 응답 데이터 파싱 (텍스트 형식)
+def parse_observation_text(text_content):
+    try:
+        lines = text_content.splitlines()
+        data_line = None
+        for line in lines:
+            if line.startswith('#'):
+                continue  # 주석 라인 건너뛰기
+            if line.strip() == '':
+                continue  # 빈 라인 건너뛰기
+            data_line = line.strip()
+            break  # 첫 번째 데이터 라인 찾기
 
-    for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc="온도 데이터 가져오는 중"):
-        time_str = row.get('time')
-        lng = row.get('lng')
-        lat = row.get('lat')
+        if not data_line:
+            print("No data line found in the response.")
+            return {'TA': np.nan}
 
-        # 데이터 유효성 검사
-        if pd.isnull(time_str) or pd.isnull(lat) or pd.isnull(lng):
-            print(f"누락된 데이터 at index {idx}: time={time_str}, lat={lat}, lng={lng}")
-            temperatures.append(None)
-            continue
+        # 데이터 라인을 공백으로 분할
+        fields = data_line.split()
 
-        # 시간 문자열을 datetime 객체로 변환
+        if len(fields) < 12:
+            print("Insufficient number of fields in the data line.")
+            return {'TA': np.nan}
+
+        # 'TA'는 12번째 필드 (인덱스 11)
+        ta = fields[11]
+
+        # 'TA'가 숫자인지 확인하고, 숫자가 아니면 NaN으로 처리
         try:
-            date_time = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+            ta_float = float(ta)
         except ValueError:
-            print(f"시간 형식 오류: {time_str}")
-            temperatures.append(None)
-            continue
+            ta_float = np.nan
 
-        # 가장 가까운 관측소 찾기
-        try:
-            station_id, station_name = find_nearest_station(stations_df, lat, lng)
-        except Exception as e:
-            print(f"관측소 찾기 오류 at index {idx}: {e}")
-            temperatures.append(None)
-            continue
+        return {'TA': ta_float}
+    except Exception as e:
+        print(f"Error parsing observation text: {e}")
+        return {'TA': np.nan}
 
-        # 온도 데이터 가져오기
-        try:
-            temp = get_temperature_cached_kma(station_id, time_str, api_key)
-            temperatures.append(temp)
-        except Exception as e:
-            print(f"온도 데이터 가져오기 오류 at index {idx}: {e}")
-            temperatures.append(None)
+parsed_data = {}
 
-    df['ext_temp
+for key, text_content in observation_data.items():
+    data = parse_observation_text(text_content)
+    parsed_data[key] = data
+
+# 9. 파싱된 데이터를 메인 데이터프레임에 통합
+# 'TA' 필드만 추출하여 'ext_temp' 컬럼에 추가
+def extract_TA_text(row):
+    key = (row['tm'], row['STN_ID'])
+    data = parsed_data.get(key, {})
+    try:
+        return data.get('TA', np.nan)  # 'TA' 필드가 없으면 NaN 반환
+    except (ValueError, TypeError):
+        return np.nan
+
+df['ext_temp'] = df.apply(extract_TA_text, axis=1)
+columns_tosave = ['time', 'x', 'y', 'longitude', 'latitude', 'speed', 'acceleration', 'ext_temp']
+# 10. 최종 데이터 저장
+df.to_csv(file, columns=columns_tosave , index=False)
+print(f"데이터 저장 완료: {file}")

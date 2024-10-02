@@ -3,9 +3,11 @@ import glob
 import pandas as pd
 import requests
 from GS_vehicle_dict import vehicle_dict
+from dotenv import load_dotenv
 from tqdm import tqdm
 # Google Maps API key (replace with your own key)
-API_KEY = ''
+load_dotenv()
+API_KEY = os.getenv('GOOGLE_API_KEY')
 
 # CSV 파일들이 있는 디렉토리 경로를 설정합니다.
 directory = r'D:\SamsungSTF\Processed_Data\TripByTrip'

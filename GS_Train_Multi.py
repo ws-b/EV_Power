@@ -165,6 +165,7 @@ def run_evaluate(vehicle_files, selected_car):
             #     print(f"LightGBM cross_validate error: {e}")
 
         print(results_dict)
+    print(l2lambda)
     return results_dict
 
 def plot_rmse_results(results_dict, selected_car, save_path):

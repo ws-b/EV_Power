@@ -34,11 +34,6 @@ directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
 vehicle_files = get_file_lists(directory)
 selected_cars = ['EV6', 'Ioniq5']
 
-city_cycle1 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228132-2023-06-trip-67.csv"
-highway_cycle1 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228094-2023-11-trip-88.csv"
-city_cycle2 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228003-2023-08-trip-11.csv"
-highway_cycle2 = r"D:\SamsungSTF\Processed_Data\TripByTrip\bms_01241228107-2023-01-trip-15.csv"
-
 #save_path
 fig_save_path = r"C:\Users\BSL\Desktop\Figures"
 
@@ -98,7 +93,7 @@ def figure5(vehicle_files, selected_cars):
                 energies_dict[selected_car]['hybrid'].append(energy_hybrid.cumsum()[-1])
 
     # Create 2x2 subplots
-    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
 
     for i, selected_car in enumerate(selected_cars):
         ax = axs[0, i]
@@ -140,19 +135,13 @@ def figure5(vehicle_files, selected_cars):
         # MAPE & RRMSE calculations for display
         mape_before = calculate_mape(np.array(energies_dict[selected_car]['data']),
                                      np.array(energies_dict[selected_car]['phys']))
-        relative_rmse_before = calculate_rrmse(np.array(energies_dict[selected_car]['data']),
-                                               np.array(energies_dict[selected_car]['phys']))
         mape_after = calculate_mape(np.array(energies_dict[selected_car]['data']),
                                     np.array(energies_dict[selected_car]['hybrid']))
-        relative_rmse_after = calculate_rrmse(np.array(energies_dict[selected_car]['data']),
-                                              np.array(energies_dict[selected_car]['hybrid']))
 
         # Displaying the MAPE and RRMSE values in the plot
         ax.text(0.6, 0.15,
                 f'MAPE (Before): {mape_before:.2f}%\n'
-                f'RRMSE (Before): {relative_rmse_before:.2%}\n'
-                f'MAPE (After): {mape_after:.2f}%\n'
-                f'RRMSE (After): {relative_rmse_after:.2%}',
+                f'MAPE (After): {mape_after:.2f}%\n',
                 transform=ax.transAxes, fontsize=10, verticalalignment='top')
 
         # 축의 범위를 설정하고 대각선 비교선을 그리기 위한 lims 설정
@@ -185,7 +174,9 @@ def figure5(vehicle_files, selected_cars):
         energies_phys = {}
         energies_hybrid = {}
 
-        colors = cm.rainbow(np.linspace(0, 1, len(sample_files_dict)))
+        # 색상 범위를 조정하여
+        colors = cm.rainbow(np.linspace(0.2, 0.8, len(sample_files_dict)))
+
         color_map = {}
         ax = axs[1, i]  # C and D are in the second row
 
@@ -238,15 +229,11 @@ def figure5(vehicle_files, selected_cars):
                     color=color_map[id])
 
             # Calculate RMSE & NRMSE for each car
-            mape_before, relative_rmse_before = calculate_mape(np.array(energies_data[id]),
-                                                               np.array(energies_phys[id])), calculate_rrmse(
-                np.array(energies_data[id]), np.array(energies_phys[id]))
-            mape_after, relative_rmse_after = calculate_mape(np.array(energies_data[id]),
-                                                             np.array(energies_hybrid[id])), calculate_rrmse(
-                np.array(energies_data[id]), np.array(energies_hybrid[id]))
+            mape_before = calculate_mape(np.array(energies_data[id]), np.array(energies_phys[id]))
+            mape_after = calculate_mape(np.array(energies_data[id]), np.array(energies_hybrid[id]))
 
-            ax.text(0.05, 0.95 - j * 0.13,
-                    f'{selected_car} {driver_label}\nMAPE (Before): {mape_before:.2f}%\nRRMSE (Before): {relative_rmse_before:.2%}\nMAPE (After): {mape_after:.2f}%\nRRMSE (After): {relative_rmse_after:.2%}',
+            ax.text(0.05, 0.95 - j * 0.07,
+                    f'{selected_car} {driver_label}\nMAPE (Before): {mape_before:.2f}%\nMAPE (After): {mape_after:.2f}%',
                     transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 
         # Set subplot limits and aspects
