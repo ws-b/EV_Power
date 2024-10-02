@@ -21,7 +21,7 @@ csv_files = [
 ]
 
 # Save path for the combined figure
-save_path = r"C:\Users\BSL\Desktop\figure9.png"
+save_path = r"C:\Users\BSL\Desktop\Figures\figure9.png"
 
 # Labels for subplots
 labels = ['A', 'B', 'C', 'D', 'E', 'F']

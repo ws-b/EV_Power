@@ -17,7 +17,7 @@ API_KEY = os.getenv('GOOGLE_API_KEY')
 csv_file = r"D:\SamsungSTF\Data\Cycle\City_KOTI\20190101_240493.csv"
 df = pd.read_csv(csv_file)
 #save_path
-save_path = r"C:\Users\BSL\Desktop\figure9.png"
+save_path = r"C:\Users\BSL\Desktop\Figures\figure9.png"
 
 # Convert 'time' column to datetime format
 df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
