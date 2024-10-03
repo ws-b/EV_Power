@@ -101,7 +101,7 @@ def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2):
 
         ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
         ax.set_title(title, pad=10)
-        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=14, weight='bold', ha='left')  # Add marker
+        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=16, weight='bold', ha='left')  # Add marker
 
     # Plot for city_cycle1 power in the first row, first column
     process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle 1 - Power Comparison')

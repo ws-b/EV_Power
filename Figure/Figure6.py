@@ -110,7 +110,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     plt.xlim((0, 15))
     plt.ylim(0, 1300)
     plt.ylabel('Number of trips')
-    ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=14, weight='bold', ha='left')  # Move (a) to top-left
+    ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
     ax1.set_title("Energy Consumption Distribution : EV6", pad=10)  # Title below (a)
     add_efficiency_lines('EV6')
     plt.grid(False)
@@ -138,7 +138,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     plt.xlim(0, 15)
     plt.ylim(0, 900)
     plt.ylabel('Number of trips')
-    ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=14, weight='bold', ha='left')  # Move (b) to top-left
+    ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
     ax2.set_title("Energy Consumption Distribution : Ioniq5", pad=10)  # Title below (b)
     add_efficiency_lines('Ioniq5')
     plt.grid(False)

@@ -23,11 +23,11 @@ csv_files = [
 # Save path for the combined figure
 save_path = r"C:\Users\BSL\Desktop\Figures\figure9.png"
 
-# Labels for subplots
-labels = ['A', 'B', 'C', 'D', 'E', 'F']
+# Labels for subplots (updated for 2x4 grid)
+labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
-# Create a 2x3 Figure and Axes
-fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+# Create a 2x4 Figure and Axes (updated figure size)
+fig, axes = plt.subplots(2, 4, figsize=(24, 12))
 axes = axes.flatten()  # Flatten to 1D array for easy indexing
 
 for idx, csv_file in enumerate(csv_files):
@@ -50,8 +50,8 @@ for idx, csv_file in enumerate(csv_files):
     # Sample coordinate data at 10-second intervals
     df_sampled = df.resample('10s').first().dropna(subset=['latitude', 'longitude'])
 
-    # Determine the starting index for subplots
-    subplot_start = idx * 3
+    # Determine the starting index for subplots (updated for 4 columns)
+    subplot_start = idx * 4
 
     ### 첫 번째 플롯: Google Maps에 경로 그리기 ###
     ax_map = axes[subplot_start]
@@ -90,7 +90,10 @@ for idx, csv_file in enumerate(csv_files):
             img = Image.open(BytesIO(response.content))
             ax_map.imshow(img)
             ax_map.axis('off')
-            ax_map.set_title(f'Route Map {idx + 1}')
+            if idx == 0:
+                ax_map.set_title(f'City Cycle Route Map')
+            else:
+                ax_map.set_title(f'Highway Cycle Route Map')
 
             # 검은색 테두리 추가
             rect = Rectangle((0, 0), 1, 1, transform=ax_map.transAxes, linewidth=2, edgecolor='black', facecolor='none')
@@ -112,7 +115,7 @@ for idx, csv_file in enumerate(csv_files):
 
     # 속도: km/h로 변환 (m/s * 3.6)
     speed_kmh = df['speed'] * 3.6
-    ax_speed.plot(df['elapsed_time_min'], speed_kmh, color='tab:blue', label='Speed (km/h)')
+    ax_speed.plot(df['elapsed_time_min'], speed_kmh, color='tab:blue', label='Speed')
 
     # 가속도: tab:red
     ax_accel.plot(df['elapsed_time_min'], df['acceleration'], color='tab:red', label='Acceleration')
@@ -139,7 +142,7 @@ for idx, csv_file in enumerate(csv_files):
     ax_power = axes[subplot_start + 2]
 
     # Plot Power_hybrid and Power_phys
-    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color='tab:red', label='Power Phys', alpha =0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color='tab:red', label='Power Phys', alpha=0.7)
     ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color='tab:green', label='Power Hybrid', alpha=0.7)
 
     # Set labels and title
@@ -156,6 +159,64 @@ for idx, csv_file in enumerate(csv_files):
     # Add subplot label
     ax_power.text(-0.1, 1.05, labels[subplot_start + 2], transform=ax_power.transAxes, fontsize=16, fontweight='bold',
                   va='bottom', ha='right')
+
+    ### 네 번째 플롯: 누적 에너지 (적분) ###
+    ax_energy = axes[subplot_start + 3]
+
+    # Compute cumulative energy using manual cumulative trapezoidal integration
+    # Convert elapsed_time_min to hours for kWh calculation
+    elapsed_time_hours = df['elapsed_time_min'] / 60
+
+    # Initialize energy arrays
+    energy_phys = [0]
+    energy_hybrid = [0]
+
+    # Iterate through the data to compute cumulative energy
+    for i in range(1, len(df)):
+        # Current and previous time points
+        t_prev = elapsed_time_hours.iloc[i-1]
+        t_curr = elapsed_time_hours.iloc[i]
+        dt = t_curr - t_prev
+
+        # Average power between current and previous points
+        p_phys_avg = (df['Power_phys'].iloc[i-1] + df['Power_phys'].iloc[i]) / 2 / 1000  # kW
+        p_hybrid_avg = (df['Power_hybrid'].iloc[i-1] + df['Power_hybrid'].iloc[i]) / 2 / 1000  # kW
+
+        # Incremental energy
+        energy_phys.append(energy_phys[-1] + p_phys_avg * dt)
+        energy_hybrid.append(energy_hybrid[-1] + p_hybrid_avg * dt)
+
+    # Convert to NumPy arrays for plotting
+    energy_phys = np.array(energy_phys)
+    energy_hybrid = np.array(energy_hybrid)
+
+    # Align energy arrays with elapsed_time_min
+    energy_phys = energy_phys[:len(df)]
+    energy_hybrid = energy_hybrid[:len(df)]
+
+    # Plot cumulative energy
+    ax_energy.plot(df['elapsed_time_min'], energy_phys, color='tab:red', label='Energy Phys', alpha=0.7)
+    ax_energy.plot(df['elapsed_time_min'], energy_hybrid, color='tab:green', label='Energy Hybrid', alpha=0.7)
+
+    # Set labels and title
+    ax_energy.set_xlabel('Elapsed Time (min)')
+    ax_energy.set_ylabel('Energy (kWh)')
+    ax_energy.set_title('Cumulative Energy Over Time')
+
+    # Add legend
+    ax_energy.legend(loc='upper right')
+
+    # Optionally, set y-axis tick colors to default or customize as needed
+    ax_energy.tick_params(axis='y', labelcolor='black')
+
+    # Add subplot label
+    ax_energy.text(-0.1, 1.05, labels[subplot_start + 3], transform=ax_energy.transAxes, fontsize=16, fontweight='bold',
+                  va='bottom', ha='right')
+
+# If there are remaining subplot axes (e.g., if less than 8 subplots), hide them
+total_plots = len(csv_files) * 4
+for i in range(total_plots, len(axes)):
+    axes[i].axis('off')
 
 # Adjust layout to prevent overlap
 plt.tight_layout()
