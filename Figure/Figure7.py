@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
+def figure3(img1_path, img2_path, save_path, figsize=(6, 6), dpi=300):
 
     # Load the two images
     img1 = mpimg.imread(img1_path)
@@ -26,8 +26,8 @@ def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
     plt.savefig(save_path, dpi=dpi)
     plt.show()
 
-img1_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\EV6_RRMSE.png"
-img2_path = r"C:\Users\BSL\Desktop\Figures\RRMSE\Ioniq5_RRMSE.png"
-save_path = r'C:\Users\BSL\Desktop\figure3.png'
+img1_path = r"C:\Users\BSL\Desktop\Figures\Result\shap_values_EV6.png"
+img2_path = r"C:\Users\BSL\Desktop\Figures\Result\shap_values_Ioniq5.png"
+save_path = r'C:\Users\BSL\Desktop\Figures\figure7.png'
 
 figure3(img1_path, img2_path, save_path)

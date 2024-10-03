@@ -1001,7 +1001,7 @@ def plot_composite_contour(
     - composite_filename (str): Filename for the composite figure. If None, a default name is used.
     """
 
-    def create_contour(ax, X, y_pred, terminology):
+    def create_contour(ax, X, y_pred, terminology, selected_car):
         if X.shape[1] != 2:
             raise ValueError("Error: X should have 2 columns.")
 
@@ -1045,32 +1045,54 @@ def plot_composite_contour(
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
 
     # Define plot configurations
-    plot_configs = [
-        {
-            'X': X_train,
-            'y_pred': y_pred_train,
-            'terminology': terminology1,
-            'label': 'D'
-        },
-        {
-            'X': X_test,
-            'y_pred': y_pred_test1,
-            'terminology': terminology2,
-            'label': 'E'
-        },
-        {
-            'X': X_test,
-            'y_pred': y_pred_test2,
-            'terminology': terminology3,
-            'label': 'F'
-        }
-    ]
+    if selected_car == 'Ioniq5':
+        plot_configs = [
+            {
+                'X': X_train,
+                'y_pred': y_pred_train,
+                'terminology': terminology1,
+                'label': 'D'
+            },
+            {
+                'X': X_test,
+                'y_pred': y_pred_test1,
+                'terminology': terminology2,
+                'label': 'E'
+            },
+            {
+                'X': X_test,
+                'y_pred': y_pred_test2,
+                'terminology': terminology3,
+                'label': 'F'
+            }
+        ]
+    else:
+        plot_configs = [
+            {
+                'X': X_train,
+                'y_pred': y_pred_train,
+                'terminology': terminology1,
+                'label': 'A'
+            },
+            {
+                'X': X_test,
+                'y_pred': y_pred_test1,
+                'terminology': terminology2,
+                'label': 'B'
+            },
+            {
+                'X': X_test,
+                'y_pred': y_pred_test2,
+                'terminology': terminology3,
+                'label': 'C'
+            }
+        ]
 
     # List to store contour objects for the colorbar
     contour_plots = []
 
     for ax, config in zip(axes, plot_configs):
-        contour = create_contour(ax, config['X'], config['y_pred'], config['terminology'])
+        contour = create_contour(ax, config['X'], config['y_pred'], config['terminology'], selected_car)
         contour_plots.append(contour)
 
         # Add label (A, B, C) to the subplot

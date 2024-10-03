@@ -132,11 +132,11 @@ def figure5(vehicle_files, selected_cars):
         ax.plot(np.array(energies_dict[selected_car]['data']),
                 np.exp(intercept + slope * np.log(energies_dict[selected_car]['data'])),
                 'b')
-        # MAPE & RRMSE calculations for display
-        mape_before = calculate_mape(np.array(energies_dict[selected_car]['data']),
-                                     np.array(energies_dict[selected_car]['phys']))
-        mape_after = calculate_mape(np.array(energies_dict[selected_car]['data']),
-                                    np.array(energies_dict[selected_car]['hybrid']))
+        # MAPE & RRMSE calculations using the entire dataset
+        mape_before = calculate_mape(np.array(all_energies_dict[selected_car]['data']),
+                                     np.array(all_energies_dict[selected_car]['phys']))
+        mape_after = calculate_mape(np.array(all_energies_dict[selected_car]['data']),
+                                    np.array(all_energies_dict[selected_car]['hybrid']))
 
         # Displaying the MAPE and RRMSE values in the plot
         ax.text(0.6, 0.15,
