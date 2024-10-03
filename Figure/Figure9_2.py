@@ -135,17 +135,25 @@ for idx, csv_file in enumerate(csv_files):
     ax_speed.text(-0.1, 1.05, labels[subplot_start + 1], transform=ax_speed.transAxes, fontsize=16, fontweight='bold',
                   va='bottom', ha='right')
 
-    ### 세 번째 플롯: 파워 하이브리드 (전체 데이터) ###
+    ### 세 번째 플롯: 파워 하이브리드 및 파워 피직스 (전체 데이터) ###
     ax_power = axes[subplot_start + 2]
 
-    # 파워 하이브리드: tab:green
-    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid']/1000, color='tab:green')
-    ax_power.set_xlabel('Elapsed Time (min)')
-    ax_power.set_ylabel('Power(kW)', color='tab:green')
-    ax_power.set_title(f'Power Over Time')
-    ax_power.tick_params(axis='y', labelcolor='tab:green')
+    # Plot Power_hybrid and Power_phys
+    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color='tab:red', label='Power Phys', alpha =0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color='tab:green', label='Power Hybrid', alpha=0.7)
 
-    # Add label
+    # Set labels and title
+    ax_power.set_xlabel('Elapsed Time (min)')
+    ax_power.set_ylabel('Power (kW)')
+    ax_power.set_title('Power Over Time')
+
+    # Add legend to distinguish between the two power metrics
+    ax_power.legend(loc='upper right')
+
+    # Optionally, set y-axis tick colors to default or customize as needed
+    ax_power.tick_params(axis='y', labelcolor='black')
+
+    # Add subplot label
     ax_power.text(-0.1, 1.05, labels[subplot_start + 2], transform=ax_power.transAxes, fontsize=16, fontweight='bold',
                   va='bottom', ha='right')
 
