@@ -141,7 +141,7 @@ def run_evaluate(vehicle_files, selected_car):
 
             # LGBM execution is commented out
             try:
-                results, scaler, _ = lgbm_cross_validate(sampled_vehicle_files, selected_car, params=adjusted_params_LGBM, plot=False, save_dir=None)
+                results, scaler, _ = lgbm_cross_validate(sampled_vehicle_files, selected_car, params=adjusted_params_LGBM, plot=False)
                 if results:
                     rmse_values = [result['rmse'] for result in results]
                     results_dict[selected_car][size].append({
@@ -182,7 +182,6 @@ def plot_rmse_results(results_dict, selected_car, save_path):
         only_ml_values = [item for result in results_car[size] if
                           result['model'] == 'Only ML(XGBoost)' for
                           item in result['rmse']]
-        # LGBM 값은 주석 처리됨
         lgbm_values = [item for result in results_car[size] if
                        result['model'] == 'Hybrid Model(LightGBM)' for
                        item in result['rmse']]
@@ -225,14 +224,14 @@ def plot_rmse_results(results_dict, selected_car, save_path):
             only_ml_rmse_std.append(None)
 
         # LGBM은 주석 처리됨
-        # if lgbm_values:
-        #     lgbm_mean = np.mean(lgbm_values)
-        #     lgbm_std = np.std(lgbm_values)
-        #     lgbm_rmse_mean.append(lgbm_mean)
-        #     lgbm_rmse_std.append(lgbm_std)
-        # else:
-        #     lgbm_rmse_mean.append(None)
-        #     lgbm_rmse_std.append(None)
+        if lgbm_values:
+            lgbm_mean = np.mean(lgbm_values)
+            lgbm_std = np.std(lgbm_values)
+            lgbm_rmse_mean.append(lgbm_mean)
+            lgbm_rmse_std.append(lgbm_std)
+        else:
+            lgbm_rmse_mean.append(None)
+            lgbm_rmse_std.append(None)
 
     # 정규화된 RMSE 계산 (Physics-Based 모델의 RMSE를 1로 설정)
     normalized_xgb_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(xgb_rmse_mean, phys_rmse_mean)]
