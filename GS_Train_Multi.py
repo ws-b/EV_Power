@@ -223,7 +223,6 @@ def plot_rmse_results(results_dict, selected_car, save_path):
             only_ml_rmse_mean.append(None)
             only_ml_rmse_std.append(None)
 
-        # LGBM은 주석 처리됨
         if lgbm_values:
             lgbm_mean = np.mean(lgbm_values)
             lgbm_std = np.std(lgbm_values)
@@ -235,24 +234,24 @@ def plot_rmse_results(results_dict, selected_car, save_path):
 
     # 정규화된 RMSE 계산 (Physics-Based 모델의 RMSE를 1로 설정)
     normalized_xgb_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(xgb_rmse_mean, phys_rmse_mean)]
-    normalized_xgb_rmse_std = [ (x / p if p != 0 else 0) * 2 for x, p in zip(xgb_rmse_std, phys_rmse_mean)]
+    normalized_xgb_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(xgb_rmse_std, phys_rmse_mean)]
     normalized_lr_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(lr_rmse_mean, phys_rmse_mean)]
-    normalized_lr_rmse_std = [ (x / p if p != 0 else 0) * 2 for x, p in zip(lr_rmse_std, phys_rmse_mean)]
+    normalized_lr_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(lr_rmse_std, phys_rmse_mean)]
     normalized_only_ml_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(only_ml_rmse_mean, phys_rmse_mean)]
-    normalized_only_ml_rmse_std = [ (x / p if p != 0 else 0) * 2 for x, p in zip(only_ml_rmse_std, phys_rmse_mean)]
-    normalized_lgbm_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(lgbm_rmse_mean, phys_rmse_mean)]
-    normalized_lgbm_rmse_std = [ (x / p if p != 0 else 0) * 2 for x, p in zip(lgbm_rmse_std, phys_rmse_mean)]
+    normalized_only_ml_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(only_ml_rmse_std, phys_rmse_mean)]
+    # normalized_lgbm_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(lgbm_rmse_mean, phys_rmse_mean)]
+    # normalized_lgbm_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(lgbm_rmse_std, phys_rmse_mean)]
     normalized_phys_rmse_mean = [1.0 for _ in phys_rmse_mean]
     normalized_phys_rmse_std = [0.0 for _ in phys_rmse_mean]  # 항상 1이므로 표준편차 없음
 
     # 비정규화된 RMSE 플롯
     plt.figure(figsize=(6, 5))
-    plt.errorbar(sizes, phys_rmse_mean, yerr=2*np.array(phys_rmse_std), label='Physics-Based', linestyle='--', color='r', marker='o', capsize=5)
-    plt.errorbar(sizes, lr_rmse_mean, yerr=2*np.array(lr_rmse_std), label='Hybrid Model(Linear Regression)', marker='o', capsize=5)
-    plt.errorbar(sizes, only_ml_rmse_mean, yerr=2*np.array(only_ml_rmse_std), label='Only ML(XGBoost)', marker='o', capsize=5)
-    plt.errorbar(sizes, xgb_rmse_mean, yerr=2 * np.array(xgb_rmse_std), label='Hybrid Model(XGBoost)', marker='o',
-                 capsize=5)
-    plt.errorbar(sizes, lgbm_rmse_mean, yerr=2*np.array(lgbm_rmse_std), label='Hybrid Model(LightGBM)', marker='o', capsize=5)
+    plt.errorbar(sizes, phys_rmse_mean, yerr=1.645*np.array(phys_rmse_std), label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
+    plt.errorbar(sizes, only_ml_rmse_mean, yerr=1.645 * np.array(only_ml_rmse_std), label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none', capsize=5)
+    plt.errorbar(sizes, lr_rmse_mean, yerr=1.645*np.array(lr_rmse_std), label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none', capsize=5)
+    # plt.errorbar(sizes, lgbm_rmse_mean, yerr=1.645*np.array(lgbm_rmse_std), label='Hybrid Model(LightGBM)', marker='o', color='#FFA500', mfc='none', capsize=5)
+    plt.errorbar(sizes, xgb_rmse_mean, yerr=1.645 * np.array(xgb_rmse_std), label='Hybrid Model(XGBoost)', marker='D', color='#8A2BE2', mfc='none', capsize=5)
+
     plt.xlabel('Number of Trips')
     plt.ylabel('RMSE')
     plt.title(f'RMSE vs Number of Trips for {selected_car}')
@@ -262,18 +261,18 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
     plt.xlim(min(sizes) - 1, max(sizes) + 1000)
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_unnormalized.png"), dpi=300)
+    if save_path:
+        plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_unnormalized.png"), dpi=300)
     plt.show()
 
     # 정규화된 RMSE 플롯
     plt.figure(figsize=(6, 5))
-    plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based)', linestyle='--', color='r', marker='o', capsize=5)
-    plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', capsize=5)
-    plt.errorbar(sizes, normalized_only_ml_rmse_mean, yerr=normalized_only_ml_rmse_std, label='Only ML(XGBoost)', marker='o', capsize=5)
-    plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost)',
-                 marker='o', capsize=5)
-    # LGBM 플롯은 주석 처리됨
-    plt.errorbar(sizes, normalized_lgbm_rmse_mean, yerr=normalized_lgbm_rmse_std, label='Hybrid Model(LightGBM) (Normalized)', marker='o', capsize=5)
+    plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based)', linestyle='--', color='#FF6347', capsize=5)
+    plt.errorbar(sizes, normalized_only_ml_rmse_mean, yerr=normalized_only_ml_rmse_std, label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none',capsize=5)
+    plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none',capsize=5)
+    # plt.errorbar(sizes, normalized_lgbm_rmse_mean, yerr=normalized_lgbm_rmse_std, label='Hybrid Model(LightGBM)', marker='o', color='#FFA500', mfc='none', capsize=5)
+    plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700', mfc='none', capsize=5)
+
     plt.xlabel('Number of Trips')
     plt.ylabel('Normalized RMSE')
     plt.title(f'RMSE vs Number of Trips for {selected_car}')
@@ -283,5 +282,6 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
     plt.xlim(min(sizes) - 1, max(sizes) + 1000)
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_normalized.png"), dpi=300)
+    if save_path:
+        plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_normalized.png"), dpi=300)
     plt.show()

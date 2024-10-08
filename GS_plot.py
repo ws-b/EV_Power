@@ -1044,49 +1044,30 @@ def plot_composite_contour(
     # Create a figure with 1 row and 3 columns
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
 
+    # Define label mapping based on selected_car
+    labels = ['A', 'B', 'C'] if selected_car != 'Ioniq5' else ['D', 'E', 'F']
+
     # Define plot configurations
-    if selected_car == 'Ioniq5':
-        plot_configs = [
-            {
-                'X': X_train,
-                'y_pred': y_pred_train,
-                'terminology': terminology1,
-                'label': 'D'
-            },
-            {
-                'X': X_test,
-                'y_pred': y_pred_test1,
-                'terminology': terminology2,
-                'label': 'E'
-            },
-            {
-                'X': X_test,
-                'y_pred': y_pred_test2,
-                'terminology': terminology3,
-                'label': 'F'
-            }
-        ]
-    else:
-        plot_configs = [
-            {
-                'X': X_train,
-                'y_pred': y_pred_train,
-                'terminology': terminology1,
-                'label': 'A'
-            },
-            {
-                'X': X_test,
-                'y_pred': y_pred_test1,
-                'terminology': terminology2,
-                'label': 'B'
-            },
-            {
-                'X': X_test,
-                'y_pred': y_pred_test2,
-                'terminology': terminology3,
-                'label': 'C'
-            }
-        ]
+    plot_configs = [
+        {
+            'X': X_train,
+            'y_pred': y_pred_train,
+            'terminology': terminology1,
+            'label': labels[0]
+        },
+        {
+            'X': X_test,
+            'y_pred': y_pred_test1,
+            'terminology': terminology2,
+            'label': labels[1]
+        },
+        {
+            'X': X_test,
+            'y_pred': y_pred_test2,
+            'terminology': terminology3,
+            'label': labels[2]
+        }
+    ]
 
     # List to store contour objects for the colorbar
     contour_plots = []
@@ -1106,7 +1087,7 @@ def plot_composite_contour(
         )
 
     # Add a single colorbar for all subplots
-    fig.colorbar(contour_plots[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Prediction')
+    fig.colorbar(contour_plots[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Residual')
 
     # Save the composite figure
     save_path = os.path.join(save_directory, f"Figure8_{selected_car}_Composite.png")

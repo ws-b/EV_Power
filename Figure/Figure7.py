@@ -18,8 +18,8 @@ def figure3(img1_path, img2_path, save_path, figsize=(6, 6), dpi=300):
         ax.axis('off')
 
     # Add 'A' and 'B' labels to the top-left corner of each subplot
-    axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
-    axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+    axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=11, fontweight='bold', va='top', ha='right')
+    axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=11, fontweight='bold', va='top', ha='right')
 
     # Save the final image
     plt.tight_layout()
