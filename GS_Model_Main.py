@@ -1,4 +1,5 @@
 import os
+import time
 import random
 from GS_Merge_Power import process_files_power, select_vehicle
 from GS_Functions import get_vehicle_files, compute_mape_rrmse
@@ -9,6 +10,7 @@ from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 from GS_Train_Multi import run_evaluate, plot_rmse_results
+from GS_Train_SVR import cross_validate as svr_cross_validate
 def main():
     car_options = {
         1: 'EV6',
@@ -66,7 +68,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 6:
+                if train_choice == 7:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -75,11 +77,18 @@ def main():
                 LR = {}
                 LGBM = {}
                 ONLY_ML = {}
+                SVR = {}
 
                 for selected_car in selected_cars:
                     XGB[selected_car] = {}
                     if train_choice == 1:
+                        start_time = time.perf_counter()
+
                         results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=None)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
 
                         if results:
                             rmse_values = []
@@ -108,7 +117,13 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 2:
+                        start_time = time.perf_counter()
+
                         results, scaler = lr_cross_validate(vehicle_files, selected_car)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
 
                         if results:
                             rmse_values = []
@@ -134,7 +149,14 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 3:
+                        start_time = time.perf_counter()
+
                         results, scaler, _ = lgbm_cross_validate(vehicle_files, selected_car, None, None)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
+
                         if results:
                             rmse_values = []
                             mape_values = []
@@ -160,7 +182,13 @@ def main():
                             print(f"No results for the selected vehicle: {selected_car}")
 
                     if train_choice == 4:
+                        start_time = time.perf_counter()
+
                         results, scaler, _ = only_xgb_validate(vehicle_files, selected_car, None, None)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
 
                         if results:
                             mape_values = []
@@ -186,14 +214,66 @@ def main():
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
                     if train_choice == 5:
+                        start_time = time.perf_counter()
+
                         save_path = r"C:\Users\BSL\Desktop\Figures\Result"
                         results_dict = run_evaluate(vehicle_files, selected_car)
                         plot_rmse_results(results_dict, selected_car, save_path)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
+
+                    if train_choice == 6:
+                        start_time = time.perf_counter()
+
+                        predefined_params = {
+                            'C': 988.20455,
+                            'epsilon': 0.02677,
+                            'gamma': 'auto',
+                            'kernel': 'rbf'
+                        }
+                        results, scaler, _ = svr_cross_validate(vehicle_files, selected_car, predefined_params, False)
+
+                        # 종료 시간 기록
+                        end_time = time.perf_counter()
+                        # 총 실행 시간 계산
+                        elapsed_time = end_time - start_time
+
+                        # 실행 시간 출력
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
+
+                        if results:
+                            rmse_values = []
+                            mape_values = []
+                            rrmse_values = []
+                            for res in results:
+                                fold_num = res['fold']
+                                rmse = res['rmse']
+                                rrmse_test = res['test_rrmse']
+                                mape_test = res['test_mape']
+
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+
+                                rmse_values.append(rmse)
+                                mape_values.append(mape_test)
+                                rrmse_values.append(rrmse_test)
+
+                            SVR[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
+                            }
+
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
 
                 print(f"XGB RRMSE & MAPE: {XGB}")
                 print(f"LR RRMSE & MAPE: {LR}")
                 print(f"LGBM RRMSE & MAPE: {LGBM}")
                 print(f"ONLY ML RRMSE & MAPE: {ONLY_ML}")
+                print(f"SVR RRMSE & MAPE: {SVR}")
 
         elif task_choice == 3:
             for selected_car in selected_cars:
