@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Set the folder path where CSV files are located
-folder_path = r"C:\Users\WSONG\Desktop\Cycle\City_GS"
+folder_path = r"D:\SamsungSTF\Data\Cycle\HW_GS"
 
 # Define color options for different files
 colors = ['green', 'orange']  # New color choices
@@ -36,7 +36,7 @@ plt.xlabel('Elapsed Time (seconds)')
 plt.ylabel('Power (kW)')
 
 # Add the legend
-plt.legend(['City Cycle 1', 'City Cycle 2'], loc='upper right')
+plt.legend(['Highway Cycle 1', 'Highway Cycle 2'], loc='upper right')
 
 # Remove grid
 plt.grid(False)

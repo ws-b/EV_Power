@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Set the folder path where CSV files are located
-folder_path = r"C:\Users\WSONG\Desktop\Cycle\HW_KOTI"
+folder_path = r"D:\SamsungSTF\Data\Cycle\CITY_GS"
 
 # Loop through all CSV files in the folder
 for filename in os.listdir(folder_path):
