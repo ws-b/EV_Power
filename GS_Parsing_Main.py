@@ -1,6 +1,6 @@
 import os
 import platform
-from GS_preprocessing import (process_device_folders,process_files_trip_by_trip, process_files)
+from GS_preprocessing import process_device_folders,process_files_trip_by_trip, process_files, delete_zero_kb_files
 from GS_vehicle_dict import vehicle_dict
 from GS_preprocessing_parking import process_files_parking_only
 vehicle_type = {device: model for model, devices in vehicle_dict.items() for device in devices}
@@ -22,10 +22,11 @@ def pre_process():
         choice = int(choice)
 
         if choice == 1:
-            source_paths = r"C:\Users\BSL\Desktop\BMS"
+            source_paths = r"C:\Users\BSL\Desktop\BMS+ALTITUDE 9월분 6개"
             destination_root = r"D:\SamsungSTF\Data\GSmbiz\BMS_Data"
             process_device_folders(source_paths, destination_root, False)
             process_device_folders(source_paths, destination_root, True)
+            delete_zero_kb_files(destination_root)
             break
 
         elif choice == 2:

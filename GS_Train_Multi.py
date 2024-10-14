@@ -7,7 +7,7 @@ from GS_Functions import compute_rmse
 from GS_Train_XGboost import cross_validate as xgb_cross_validate
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
-from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
+from GS_Train_Only_LR import cross_validate as only_lr_validate  # 추가된 부분
 
 def run_xgb_cross_validate(sampled_vehicle_files, selected_car, adjusted_params_XGB, results_dict, size):
     try:
@@ -64,13 +64,6 @@ def run_evaluate(vehicle_files, selected_car):
         'params': best_params_ML
     })
 
-    # LGBM hyperparameter tuning is commented out
-    _, _, best_params_LGBM = lgbm_cross_validate(vehicle_files, selected_car, params=None, plot=False)
-    l2lambda[selected_car].append({
-        'model': 'Hybrid Model(LightGBM)',
-        'params': best_params_LGBM
-    })
-
     N_total = max_samples
 
     for size in filtered_vehicle_file_sizes:
@@ -97,7 +90,7 @@ def run_evaluate(vehicle_files, selected_car):
                     'rmse': [rmse_physics]
                 })
 
-            # Adjust hyperparameters
+            # Adjust hyperparameters for models that require them
             adjustment_factor = N_total / size
             adjusted_params_XGB = best_params_XGB.copy()
             for param in adjusted_params_XGB:
@@ -108,12 +101,6 @@ def run_evaluate(vehicle_files, selected_car):
             for param in adjusted_params_ML:
                 if param != 'eta':  # Exclude learning_rate
                     adjusted_params_ML[param] *= adjustment_factor
-
-            # LGBM parameter adjustment is commented out
-            adjusted_params_LGBM = best_params_LGBM.copy()
-            for param in adjusted_params_LGBM:
-                if param != 'learning_rate':  # Exclude learning_rate
-                    adjusted_params_LGBM[param] *= adjustment_factor
 
             # Create threads
             xgb_thread = Thread(target=run_xgb_cross_validate, args=(sampled_vehicle_files, selected_car, adjusted_params_XGB, results_dict, size))
@@ -127,7 +114,7 @@ def run_evaluate(vehicle_files, selected_car):
             xgb_thread.join()
             ml_thread.join()
 
-            # Hybrid Model(Linear Regression) execution (serial execution)
+            # Hybrid Model(Linear Regression) execution
             try:
                 results, scaler = lr_cross_validate(sampled_vehicle_files, selected_car)
                 if results:
@@ -139,17 +126,17 @@ def run_evaluate(vehicle_files, selected_car):
             except Exception as e:
                 print(f"Linear Regression cross_validate error: {e}")
 
-            # LGBM execution is commented out
+            # Only LR execution
             try:
-                results, scaler, _ = lgbm_cross_validate(sampled_vehicle_files, selected_car, params=adjusted_params_LGBM, plot=False)
+                results, scaler = only_lr_validate(sampled_vehicle_files, selected_car)
                 if results:
                     rmse_values = [result['rmse'] for result in results]
                     results_dict[selected_car][size].append({
-                        'model': 'Hybrid Model(LightGBM)',
+                        'model': 'Only ML(LR)',
                         'rmse': rmse_values
                     })
             except Exception as e:
-                print(f"LightGBM cross_validate error: {e}")
+                print(f"Only LR cross_validate error: {e}")
 
         print(results_dict)
     print(l2lambda)
@@ -168,8 +155,8 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     lr_rmse_std = []
     only_ml_rmse_mean = []
     only_ml_rmse_std = []
-    lgbm_rmse_mean = []
-    lgbm_rmse_std = []
+    only_lr_rmse_mean = []
+    only_lr_rmse_std = []
 
     for size in sizes:
         # 각 모델별 RMSE 값 추출
@@ -182,9 +169,9 @@ def plot_rmse_results(results_dict, selected_car, save_path):
         only_ml_values = [item for result in results_car[size] if
                           result['model'] == 'Only ML(XGBoost)' for
                           item in result['rmse']]
-        lgbm_values = [item for result in results_car[size] if
-                       result['model'] == 'Hybrid Model(LightGBM)' for
-                       item in result['rmse']]
+        only_lr_values = [item for result in results_car[size] if
+                          result['model'] == 'Only ML(LR)' for
+                          item in result['rmse']]
 
         # 각 모델별 평균과 표준편차 계산
         if phys_values:
@@ -223,14 +210,14 @@ def plot_rmse_results(results_dict, selected_car, save_path):
             only_ml_rmse_mean.append(None)
             only_ml_rmse_std.append(None)
 
-        if lgbm_values:
-            lgbm_mean = np.mean(lgbm_values)
-            lgbm_std = np.std(lgbm_values)
-            lgbm_rmse_mean.append(lgbm_mean)
-            lgbm_rmse_std.append(lgbm_std)
+        if only_lr_values:
+            only_lr_mean = np.mean(only_lr_values)
+            only_lr_std = np.std(only_lr_values)
+            only_lr_rmse_mean.append(only_lr_mean)
+            only_lr_rmse_std.append(only_lr_std)
         else:
-            lgbm_rmse_mean.append(None)
-            lgbm_rmse_std.append(None)
+            only_lr_rmse_mean.append(None)
+            only_lr_rmse_std.append(None)
 
     # 정규화된 RMSE 계산 (Physics-Based 모델의 RMSE를 1로 설정)
     normalized_xgb_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(xgb_rmse_mean, phys_rmse_mean)]
@@ -239,8 +226,8 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     normalized_lr_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(lr_rmse_std, phys_rmse_mean)]
     normalized_only_ml_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(only_ml_rmse_mean, phys_rmse_mean)]
     normalized_only_ml_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(only_ml_rmse_std, phys_rmse_mean)]
-    # normalized_lgbm_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(lgbm_rmse_mean, phys_rmse_mean)]
-    # normalized_lgbm_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(lgbm_rmse_std, phys_rmse_mean)]
+    normalized_only_lr_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(only_lr_rmse_mean, phys_rmse_mean)]
+    normalized_only_lr_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(only_lr_rmse_std, phys_rmse_mean)]
     normalized_phys_rmse_mean = [1.0 for _ in phys_rmse_mean]
     normalized_phys_rmse_std = [0.0 for _ in phys_rmse_mean]  # 항상 1이므로 표준편차 없음
 
@@ -249,7 +236,7 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     plt.errorbar(sizes, phys_rmse_mean, yerr=1.645*np.array(phys_rmse_std), label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
     plt.errorbar(sizes, only_ml_rmse_mean, yerr=1.645 * np.array(only_ml_rmse_std), label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none', capsize=5)
     plt.errorbar(sizes, lr_rmse_mean, yerr=1.645*np.array(lr_rmse_std), label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none', capsize=5)
-    # plt.errorbar(sizes, lgbm_rmse_mean, yerr=1.645*np.array(lgbm_rmse_std), label='Hybrid Model(LightGBM)', marker='o', color='#FFA500', mfc='none', capsize=5)
+    plt.errorbar(sizes, only_lr_rmse_mean, yerr=1.645*np.array(only_lr_rmse_std), label='Only ML(LR)', marker='o', color='#FFA500', mfc='none', capsize=5)
     plt.errorbar(sizes, xgb_rmse_mean, yerr=1.645 * np.array(xgb_rmse_std), label='Hybrid Model(XGBoost)', marker='D', color='#8A2BE2', mfc='none', capsize=5)
 
     plt.xlabel('Number of Trips')
@@ -267,10 +254,10 @@ def plot_rmse_results(results_dict, selected_car, save_path):
 
     # 정규화된 RMSE 플롯
     plt.figure(figsize=(6, 5))
-    plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based)', linestyle='--', color='#FF6347', capsize=5)
+    plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
     plt.errorbar(sizes, normalized_only_ml_rmse_mean, yerr=normalized_only_ml_rmse_std, label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none',capsize=5)
     plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none',capsize=5)
-    # plt.errorbar(sizes, normalized_lgbm_rmse_mean, yerr=normalized_lgbm_rmse_std, label='Hybrid Model(LightGBM)', marker='o', color='#FFA500', mfc='none', capsize=5)
+    plt.errorbar(sizes, normalized_only_lr_rmse_mean, yerr=normalized_only_lr_rmse_std, label='Only ML(LR)', marker='o', color='#FFA500', mfc='none', capsize=5)
     plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700', mfc='none', capsize=5)
 
     plt.xlabel('Number of Trips')

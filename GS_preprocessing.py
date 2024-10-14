@@ -51,6 +51,23 @@ def process_device_folders(source_paths, destination_root, altitude=False):
                 shutil.move(file_path, destination_file_path)
                 print(f"Moved {file} to {destination_file_path}")
 
+def delete_zero_kb_files(root_dir):
+    """
+    주어진 루트 디렉토리 내의 모든 하위 디렉토리를 순회하며 크기가 0KB인 파일을 삭제합니다.
+
+    :param root_dir: 탐색을 시작할 루트 디렉토리 경로
+    """
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            file_path = os.path.join(dirpath, filename)
+            try:
+                if os.path.getsize(file_path) == 0:
+                    os.remove(file_path)
+                    print(f"삭제됨: {file_path}")
+            except OSError as e:
+                print(f"파일 삭제 실패: {file_path} - 오류: {e}")
+
+
 def read_file_with_detected_encoding(file_path):
     try:
         # First, try to read the file with the C engine and UTF-8 encoding
