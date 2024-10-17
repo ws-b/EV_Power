@@ -1,6 +1,4 @@
-import os
 import pandas as pd
-import pickle
 import numpy as np
 import xgboost as xgb
 import optuna
@@ -200,8 +198,6 @@ def train_model(X_train, y_train, X_val, y_val, best_params):
 # ----------------------------
 
 def cross_validate(vehicle_files, selected_car, params=None, plot=False):
-    model_name = "ML"
-
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
     models = []

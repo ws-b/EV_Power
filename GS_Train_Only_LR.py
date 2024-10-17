@@ -4,9 +4,7 @@ from sklearn.linear_model import LinearRegression
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_contour, plot_shap_values
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from sklearn.metrics import mean_squared_error
 
 # ----------------------------
 # 데이터 처리 함수
@@ -114,8 +112,6 @@ def train_model_linear_regression(X_train, y_train):
 # ----------------------------
 
 def cross_validate(vehicle_files, selected_car):
-    model_name = "LinearRegression"  # 모델 이름 변경
-
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     results = []
     models = []
@@ -191,7 +187,6 @@ def cross_validate(vehicle_files, selected_car):
             'rmse': rmse,
             'test_rrmse': rrmse_test,
             'test_mape': mape_test,
-            'best_params': None  # 일반 선형 회귀는 하이퍼파라미터 없음
         })
         models.append(model)
 

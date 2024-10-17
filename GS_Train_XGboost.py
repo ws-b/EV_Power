@@ -7,7 +7,7 @@ import optuna
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_contour, plot_shap_values, plot_composite_contour
+from GS_plot import plot_shap_values, plot_composite_contour
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from sklearn.metrics import mean_squared_error
 
@@ -275,37 +275,6 @@ def cross_validate(vehicle_files, selected_car, params=None, plot=False, save_di
                 min_count=10,
                 save_directory=r"C:\Users\BSL\Desktop\Figures"
             )
-
-            # plot_contour(
-            #     X_train[['speed', 'acceleration']].values,
-            #     train_data['y_pred'].values,
-            #     scaler,
-            #     selected_car,
-            #     terminology='Train Residual',
-            #     num_grids=30,
-            #     min_count=10,
-            #     save_path=os.path.join(r"C:\Users\BSL\Desktop\Figures", f"Figure7_{selected_car}_Residual_30.png")
-            # )
-            # plot_contour(
-            #     X_test[['speed', 'acceleration']].values,
-            #     test_data['y_pred'].values,
-            #     scaler,
-            #     selected_car,
-            #     terminology='Residual[1]',
-            #     num_grids=30,
-            #     min_count=10,
-            #     save_path=os.path.join(r"C:\Users\BSL\Desktop\Figures", f"Figure7_{selected_car}_Residual[1].png")
-            # )
-            # plot_contour(
-            #     X_test[['speed', 'acceleration']].values,
-            #     (test_data['Residual']-test_data['y_pred']).values,
-            #     scaler,
-            #     selected_car,
-            #     terminology='Residual[2]',
-            #     num_grids=30,
-            #     min_count=10,
-            #     save_path=os.path.join(r"C:\Users\BSL\Desktop\Figures", f"Figure7_{selected_car}_Residual[2].png")
-            # )
 
         # 트립별로 적분 수행
         train_trip_groups = train_data.groupby('trip_id')

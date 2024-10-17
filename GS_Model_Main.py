@@ -7,6 +7,7 @@ from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_sca
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, process_multiple_new_files as xgb_process_multiple_new_files, load_model_and_scaler as xgb_load_model_and_scaler
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
+from GS_Train_LinearR import cross_validate as only_lr_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 from GS_Train_Multi import run_evaluate, plot_rmse_results
@@ -60,7 +61,9 @@ def main():
                 print("3: Hybrid(LGBM) Model")
                 print("4: Only ML(XGB) Model")
                 print("5: Train Models")
-                print("6: Return to previous menu")
+                print("6: Hybrid(SVR) Model")
+                print("7: Only ML(LR) Model")
+                print("8: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -68,7 +71,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 7:
+                if train_choice == 8:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -77,6 +80,7 @@ def main():
                 LR = {}
                 LGBM = {}
                 ONLY_ML = {}
+                ONLY_ML_LR = {}
                 SVR = {}
 
                 for selected_car in selected_cars:
@@ -217,6 +221,7 @@ def main():
                         start_time = time.perf_counter()
 
                         save_path = r"C:\Users\BSL\Desktop\Figures\Result"
+
                         results_dict = run_evaluate(vehicle_files, selected_car)
                         plot_rmse_results(results_dict, selected_car, save_path)
 
@@ -268,11 +273,43 @@ def main():
 
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+                    if train_choice == 7:
+                        start_time = time.perf_counter()
 
+                        results, scaler = only_lr_validate(vehicle_files, selected_car)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
+
+                        if results:
+                            mape_values = []
+                            rmse_values = []
+                            rrmse_values = []
+                            for res in results:
+                                fold_num = res['fold']
+                                rmse = res['rmse']
+                                rrmse_test = res['test_rrmse']
+                                mape_test = res['test_mape']
+
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+
+                                rmse_values.append(rmse)
+                                mape_values.append(mape_test)
+                                rrmse_values.append(rrmse_test)
+
+                            ONLY_ML_LR[selected_car] = {
+                                'RMSE': rmse_values,
+                                'RRMSE': rrmse_values,
+                                'MAPE': mape_values
+                            }
+                        else:
+                            print(f"No results for the selected vehicle: {selected_car}")
                 print(f"XGB RRMSE & MAPE: {XGB}")
                 print(f"LR RRMSE & MAPE: {LR}")
                 print(f"LGBM RRMSE & MAPE: {LGBM}")
                 print(f"ONLY ML RRMSE & MAPE: {ONLY_ML}")
+                print(f"Only ML LR RRMSE & MAPE: {ONLY_ML_LR}")
                 print(f"SVR RRMSE & MAPE: {SVR}")
 
         elif task_choice == 3:
