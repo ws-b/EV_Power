@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from scipy.stats import binned_statistic_2d
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.interpolate import griddata
+from scipy.integrate import cumulative_trapezoid
 from scipy.stats import linregress
 from tqdm import tqdm
 
@@ -708,190 +709,83 @@ def plot_contour(X, y_pred, scaler, selected_car, terminology, num_grids=400, mi
 
     plt.show()
 
-def plot_2d_histogram(sample_files_dict, selected_car, Target = 'data'):
-    if isinstance(sample_files_dict, dict):
-        for id, files in tqdm(sample_files_dict.items()):
-            dis_energies_data = []
-            total_distances = []
-            average_speeds = []
 
-            for file in files:
-                data = pd.read_csv(file)
+# ----------------------------
+# 에너지 계산 및 플로팅 함수
+# ----------------------------
+def plot_power_and_energy(data):
+    """
+    선택한 trip_id들에 대해 Power_data, Power_phys와 Energy_data, Energy_phys를 시간에 따라 플롯합니다.
 
-                t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-                t_diff = t.diff().dt.total_seconds().fillna(0)
-                t_diff = np.array(t_diff)
+    Parameters:
+        data (pd.DataFrame): 전체 데이터프레임
+        trip_ids (list): 플롯할 trip_id들의 리스트
+    """
 
-                v = data['speed']
-                v = np.array(v)
+    def calculate_energy(trip_data):
+        """
+        시간에 따른 Power를 적분하여 Energy를 계산합니다.
 
-                distance = v * t_diff
-                total_distance = distance.cumsum()[-1]
+        Parameters:
+            trip_data (pd.DataFrame): 특정 trip_id에 해당하는 데이터프레임
 
-                power_data = np.array(data['Power_data'])
-                energy_data = power_data * t_diff / 3600 / 1000
+        Returns:
+            pd.DataFrame: Energy_data와 Energy_phys가 추가된 데이터프레임
+        """
+        # 'time'을 초 단위로 변환
+        trip_data = trip_data.sort_values(by='time')
+        time_seconds = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds()
 
-                total_energy = energy_data.cumsum()[-1]
-                dis_energy_data = ((total_distance / 1000) / total_energy) if total_energy != 0 else 0
+        # 누적 적분 계산 (초 단위로)
+        energy_data = cumulative_trapezoid(trip_data['Power_data'], time_seconds, initial=0)
+        energy_phys = cumulative_trapezoid(trip_data['Power_phys'], time_seconds, initial=0)
+        energy_pred = cumulative_trapezoid(trip_data['y_pred'], time_seconds, initial=0)
 
-                total_distances.append(total_distance / 1000)  # convert to km
-                dis_energies_data.append(dis_energy_data)
-                average_speed = np.mean(v) * 3.6  # converting m/s to km/h
-                average_speeds.append(average_speed)
+        trip_data = trip_data.copy()
+        trip_data['Energy_data'] = energy_data / 3600000
+        trip_data['Energy_phys'] = energy_phys / 3600000
+        trip_data['Energy_pred'] = energy_pred / 3600000
+        return trip_data
 
-            # Create bins
-            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
-            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
+    for trip_id in [0, 1]:
+        trip_data = data[data['trip_id'] == trip_id]
+        if trip_data.empty:
+            print(f"trip_id {trip_id}에 대한 데이터가 없습니다.")
+            continue
 
-            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_energies_data)
-            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
+        # Energy 계산
+        trip_data = calculate_energy(trip_data)
 
-            # Avoid division by zero
-            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
+        # 'elapsed_time' 계산 (초 단위)
+        trip_data = trip_data.sort_values(by='time')
+        trip_data['elapsed_time'] = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds()
 
-            # Mask the zero values
-            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
-            etamin = 2
-            etamax = 11
-            plt.figure(figsize=(12, 6))
-            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
-            cb = plt.colorbar(label='Average Energy Efficiency (km/kWh)')
+        # Power 플롯
+        plt.figure(figsize=(12, 6))
+        plt.plot(trip_data['elapsed_time'], trip_data['Power_data'] / 1000, label='Power_data', color='tab:blue',
+                 alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Power_phys'] / 1000, label='Power_phys', color='tab:red',
+                 alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['y_pred'] / 1000, label='Power_pred', color='tab:green',
+                 alpha=0.7)
+        plt.xlabel('Elapsed Time (s)')
+        plt.ylabel('Power(kW)')
+        plt.title(f'Trip ID: {trip_id} - Power over Elapsed Time')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 
-            plt.xlabel('Trip Distance (km)')
-            plt.ylabel('Average Speed (km/h)')
-            plt.title(f"{selected_car} ({id}) : Trip Distance vs. Average Speed with Energy Efficiency, {len(files)} files")
-            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-            plt.show()
-
-    elif isinstance(sample_files_dict, list):
-        dis_energies_data = []
-        dis_energies_phys = []
-        dis_energies_hybrid = []
-        total_distances = []
-        average_speeds = []
-
-        for file in tqdm(sample_files_dict):
-            data = pd.read_csv(file)
-
-            t = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-            t_diff = t.diff().dt.total_seconds().fillna(0)
-            t_diff = np.array(t_diff)
-
-            v = data['speed']
-            v = np.array(v)
-
-            distance = v * t_diff
-            total_distance = distance.cumsum()[-1]
-
-            if 'Power_phys' in data.columns:
-                power_phys = np.array(data['Power_phys'])
-                energy_model = power_phys * t_diff / 3600 / 1000
-            else:
-                energy_model = np.zeros_like(t_diff)
-
-            power_data = np.array(data['Power_data'])
-            energy_data = power_data * t_diff / 3600 / 1000
-
-            if 'Power_hybrid' in data.columns:
-                power_hybrid = data['Power_hybrid']
-                power_hybrid = np.array(power_hybrid)
-                energy_hybrid = power_hybrid * t_diff / 3600 / 1000
-                dis_energy_hybrid = ((total_distance / 1000) / (energy_hybrid.cumsum()[-1])) if \
-                    energy_hybrid.cumsum()[-1] != 0 else 0
-                dis_energies_hybrid.append(dis_energy_hybrid)
-
-            # calculate Total distance / Total Energy for each file (if Total Energy is 0, set the value to 0)
-            dis_energy_phys = ((total_distance / 1000) / (energy_model.cumsum()[-1])) if energy_model.cumsum()[
-                                                                                                -1] != 0 else 0
-            dis_energies_phys.append(dis_energy_phys)
-
-            dis_energy_data = ((total_distance / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
-                                                                                                -1] != 0 else 0
-            dis_energies_data.append(dis_energy_data)
-
-            total_distances.append(total_distance / 1000)
-
-            average_speed = np.mean(v) * 3.6  # converting m/s to km/h
-            average_speeds.append(average_speed)
-        if Target == 'physics' :
-            # Create bins
-            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
-            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
-
-            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins], weights=dis_energies_phys)
-            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
-
-            # Avoid division by zero
-            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
-
-            # Mask the zero values
-            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
-
-            etamin = 2
-            etamax = 11
-            plt.figure(figsize=(12, 6))
-            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
-            cb = plt.colorbar(label='Average Physics model Energy Efficiency (km/kWh)')
-
-            plt.xlabel('Trip Distance (km)')
-            plt.ylabel('Average Speed (km/h)')
-            plt.title(f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
-            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-            plt.show()
-        elif Target == 'data' :
-            # Create bins
-            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
-            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
-
-            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins],
-                                           weights=dis_energies_data)
-            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
-
-            # Avoid division by zero
-            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
-
-            # Mask the zero values
-            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
-
-            etamin = 2
-            etamax = 11
-            plt.figure(figsize=(12, 6))
-            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
-            cb = plt.colorbar(label='Average Data Energy Efficiency (km/kWh)')
-
-            plt.xlabel('Trip Distance (km)')
-            plt.ylabel('Average Speed (km/h)')
-            plt.title(
-                f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
-            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-            plt.show()
-        elif Target == 'hybrid':
-            # Create bins
-            x_bins = np.linspace(min(total_distances), max(total_distances), 20)
-            y_bins = np.linspace(min(average_speeds), max(average_speeds), 20)
-
-            heatmap, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins],
-                                           weights=dis_energies_hybrid)
-            counts, _, _ = np.histogram2d(total_distances, average_speeds, bins=[x_bins, y_bins])
-
-            # Avoid division by zero
-            average_heatmap = np.divide(heatmap, counts, where=counts != 0)
-
-            # Mask the zero values
-            average_heatmap = np.ma.masked_where(counts == 0, average_heatmap)
-
-            etamin = 2
-            etamax = 11
-            plt.figure(figsize=(12, 6))
-            plt.pcolormesh(x_bins, y_bins, average_heatmap.T, shading='auto', cmap='coolwarm', vmin=etamin, vmax=etamax)
-            cb = plt.colorbar(label='Average Predicted Energy Efficiency (km/kWh)')
-
-            plt.xlabel('Trip Distance (km)')
-            plt.ylabel('Average Speed (km/h)')
-            plt.title(
-                f"{selected_car} : Trip Distance vs. Average Speed with Energy Efficiency, {len(sample_files_dict)} files")
-            plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-            plt.show()
+        # Energy 플롯
+        plt.figure(figsize=(12, 6))
+        plt.plot(trip_data['elapsed_time'], trip_data['Energy_data'], label='Energy_data', color='tab:blue', alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Energy_phys'], label='Energy_phys', color='tab:red', alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Energy_pred'], label='Energy_pred', color='tab:green', alpha=0.7)
+        plt.xlabel('Elapsed Time (s)')
+        plt.ylabel('Energy(kWh)')
+        plt.title(f'Trip ID: {trip_id} - Energy over Elapsed Time')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 
 
 def plot_shap_values(model, X_train, feature_names, selected_car, save_path=None):
@@ -980,28 +874,18 @@ def plot_composite_contour(
         num_grids=30,
         min_count=10,
         save_directory=r"C:\Users\BSL\Desktop\Figures",
+        debug=False  # 디버깅 모드 추가
 ):
     """
     Creates a composite figure with three contour plots labeled A, B, and C.
+    Includes optional debugging visualizations.
 
     Parameters:
-    - X_train (np.ndarray): Training features with two columns ['speed', 'acceleration'].
-    - y_pred_train (np.ndarray): Predicted values for training data.
-    - X_test (np.ndarray): Test features with two columns ['speed', 'acceleration'].
-    - y_pred_test1 (np.ndarray): First set of predicted values for test data.
-    - y_pred_test2 (np.ndarray): Second set of predicted values for test data.
-    - scaler (sklearn.preprocessing scaler): Scaler used for inverse transformation.
-    - selected_car (str): Identifier for the selected car.
-    - terminology1 (str): Title for the first subplot.
-    - terminology2 (str): Title for the second subplot.
-    - terminology3 (str): Title for the third subplot.
-    - num_grids (int): Number of grid points for the contour.
-    - min_count (int): Minimum number of points per grid cell to display.
-    - save_directory (str): Directory to save the composite figure.
-    - composite_filename (str): Filename for the composite figure. If None, a default name is used.
+    - (기존 파라미터들)
+    - debug (bool): If True, shows intermediate visualizations for debugging.
     """
 
-    def create_contour(ax, X, y_pred, terminology, selected_car):
+    def create_contour(ax, X, y_pred, terminology, grid_x, grid_y, vmin, vmax, all_X_orig, min_count):
         if X.shape[1] != 2:
             raise ValueError("Error: X should have 2 columns.")
 
@@ -1013,36 +897,40 @@ def plot_composite_contour(
         # Convert speed to km/h (assuming first feature is 'speed')
         X_orig[:, 0] *= 3.6
 
-        # Create grid
-        grid_x = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids)
-        grid_y = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids)
-        grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-        grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='linear')
-
         # Compute density (number of points per grid cell)
-        x_edges = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids + 1)
-        y_edges = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids + 1)
+        x_edges = np.linspace(all_X_orig[:, 0].min(), all_X_orig[:, 0].max(), num_grids + 1)
+        y_edges = np.linspace(all_X_orig[:, 1].min(), all_X_orig[:, 1].max(), num_grids + 1)
         count_stat, _, _, _ = binned_statistic_2d(
             X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
         )
 
         # Mask grid_z where count_stat is below the threshold
         mask = count_stat < min_count
-        grid_z[mask] = np.nan
+        grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='cubic')
+        grid_z[mask.T] = np.nan  # Transpose to align with meshgrid
 
-        # Contour plot
-        contour = ax.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis')
+        # Contour plot with common vmin and vmax
+        contour = ax.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis', vmin=vmin, vmax=vmax)
         ax.set_xlabel('Speed (km/h)', fontsize=12)
         ax.set_ylabel('Acceleration (m/s²)', fontsize=12)
         ax.set_title(f'{terminology}', fontsize=14)
 
-        return contour
+        return count_stat, grid_z
 
     # Ensure save directory exists
     os.makedirs(save_directory, exist_ok=True)
 
-    # Create a figure with 1 row and 3 columns
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
+    # Combine all X data to determine common grid
+    all_X = np.vstack([X_train, X_test])
+    all_X_orig = scaler.inverse_transform(
+        np.hstack([all_X, np.zeros((all_X.shape[0], scaler.scale_.shape[0] - 2))])
+    )
+    all_X_orig[:, 0] *= 3.6  # Convert speed to km/h
+
+    # Create common grid
+    grid_x_vals = np.linspace(all_X_orig[:, 0].min(), all_X_orig[:, 0].max(), num_grids)
+    grid_y_vals = np.linspace(all_X_orig[:, 1].min(), all_X_orig[:, 1].max(), num_grids)
+    grid_x, grid_y = np.meshgrid(grid_x_vals, grid_y_vals)
 
     # Define label mapping based on selected_car
     labels = ['A', 'B', 'C'] if selected_car != 'Ioniq5' else ['D', 'E', 'F']
@@ -1069,12 +957,27 @@ def plot_composite_contour(
         }
     ]
 
+    # Determine common vmin and vmax for consistent color scaling
+    all_y_pred = np.concatenate([y_pred_train, y_pred_test1, y_pred_test2])
+    vmin = np.nanmin(all_y_pred)
+    vmax = np.nanmax(all_y_pred)
+
+    # Create a figure with 1 row and 3 columns
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
+
     # List to store contour objects for the colorbar
     contour_plots = []
+    all_count_stats = []
+    all_grid_z = []
 
     for ax, config in zip(axes, plot_configs):
-        contour = create_contour(ax, config['X'], config['y_pred'], config['terminology'], selected_car)
+        count_stat, grid_z = None, None
+        count_stat, grid_z = create_contour(ax, config['X'], config['y_pred'], config['terminology'],
+                                            grid_x, grid_y, vmin, vmax, all_X_orig, min_count)
+        contour = ax.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis', vmin=vmin, vmax=vmax)
         contour_plots.append(contour)
+        all_count_stats.append(count_stat)
+        all_grid_z.append(grid_z)
 
         # Add label (A, B, C) to the subplot
         ax.text(
@@ -1090,7 +993,67 @@ def plot_composite_contour(
     fig.colorbar(contour_plots[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Residual')
 
     # Save the composite figure
-    save_path = os.path.join(save_directory, f"Figure8_{selected_car}_Composite.png")
+    save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
 
+    # **1. 그리드 생성 시각화**
+    plt.figure(figsize=(8, 6))
+    plt.scatter(all_X_orig[:, 0], all_X_orig[:, 1], c='lightgray', alpha=0.5, label='Data Points')
+    plt.scatter(grid_x, grid_y, c='red', s=10, alpha=0.7, label='Grid Centers')
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title('Grid Centers Over Data Points')
+    plt.legend()
+    plt.show()
+
+    # **2. 밀도 계산 및 마스킹 시각화**
+    # 예시로 첫 번째 서브플롯의 count_stat 사용
+    first_count_stat = all_count_stats[0]
+    x_edges = np.linspace(all_X_orig[:, 0].min(), all_X_orig[:, 0].max(), num_grids + 1)
+    y_edges = np.linspace(all_X_orig[:, 1].min(), all_X_orig[:, 1].max(), num_grids + 1)
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(first_count_stat.T, origin='lower',
+               extent=(x_edges.min(), x_edges.max(), y_edges.min(), y_edges.max()),
+               cmap='Blues', aspect='auto')
+    plt.colorbar(label='Point Count')
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title('Data Point Count per Grid Cell')
+    plt.show()
+
+    # **마스킹된 영역 시각화**
+    plt.figure(figsize=(8, 6))
+    masked_count_stat = first_count_stat.copy()
+    masked_count_stat[first_count_stat < min_count] = np.nan
+    plt.imshow(masked_count_stat.T, origin='lower',
+               extent=(x_edges.min(), x_edges.max(), y_edges.min(), y_edges.max()),
+               cmap='Greys', aspect='auto')
+    plt.colorbar(label='Point Count (Masked)')
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title('Masked Data Point Count per Grid Cell')
+    plt.show()
+
+    # **3. 보간 결과 시각화**
+    # 예시로 첫 번째 서브플롯의 grid_z 사용
+    first_grid_z = all_grid_z[0]
+    plt.figure(figsize=(8, 6))
+    plt.contourf(grid_x, grid_y, first_grid_z, levels=20, cmap='viridis')
+    plt.colorbar(label='Residual (Interpolated)')
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title('Interpolated Residual Before Masking')
+    plt.show()
+
+    # **마스킹 후 보간 결과 시각화**
+    plt.figure(figsize=(8, 6))
+    masked_grid_z = first_grid_z.copy()
+    # 이미 마스킹이 적용된 상태이므로 NaN 영역 표시
+    plt.contourf(grid_x, grid_y, masked_grid_z, levels=20, cmap='viridis')
+    plt.colorbar(label='Residual (Masked)')
+    plt.xlabel('Speed (km/h)')
+    plt.ylabel('Acceleration (m/s²)')
+    plt.title('Interpolated Residual After Masking')
     plt.show()
