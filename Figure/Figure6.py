@@ -30,8 +30,8 @@ fig_save_path = r"C:\Users\BSL\Desktop\Figures"
 def figure6(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
     official_efficiency = {
-        'Ioniq5': [4.148, 6.221],
-        'EV6': [4.085, 6.407]
+        'Ioniq5': [4.202, 6.303],
+        'EV6': [4.106, 6.494]
     }
 
     # Function to process energy data
@@ -108,7 +108,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
              color='green', fontsize=12, alpha=0.7)
     plt.xlabel('Efficiency in km/kWh')
     plt.xlim((0, 15))
-    plt.ylim(0, 1300)
+    plt.ylim(0, 1400)
     plt.ylabel('Number of trips')
     ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
     ax1.set_title("Energy Consumption Distribution : EV6", pad=10)  # Title below (a)
