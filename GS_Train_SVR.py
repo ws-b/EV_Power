@@ -130,7 +130,6 @@ def train_model(X_train, y_train, best_params):
 
     return model
 
-
 # ----------------------------
 # 교차 검증 및 모델 훈련
 # ----------------------------

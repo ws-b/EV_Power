@@ -34,8 +34,7 @@ def run_only_xgb_validate(sampled_vehicle_files, selected_car, adjusted_params_M
         print(f"Only ML(XGBoost) cross_validate error: {e}")
 
 def run_evaluate(vehicle_files, selected_car):
-    # vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 10000]
-    vehicle_file_sizes = [40000]
+    vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 10000]
 
     l2lambda = {selected_car: []}
     results_dict = {selected_car: {}}
@@ -138,7 +137,7 @@ def run_evaluate(vehicle_files, selected_car):
                     })
             except Exception as e:
                 print(f"Only LR cross_validate error: {e}")
-
+    print(results_dict)
     print(l2lambda)
     return results_dict
 
@@ -231,33 +230,12 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     normalized_phys_rmse_mean = [1.0 for _ in phys_rmse_mean]
     normalized_phys_rmse_std = [0.0 for _ in phys_rmse_mean]  # 항상 1이므로 표준편차 없음
 
-    # # 비정규화된 RMSE 플롯
-    # plt.figure(figsize=(6, 5))
-    # plt.errorbar(sizes, phys_rmse_mean, yerr=1.645*np.array(phys_rmse_std), label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
-    # plt.errorbar(sizes, only_ml_rmse_mean, yerr=1.645 * np.array(only_ml_rmse_std), label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none', capsize=5)
-    # plt.errorbar(sizes, lr_rmse_mean, yerr=1.645*np.array(lr_rmse_std), label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none', capsize=5)
-    # plt.errorbar(sizes, only_lr_rmse_mean, yerr=1.645*np.array(only_lr_rmse_std), label='Only ML(LR)', marker='o', color='#FFA500', mfc='none', capsize=5)
-    # plt.errorbar(sizes, xgb_rmse_mean, yerr=1.645 * np.array(xgb_rmse_std), label='Hybrid Model(XGBoost)', marker='D', color='#8A2BE2', mfc='none', capsize=5)
-    #
-    # plt.xlabel('Number of Trips')
-    # plt.ylabel('RMSE')
-    # plt.title(f'RMSE vs Number of Trips for {selected_car}')
-    # plt.legend()
-    # plt.grid(False)
-    # plt.xscale('log')
-    # plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
-    # plt.xlim(min(sizes) - 1, max(sizes) + 1000)
-    # plt.tight_layout()
-    # if save_path:
-    #     plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_unnormalized.png"), dpi=300)
-    # plt.show()
-
     # 정규화된 RMSE 플롯
     plt.figure(figsize=(6, 5))
     plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
     plt.errorbar(sizes, normalized_only_ml_rmse_mean, yerr=normalized_only_ml_rmse_std, label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none',capsize=5)
-    plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none',capsize=5)
     plt.errorbar(sizes, normalized_only_lr_rmse_mean, yerr=normalized_only_lr_rmse_std, label='Only ML(LR)', marker='o', color='#FFA500', mfc='none', capsize=5)
+    plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none',capsize=5)
     plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700', mfc='none', capsize=5)
 
     plt.xlabel('Number of Trips')

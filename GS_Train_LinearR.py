@@ -1,15 +1,11 @@
-import os
 import pandas as pd
-import pickle
 import numpy as np
 from sklearn.linear_model import LinearRegression
-import optuna
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_contour, plot_shap_values
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from sklearn.metrics import mean_squared_error
+from scipy.integrate import cumulative_trapezoid
 
 # ----------------------------
 # 데이터 처리 함수
@@ -86,6 +82,7 @@ def process_files(files, scaler=None):
     return full_data, scaler
 
 
+
 def integrate_and_compare(trip_data):
     """
     트립 데이터에서 'Power_hybrid'와 'Power_data'를 시간에 따라 적분합니다.
@@ -98,10 +95,15 @@ def integrate_and_compare(trip_data):
 
     # 'Power_phys + y_pred'를 트래피조이드 룰로 적분
     trip_data['Power_hybrid'] = trip_data['Power_phys'] + trip_data['y_pred']
-    hybrid_integral = np.trapz(trip_data['Power_hybrid'].values, time_seconds)
+    # 누적 적분 계산
+    hybrid_cum_integral = cumulative_trapezoid(trip_data['Power_hybrid'].values, time_seconds, initial=0)
+    # 전체 적분 값은 마지막 값
+    hybrid_integral = hybrid_cum_integral[-1]
 
     # 'Power_data'를 트래피조이드 룰로 적분
-    data_integral = np.trapz(trip_data['Power_data'].values, time_seconds)
+    data_cum_integral = cumulative_trapezoid(trip_data['Power_data'].values, time_seconds, initial=0)
+    # 전체 적분 값은 마지막 값
+    data_integral = data_cum_integral[-1]
 
     return hybrid_integral, data_integral
 

@@ -8,6 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 from GS_plot import plot_contour, plot_shap_values
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from sklearn.metrics import mean_squared_error
+from scipy.integrate import cumulative_trapezoid
 
 # ----------------------------
 # 데이터 처리 함수
@@ -85,7 +86,15 @@ def process_files(files, scaler=None):
 
 def integrate_and_compare(trip_data):
     """
-    트립 데이터에서 'Power_hybrid'와 'Power_data'를 시간에 따라 적분합니다.
+    트립 데이터에서 'y_pred'와 'Power_data'를 시간에 따라 적분합니다.
+
+    Parameters:
+        trip_data (pd.DataFrame): 특정 trip_id에 해당하는 데이터프레임
+
+    Returns:
+        tuple: (ml_integral, data_integral)
+            ml_integral (float): y_pred의 총 에너지 (적분값)
+            data_integral (float): Power_data의 총 에너지 (적분값)
     """
     # 'time'으로 정렬
     trip_data = trip_data.sort_values(by='time')
@@ -93,11 +102,13 @@ def integrate_and_compare(trip_data):
     # 'time'을 초 단위로 변환
     time_seconds = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds().values
 
-    # 'y_pred'를 트래피조이드 룰로 적분
-    ml_integral = np.trapz(trip_data['y_pred'].values, time_seconds)
+    # 'y_pred'를 누적 트랩에즈 룰로 적분
+    ml_cumulative = cumulative_trapezoid(trip_data['y_pred'].values, time_seconds, initial=0)
+    ml_integral = ml_cumulative[-1]  # 총 적분값
 
-    # 'Power_data'를 트래피조이드 룰로 적분
-    data_integral = np.trapz(trip_data['Power_data'].values, time_seconds)
+    # 'Power_data'를 누적 트랩에즈 룰로 적분
+    data_cumulative = cumulative_trapezoid(trip_data['Power_data'].values, time_seconds, initial=0)
+    data_integral = data_cumulative[-1]  # 총 적분값
 
     return ml_integral, data_integral
 
