@@ -37,7 +37,7 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
 
     # Function to process energy data
     def process_energy_data(file_lists):
-        all_ecr = []
+        all_ecr_data = []
         for file in tqdm(file_lists):
             data = pd.read_csv(file)
 
@@ -54,11 +54,11 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
             Power_data = np.array(data['Power_data'])
             energy_data = Power_data * t_diff / 3600
 
-            ecr = ((energy_data.cumsum()[-1])/ (total_distance[-1] / 1000)) if energy_data.cumsum()[
+            ecr_data = ((energy_data.cumsum()[-1])/ (total_distance[-1] / 1000)) if energy_data.cumsum()[
                                                                                               -1] != 0 else 0
-            all_ecr.append(ecr)
+            all_ecr_data.append(ecr_data)
 
-        return all_ecr
+        return all_ecr_data
 
     # Function to add official efficiency range for a specific car
     def add_efficiency_lines(selected_car):
@@ -85,7 +85,7 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     plt.text(mean_value_ev6 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6:.2f}', color='red', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim((50, 400))
-    plt.ylim(0, 1450)
+    plt.ylim(0, 1500)
     plt.ylabel('Number of trips')
     ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
     ax1.set_title("Energy Consumption Rate Distribution : EV6", pad=10)  # Title below (a)

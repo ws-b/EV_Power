@@ -138,6 +138,7 @@ def run_evaluate(vehicle_files, selected_car):
             except Exception as e:
                 print(f"Only LR cross_validate error: {e}")
     print(results_dict)
+    print("---------------------------\n")
     print(l2lambda)
     return results_dict
 
