@@ -1,18 +1,15 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from dotenv import load_dotenv
 import os
 from datetime import datetime
-import requests
+import cartopy.crs as ccrs
+import cartopy.io.img_tiles as cimgt
+import cartopy.feature as cfeature
 from PIL import Image
 from io import BytesIO
 import matplotlib.font_manager as fm
 import numpy as np
-from matplotlib.patches import Rectangle  # 추가된 부분
-
-# Load environment variables from .env file
-load_dotenv()
-API_KEY = os.getenv('GOOGLE_API_KEY')
+from matplotlib.patches import Rectangle
 
 # List of CSV files to process
 csv_files = [
@@ -21,14 +18,44 @@ csv_files = [
 ]
 
 # Save path for the combined figure
-save_path = r"C:\Users\BSL\Desktop\Figures\figure9.png"
+save_path = r"C:\Users\BSL\Desktop\Figures\figure8.png"
 
 # Labels for subplots (updated for 2x4 grid)
 labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
-# Create a 2x4 Figure and Axes (updated figure size)
-fig, axes = plt.subplots(2, 4, figsize=(24, 12))
-axes = axes.flatten()  # Flatten to 1D array for easy indexing
+# Create a 2x4 Figure and Axes with appropriate projections
+fig = plt.figure(figsize=(24, 12))
+
+# Define projection for map subplots
+projection = ccrs.PlateCarree()
+
+# Create axes manually to assign projections only to map subplots
+axes = []
+for i in range(8):
+    if i % 4 == 0:
+        ax = fig.add_subplot(2, 4, i+1, projection=projection)
+    else:
+        ax = fig.add_subplot(2, 4, i+1)
+    axes.append(ax)
+
+# Initialize OSM Tiles
+osm_tiles = cimgt.OSM()
+
+def add_north_arrow(ax, size=0.1, loc=(0.95, 0.95)):
+    """
+    Adds a north arrow to a Cartopy GeoAxes.
+
+    Parameters:
+    - ax: The GeoAxes to add the arrow to.
+    - size: Size of the arrow.
+    - loc: Location of the arrow in axis coordinates (x, y).
+    """
+    ax.annotate('N',
+                xy=loc, xycoords='axes fraction',
+                xytext=(loc[0], loc[1] - size),
+                arrowprops=dict(facecolor='black', width=5, headwidth=15),
+                ha='center', va='center', fontsize=12,
+                bbox=dict(facecolor='white', edgecolor='black', boxstyle='circle,pad=0.1'))
 
 for idx, csv_file in enumerate(csv_files):
     # Read CSV file
@@ -53,7 +80,7 @@ for idx, csv_file in enumerate(csv_files):
     # Determine the starting index for subplots (updated for 4 columns)
     subplot_start = idx * 4
 
-    ### 첫 번째 플롯: Google Maps에 경로 그리기 ###
+    ### 첫 번째 플롯: Cartopy와 OSM을 사용하여 경로 그리기 ###
     ax_map = axes[subplot_start]
 
     # Extract sampled latitudes and longitudes as lists
@@ -64,50 +91,42 @@ for idx, csv_file in enumerate(csv_files):
         # Calculate center as the midpoint of the coordinates
         center_lat = np.mean(latitudes)
         center_lon = np.mean(longitudes)
-        map_center = f"{center_lat},{center_lon}"
 
-        # Set zoom level based on the row (idx)
-        zoom = 14 if idx == 0 else 11  # 첫 번째 파일은 zoom=14, 두 번째 파일은 zoom=11
+        # Set extent to include all points with some padding
+        buffer = 0.01  # degrees
+        min_lon, max_lon = min(longitudes) - buffer, max(longitudes) + buffer
+        min_lat, max_lat = min(latitudes) - buffer, max(latitudes) + buffer
+        ax_map.set_extent([min_lon, max_lon, min_lat, max_lat], crs=ccrs.PlateCarree())
 
-        # Increase size for higher resolution if needed
-        size = "800x800"
+        # Add OSM tiles as the background
+        ax_map.add_image(osm_tiles, 12)  # 12은 확대 수준 (Zoom level)
 
-        # Convert coordinates to 'lat,lon' format separated by '|'
-        path = '|'.join([f"{lat},{lon}" for lat, lon in zip(latitudes, longitudes)])
+        # Plot the route
+        ax_map.plot(longitudes, latitudes, color='red', linewidth=2, marker='o', transform=ccrs.PlateCarree())
 
-        # Static Maps API request URL with red color and thicker path
-        map_url = (
-            f"https://maps.googleapis.com/maps/api/staticmap?"
-            f"center={map_center}&zoom={zoom}&size={size}"
-            f"&path=color:0xff0000|weight:4|{path}"  # 빨간색(0xff0000)과 두께(weight:4)
-            f"&language=en"  # 지명 레이블을 영어로 설정
-            f"&key={API_KEY}"
-        )
+        # Add features
+        ax_map.add_feature(cfeature.BORDERS, linestyle=':', edgecolor='gray')
+        ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray')
 
-        # Fetch map image
-        response = requests.get(map_url)
-        if response.status_code == 200:
-            img = Image.open(BytesIO(response.content))
-            ax_map.imshow(img)
-            ax_map.axis('off')
-            if idx == 0:
-                ax_map.set_title(f'City Cycle Route Map')
-            else:
-                ax_map.set_title(f'Highway Cycle Route Map')
-
-            # 검은색 테두리 추가
-            rect = Rectangle((0, 0), 1, 1, transform=ax_map.transAxes, linewidth=2, edgecolor='black', facecolor='none')
-            ax_map.add_patch(rect)
+        if idx == 0:
+            ax_map.set_title('City Cycle Route Map')
         else:
-            ax_map.text(0.5, 0.5, 'Failed to load map', horizontalalignment='center', verticalalignment='center')
-            ax_map.set_axis_off()
+            ax_map.set_title('Highway Cycle Route Map')
+
+        # 검은색 테두리 추가
+        rect = Rectangle((0, 0), 1, 1, transform=ax_map.transAxes, linewidth=2, edgecolor='black', facecolor='none')
+        ax_map.add_patch(rect)
+
+        # 방향 표시 추가
+        add_north_arrow(ax_map, size=0.05, loc=(0.95, 0.95))
     else:
         ax_map.text(0.5, 0.5, 'No sampled coordinates', horizontalalignment='center', verticalalignment='center')
         ax_map.set_axis_off()
 
     # Add label
-    ax_map.text(-0.1, 1.05, labels[subplot_start], transform=ax_map.transAxes, fontsize=16, fontweight='bold',
-                va='bottom', ha='right')
+    if latitudes and longitudes:
+        ax_map.text(-0.1, 1.05, labels[subplot_start], transform=ax_map.transAxes, fontsize=16, fontweight='bold',
+                    va='bottom', ha='right')
 
     ### 두 번째 플롯: 속도와 가속도 (전체 데이터) ###
     ax_speed = axes[subplot_start + 1]
@@ -127,7 +146,7 @@ for idx, csv_file in enumerate(csv_files):
     ax_speed.tick_params(axis='y', labelcolor='tab:blue')
     ax_accel.tick_params(axis='y', labelcolor='tab:red')
 
-    ax_speed.set_title(f'Speed and Acceleration')
+    ax_speed.set_title('Speed and Acceleration')
 
     # Add legend
     lines_1, labels_1 = ax_speed.get_legend_handles_labels()

@@ -2,7 +2,7 @@ import os
 import time
 import random
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_Functions import get_vehicle_files, compute_mape_rrmse
+from GS_Functions import get_vehicle_files, compute_mape
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, process_multiple_new_files as xgb_process_multiple_new_files, load_model_and_scaler as xgb_load_model_and_scaler
@@ -11,6 +11,7 @@ from GS_Train_Only_LR import cross_validate as only_lr_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 from GS_Train_Multi import run_evaluate, plot_rmse_results
+from GS_Train_Multi_Sample import run_evaluate_20_50
 from GS_Train_SVR import cross_validate as svr_cross_validate
 def main():
     car_options = {
@@ -63,7 +64,8 @@ def main():
                 print("5: Train Models")
                 print("6: Hybrid(SVR) Model")
                 print("7: Only ML(LR) Model")
-                print("8: Return to previous menu")
+                print("8: 20-50 Sample Train Models")
+                print("9: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -71,7 +73,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 8:
+                if train_choice == 9:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -305,6 +307,15 @@ def main():
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+                    if train_choice == 8:
+                        start_time = time.perf_counter()
+
+                        results_dict = run_evaluate_20_50(vehicle_files, selected_car)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
                 print(f"XGB RRMSE & MAPE: {XGB}")
                 print(f"LR RRMSE & MAPE: {LR}")
                 print(f"LGBM RRMSE & MAPE: {LGBM}")
@@ -480,7 +491,7 @@ def main():
                                     break
                             plot_2d_histogram(sample_files_dict, selected_car)
                         elif plot == 3:
-                            compute_mape_rrmse(vehicle_files, selected_car)
+                            compute_mape(vehicle_files, selected_car)
 
         elif task_choice == 0:
             print("Quitting the program.")

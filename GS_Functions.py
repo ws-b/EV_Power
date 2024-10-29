@@ -100,15 +100,13 @@ def integrate_and_compare(trip_data):
     trip_data['time'] = pd.to_datetime(trip_data['time'], format='%Y-%m-%d %H:%M:%S')
     trip_data = trip_data.sort_values(by='time')
 
-    # 'time'을 초 단위로 변환
     time_seconds = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds().values
 
     physics_integral = np.trapz(trip_data['Power_phys'].values, time_seconds)
     data_integral = np.trapz(trip_data['Power_data'].values, time_seconds)
 
-    # 적분된 값 반환
     return physics_integral, data_integral
-def compute_mape_rrmse(vehicle_files, selected_car):
+def compute_mape(vehicle_files, selected_car):
     if not vehicle_files:
         print("No files provided")
         return
@@ -120,10 +118,9 @@ def compute_mape_rrmse(vehicle_files, selected_car):
         data_integrals.append(data_integral)
 
     mape= calculate_mape(np.array(data_integrals), np.array(physics_integrals))
-    rrmse = calculate_rrmse(np.array(data_integrals), np.array(physics_integrals))
     print(f"MAPE for {selected_car}  : {mape:.2f}%, RRMSE for {selected_car}: {rrmse:.2f}%")
 
-    return mape, rrmse
+    return mape
 
 
 def compute_rmse(vehicle_files, selected_car):

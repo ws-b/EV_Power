@@ -1,33 +1,25 @@
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-def figure3(img1_path, img2_path, save_path, figsize=(6, 6), dpi=300):
+from PIL import Image
 
-    # Load the two images
-    img1 = mpimg.imread(img1_path)
-    img2 = mpimg.imread(img2_path)
+# Load the two images
+img1_path = r"C:\Users\BSL\Desktop\Figures\Figure7_EV6_Composite.png"
+img2_path = r"C:\Users\BSL\Desktop\Figures\Figure7_Ioniq5_Composite.png"
 
-    # Create a figure with two subplots
-    fig, axs = plt.subplots(2, 1, figsize=figsize)  # Adjust figure size as needed
+img1 = Image.open(img1_path)
+img2 = Image.open(img2_path)
 
-    # Display the images in the subplots
-    axs[0].imshow(img1)
-    axs[1].imshow(img2)
+# Calculate the new size for the stacked image
+width = max(img1.width, img2.width)
+height = img1.height + img2.height
 
-    # Hide axes for both subplots
-    for ax in axs:
-        ax.axis('off')
+# Create a new image with the combined height
+combined_img = Image.new('RGB', (width, height))
 
-    # Add 'A' and 'B' labels to the top-left corner of each subplot
-    axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=11, fontweight='bold', va='top', ha='right')
-    axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=11, fontweight='bold', va='top', ha='right')
+# Paste both images into the new image
+combined_img.paste(img1, (0, 0))
+combined_img.paste(img2, (0, img1.height))
 
-    # Save the final image
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=dpi)
-    plt.show()
+# Save the result
+combined_img_path = r"C:\Users\BSL\Desktop\Figures\figure7.png"
+combined_img.save(combined_img_path, dpi = (300, 300))
 
-img1_path = r"C:\Users\BSL\Desktop\Figures\Result\shap_values_EV6.png"
-img2_path = r"C:\Users\BSL\Desktop\Figures\Result\shap_values_Ioniq5.png"
-save_path = r'C:\Users\BSL\Desktop\Figures\figure7.png'
-
-figure3(img1_path, img2_path, save_path)
+combined_img.show()

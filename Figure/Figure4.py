@@ -106,25 +106,25 @@ def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2):
     # Plot for city_cycle1 power in the first row, first column
     process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle 1 - Power Comparison')
 
-    # Plot for highway_cycle1 power in the second row, first column
-    process_and_plot_power(highway_cycle1, axs[0, 1], 'C', 'Highway Cycle 1 - Power Comparison')
-
-    # Plot for city_energy_file in the first row, second column
+    # Plot for city_cycle1 energy in the second row, first column
     process_and_plot_energy(city_cycle1, axs[1, 0], 'B', 'City Cycle 1 - Energy Comparison')
 
-    # Plot for highway_energy_file in the second row, second column
-    process_and_plot_energy(highway_cycle1, axs[1, 1], 'D', 'Highway Cycle 1 - Energy Comparison')
+    # Plot for city_cycle2 power in the first row, second column
+    process_and_plot_power(city_cycle2, axs[0, 1], 'C', 'City Cycle 2 - Power Comparison')
 
-    # Plot for city_cycle1 power in the first row, first column
-    process_and_plot_power(city_cycle2, axs[0, 2], 'E', 'City Cycle 2 - Power Comparison')
+    # Plot for city_cycle2 energy in the second row, second column
+    process_and_plot_energy(city_cycle2, axs[1, 1], 'D', 'City Cycle 2 - Energy Comparison')
 
-    # Plot for highway_cycle1 power in the second row, first column
+    # Plot for highway_cycle1 power in the first row, third column
+    process_and_plot_power(highway_cycle1, axs[0, 2], 'E', 'Highway Cycle 1 - Power Comparison')
+
+    # Plot for highway_cycle1 energy in the second row, third column
+    process_and_plot_energy(highway_cycle1, axs[1, 2], 'F', 'Highway Cycle 1 - Energy Comparison')
+
+    # Plot for highway_cycle2 power in the first row, fourth column
     process_and_plot_power(highway_cycle2, axs[0, 3], 'G', 'Highway Cycle 2 - Power Comparison')
 
-    # Plot for city_energy_file in the first row, second column
-    process_and_plot_energy(city_cycle2, axs[1, 2], 'F', 'City Cycle 2 - Energy Comparison')
-
-    # Plot for highway_energy_file in the second row, second column
+    # Plot for highway_cycle2 energy in the second row, fourth column
     process_and_plot_energy(highway_cycle2, axs[1, 3], 'H', 'Highway Cycle 2 - Energy Comparison')
 
     # Adjust layout and save the figure
