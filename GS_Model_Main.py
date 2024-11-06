@@ -63,8 +63,7 @@ def main():
                 print("5: Train Models")
                 print("6: Hybrid(SVR) Model")
                 print("7: Only ML(LR) Model")
-                print("8: 20-50 Sample Train Models")
-                print("9: Return to previous menu")
+                print("8: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -72,7 +71,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 9:
+                if train_choice == 8:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -306,15 +305,7 @@ def main():
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
-                    if train_choice == 8:
-                        start_time = time.perf_counter()
 
-                        results_dict = run_evaluate_20_50(vehicle_files, selected_car)
-
-                        end_time = time.perf_counter()
-                        elapsed_time = end_time - start_time
-
-                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
                 print(f"XGB RRMSE & MAPE: {XGB}")
                 print(f"LR RRMSE & MAPE: {LR}")
                 print(f"LGBM RRMSE & MAPE: {LGBM}")

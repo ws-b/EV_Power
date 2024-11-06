@@ -2,7 +2,7 @@ import os
 import time
 import random
 from GS_Merge_Power import process_files_power, select_vehicle
-from GS_Functions import get_vehicle_files, compute_mape_rrmse
+from GS_Functions import get_vehicle_files, compute_mape
 from GS_plot import plot_power, plot_energy, plot_energy_scatter, plot_power_scatter, plot_energy_dis, plot_driver_energy_scatter
 from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import cross_validate as xgb_cross_validate, process_multiple_new_files as xgb_process_multiple_new_files, load_model_and_scaler as xgb_load_model_and_scaler
@@ -305,6 +305,7 @@ def main():
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+
                 print(f"XGB RRMSE & MAPE: {XGB}")
                 print(f"LR RRMSE & MAPE: {LR}")
                 print(f"LGBM RRMSE & MAPE: {LGBM}")
@@ -480,7 +481,7 @@ def main():
                                     break
                             plot_2d_histogram(sample_files_dict, selected_car)
                         elif plot == 3:
-                            compute_mape_rrmse(vehicle_files, selected_car)
+                            compute_mape(vehicle_files, selected_car)
 
         elif task_choice == 0:
             print("Quitting the program.")
