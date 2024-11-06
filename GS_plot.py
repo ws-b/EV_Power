@@ -4,7 +4,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import matplotlib as mpl
 import random
 import shap
 import plotly.graph_objects as go
@@ -863,7 +862,6 @@ def plot_shap_values(model, X_train, feature_names, selected_car, save_path=None
     # Display the plot
     plt.show()
 
-
 def plot_composite_contour(
         X_train, y_pred_train,
         X_test, y_pred_test1, y_pred_test2,
@@ -874,18 +872,29 @@ def plot_composite_contour(
         num_grids=30,
         min_count=10,
         save_directory=r"C:\Users\BSL\Desktop\Figures",
-        debug=False  # 디버깅 모드 추가
 ):
     """
-    Creates a composite figure with three contour plots labeled A, B, and C.
-    Includes optional debugging visualizations.
+    Creates a composite figure with three plots labeled A, B, and C,
+    displaying the mean values without interpolation and adjusting the
+    axis limits to exclude masked areas.
 
     Parameters:
-    - (기존 파라미터들)
-    - debug (bool): If True, shows intermediate visualizations for debugging.
+    - X_train (np.ndarray): Training features with two columns ['speed', 'acceleration'].
+    - y_pred_train (np.ndarray): Predicted values for training data.
+    - X_test (np.ndarray): Test features with two columns ['speed', 'acceleration'].
+    - y_pred_test1 (np.ndarray): First set of predicted values for test data.
+    - y_pred_test2 (np.ndarray): Second set of predicted values for test data.
+    - scaler (sklearn.preprocessing scaler): Scaler used for inverse transformation.
+    - selected_car (str): Identifier for the selected car.
+    - terminology1 (str): Title for the first subplot.
+    - terminology2 (str): Title for the second subplot.
+    - terminology3 (str): Title for the third subplot.
+    - num_grids (int): Number of grid points for the contour.
+    - min_count (int): Minimum number of points per grid cell to display.
+    - save_directory (str): Directory to save the composite figure.
     """
 
-    def create_contour(ax, X, y_pred, terminology, grid_x, grid_y, vmin, vmax, all_X_orig, min_count):
+    def create_contour(ax, X, y_pred, terminology, selected_car):
         if X.shape[1] != 2:
             raise ValueError("Error: X should have 2 columns.")
 
@@ -897,40 +906,57 @@ def plot_composite_contour(
         # Convert speed to km/h (assuming first feature is 'speed')
         X_orig[:, 0] *= 3.6
 
+        # Define the edges of the grid
+        x_edges = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids + 1)
+        y_edges = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids + 1)
+
+        # Convert residuals to kilowatts
+        y_pred_kW = y_pred / 1000  # Assuming y_pred is in watts
+
+        # Compute the mean of y_pred in each grid cell
+        stat, x_edges, y_edges, binnumber = binned_statistic_2d(
+            X_orig[:, 0], X_orig[:, 1], y_pred_kW, statistic='mean', bins=[x_edges, y_edges]
+        )
+
         # Compute density (number of points per grid cell)
-        x_edges = np.linspace(all_X_orig[:, 0].min(), all_X_orig[:, 0].max(), num_grids + 1)
-        y_edges = np.linspace(all_X_orig[:, 1].min(), all_X_orig[:, 1].max(), num_grids + 1)
         count_stat, _, _, _ = binned_statistic_2d(
             X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
         )
 
-        # Mask grid_z where count_stat is below the threshold
+        # Mask cells with fewer than min_count observations
         mask = count_stat < min_count
-        grid_z = griddata((X_orig[:, 0], X_orig[:, 1]), y_pred, (grid_x, grid_y), method='cubic')
-        grid_z[mask.T] = np.nan  # Transpose to align with meshgrid
+        stat = np.ma.array(stat, mask=mask)
 
-        # Contour plot with common vmin and vmax
-        contour = ax.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis', vmin=vmin, vmax=vmax)
+        # Create a meshgrid for plotting
+        Xc, Yc = np.meshgrid(x_edges, y_edges)
+
+        # Plot using pcolormesh
+        pc = ax.pcolormesh(Xc, Yc, stat.T, cmap='viridis', shading='auto')
+
+        # Adjust axis limits to exclude masked areas
+        if not np.all(mask):
+            # Find the indices where data is not masked
+            unmasked_indices = np.where(~stat.mask)
+
+            # Get the corresponding x and y values
+            x_unmasked = Xc[:-1, :-1][unmasked_indices[1], unmasked_indices[0]]
+            y_unmasked = Yc[:-1, :-1][unmasked_indices[1], unmasked_indices[0]]
+
+            # Set axis limits
+            ax.set_xlim(x_unmasked.min(), x_unmasked.max()+5)
+            ax.set_ylim(y_unmasked.min()-0.5, y_unmasked.max()+0.5)
+
         ax.set_xlabel('Speed (km/h)', fontsize=12)
         ax.set_ylabel('Acceleration (m/s²)', fontsize=12)
         ax.set_title(f'{terminology}', fontsize=14)
 
-        return count_stat, grid_z
+        return pc
 
     # Ensure save directory exists
     os.makedirs(save_directory, exist_ok=True)
 
-    # Combine all X data to determine common grid
-    all_X = np.vstack([X_train, X_test])
-    all_X_orig = scaler.inverse_transform(
-        np.hstack([all_X, np.zeros((all_X.shape[0], scaler.scale_.shape[0] - 2))])
-    )
-    all_X_orig[:, 0] *= 3.6  # Convert speed to km/h
-
-    # Create common grid
-    grid_x_vals = np.linspace(all_X_orig[:, 0].min(), all_X_orig[:, 0].max(), num_grids)
-    grid_y_vals = np.linspace(all_X_orig[:, 1].min(), all_X_orig[:, 1].max(), num_grids)
-    grid_x, grid_y = np.meshgrid(grid_x_vals, grid_y_vals)
+    # Create a figure with 1 row and 3 columns
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
 
     # Define label mapping based on selected_car
     labels = ['A', 'B', 'C'] if selected_car != 'Ioniq5' else ['D', 'E', 'F']
@@ -957,27 +983,12 @@ def plot_composite_contour(
         }
     ]
 
-    # Determine common vmin and vmax for consistent color scaling
-    all_y_pred = np.concatenate([y_pred_train, y_pred_test1, y_pred_test2])
-    vmin = np.nanmin(all_y_pred)
-    vmax = np.nanmax(all_y_pred)
-
-    # Create a figure with 1 row and 3 columns
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
-
-    # List to store contour objects for the colorbar
-    contour_plots = []
-    all_count_stats = []
-    all_grid_z = []
+    # List to store pcolormesh objects for the colorbar
+    pc_objects = []
 
     for ax, config in zip(axes, plot_configs):
-        count_stat, grid_z = None, None
-        count_stat, grid_z = create_contour(ax, config['X'], config['y_pred'], config['terminology'],
-                                            grid_x, grid_y, vmin, vmax, all_X_orig, min_count)
-        contour = ax.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis', vmin=vmin, vmax=vmax)
-        contour_plots.append(contour)
-        all_count_stats.append(count_stat)
-        all_grid_z.append(grid_z)
+        pc = create_contour(ax, config['X'], config['y_pred'], config['terminology'], selected_car)
+        pc_objects.append(pc)
 
         # Add label (A, B, C) to the subplot
         ax.text(
@@ -990,70 +1001,10 @@ def plot_composite_contour(
         )
 
     # Add a single colorbar for all subplots
-    fig.colorbar(contour_plots[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Residual')
+    fig.colorbar(pc_objects[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Residual [kW]')
 
     # Save the composite figure
     save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
 
-    # **1. 그리드 생성 시각화**
-    plt.figure(figsize=(8, 6))
-    plt.scatter(all_X_orig[:, 0], all_X_orig[:, 1], c='lightgray', alpha=0.5, label='Data Points')
-    plt.scatter(grid_x, grid_y, c='red', s=10, alpha=0.7, label='Grid Centers')
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title('Grid Centers Over Data Points')
-    plt.legend()
-    plt.show()
-
-    # **2. 밀도 계산 및 마스킹 시각화**
-    # 예시로 첫 번째 서브플롯의 count_stat 사용
-    first_count_stat = all_count_stats[0]
-    x_edges = np.linspace(all_X_orig[:, 0].min(), all_X_orig[:, 0].max(), num_grids + 1)
-    y_edges = np.linspace(all_X_orig[:, 1].min(), all_X_orig[:, 1].max(), num_grids + 1)
-
-    plt.figure(figsize=(8, 6))
-    plt.imshow(first_count_stat.T, origin='lower',
-               extent=(x_edges.min(), x_edges.max(), y_edges.min(), y_edges.max()),
-               cmap='Blues', aspect='auto')
-    plt.colorbar(label='Point Count')
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title('Data Point Count per Grid Cell')
-    plt.show()
-
-    # **마스킹된 영역 시각화**
-    plt.figure(figsize=(8, 6))
-    masked_count_stat = first_count_stat.copy()
-    masked_count_stat[first_count_stat < min_count] = np.nan
-    plt.imshow(masked_count_stat.T, origin='lower',
-               extent=(x_edges.min(), x_edges.max(), y_edges.min(), y_edges.max()),
-               cmap='Greys', aspect='auto')
-    plt.colorbar(label='Point Count (Masked)')
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title('Masked Data Point Count per Grid Cell')
-    plt.show()
-
-    # **3. 보간 결과 시각화**
-    # 예시로 첫 번째 서브플롯의 grid_z 사용
-    first_grid_z = all_grid_z[0]
-    plt.figure(figsize=(8, 6))
-    plt.contourf(grid_x, grid_y, first_grid_z, levels=20, cmap='viridis')
-    plt.colorbar(label='Residual (Interpolated)')
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title('Interpolated Residual Before Masking')
-    plt.show()
-
-    # **마스킹 후 보간 결과 시각화**
-    plt.figure(figsize=(8, 6))
-    masked_grid_z = first_grid_z.copy()
-    # 이미 마스킹이 적용된 상태이므로 NaN 영역 표시
-    plt.contourf(grid_x, grid_y, masked_grid_z, levels=20, cmap='viridis')
-    plt.colorbar(label='Residual (Masked)')
-    plt.xlabel('Speed (km/h)')
-    plt.ylabel('Acceleration (m/s²)')
-    plt.title('Interpolated Residual After Masking')
     plt.show()

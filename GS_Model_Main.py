@@ -11,7 +11,6 @@ from GS_Train_Only_LR import cross_validate as only_lr_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 from GS_Train_Multi import run_evaluate, plot_rmse_results
-from GS_Train_Multi_Sample import run_evaluate_20_50
 from GS_Train_SVR import cross_validate as svr_cross_validate
 def main():
     car_options = {

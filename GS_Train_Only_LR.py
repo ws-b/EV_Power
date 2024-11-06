@@ -5,6 +5,7 @@ from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from GS_plot import plot_power_and_energy
 from scipy.integrate import cumulative_trapezoid
 
 # ----------------------------
@@ -198,6 +199,11 @@ def cross_validate(vehicle_files, selected_car):
             'test_mape': mape_test,
         })
         models.append(model)
+
+        #####PLOT 확인용#####
+        plot = False
+        if plot==True:
+            plot_power_and_energy(test_data)
 
         # 폴드 결과 출력
         print(f"--- Fold {fold_num} Results ---")

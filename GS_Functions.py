@@ -118,7 +118,7 @@ def compute_mape(vehicle_files, selected_car):
         data_integrals.append(data_integral)
 
     mape= calculate_mape(np.array(data_integrals), np.array(physics_integrals))
-    print(f"MAPE for {selected_car}  : {mape:.2f}%, RRMSE for {selected_car}: {rrmse:.2f}%")
+    print(f"MAPE for {selected_car}  : {mape:.2f}%")
 
     return mape
 

@@ -259,10 +259,10 @@ def cross_validate(vehicle_files, selected_car, params=None, plot=False, save_di
         train_data['y_pred'] = bst.predict(xgb.DMatrix(X_train))
         test_data['y_pred'] = bst.predict(xgb.DMatrix(X_test))
 
-        if fold_num == 2 and plot == True:
+        if fold_num == 1 and plot == True:
             # SHAP 값 계산 및 시각화
             shap_value_save_path = fr"C:\Users\BSL\Desktop\Figures\Result\shap_values_{selected_car}.png"
-            plot_shap_values(bst, X_train, feature_cols, selected_car, shap_value_save_path)
+            # plot_shap_values(bst, X_train, feature_cols, selected_car, shap_value_save_path)
 
             # 컴포지트 그림 생성
             plot_composite_contour(

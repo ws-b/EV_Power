@@ -8,6 +8,7 @@ from GS_Train_XGboost import cross_validate as xgb_cross_validate
 from GS_Train_Only_XGboost import cross_validate as only_xgb_validate
 from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_Only_LR import cross_validate as only_lr_validate
+import json
 
 def run_xgb_cross_validate(sampled_vehicle_files, selected_car, adjusted_params_XGB, results_dict, size):
     try:
@@ -140,6 +141,13 @@ def run_evaluate(vehicle_files, selected_car):
     print(results_dict)
     print("---------------------------\n")
     print(l2lambda)
+
+    # 결과를 파일로 저장합니다.
+    output_file_name = f"{selected_car}_results.txt"
+    output_file_path = os.path.join("C:\\Users\\BSL\\Desktop", output_file_name)
+    with open(output_file_path, 'w') as outfile:
+        json.dump(results_dict, outfile)
+
     return results_dict
 
 def plot_rmse_results(results_dict, selected_car, save_path):
