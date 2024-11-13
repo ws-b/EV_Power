@@ -35,6 +35,17 @@ fig_save_path = r"C:\Users\BSL\Desktop\Figures"
 def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2):
     fig, axs = plt.subplots(2, 4, figsize=(24, 10))
 
+    scaling = 1.4
+    # Set font sizes using the scaling factor
+    plt.rcParams['font.size'] = 10 * scaling  # Base font size
+    plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+    plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+    plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+    plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+    plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+    plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+    plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
+
     def process_and_plot_power(file, ax, marker, title):
         data = pd.read_csv(file)
 
@@ -54,19 +65,20 @@ def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2):
             power_hybrid = np.array(data['Power_hybrid']) / 1000
 
         # Plot the comparison graph
-        ax.set_xlabel('Time (minutes)')
-        ax.set_ylabel('Power (kW)')
-        ax.plot(t_min, power_data, label='Data Power (kW)', color='tab:blue', alpha=0.6)
-        ax.plot(t_min, power_phys, label='Physics Model Power (kW)', color='tab:red', alpha=0.6)
+        ax.set_xlabel('Time (minutes)', fontsize=10 * scaling)
+        ax.set_ylabel('Power (kW)', fontsize=10 * scaling)
+        ax.plot(t_min, power_data, label='Data', color='tab:blue', alpha=0.6)
+        ax.plot(t_min, power_phys, label='Physics Model', color='tab:red', alpha=0.6)
 
         if 'Power_hybrid' in data.columns:
-            ax.plot(t_min, power_hybrid, label='Hybrid Model Power (kW)', color='tab:green', alpha=0.6)
+            ax.plot(t_min, power_hybrid, label='Hybrid Model', color='tab:green', alpha=0.6)
 
         ax.set_ylim()
 
         ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
         ax.set_title(title, pad=10)
-        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=14, weight='bold', ha='left')  # Add marker
+        ax.tick_params(axis='both', which='major', labelsize=10 * scaling)
+        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=16*scaling, weight='bold', ha='left')  # Add marker
 
     def process_and_plot_energy(file, ax, marker, title):
         data = pd.read_csv(file)
@@ -92,40 +104,41 @@ def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2):
             energy_hybrid_cumulative = energy_hybrid.cumsum()
 
         # Plot the comparison graph
-        ax.set_xlabel('Time (minutes)')
-        ax.set_ylabel('BMS Energy and Physics Model Energy (kWh)')
-        ax.plot(t_min, energy_data_cumulative, label='Data Energy (kWh)', color='tab:blue', alpha=0.6)
-        ax.plot(t_min, energy_phys_cumulative, label='Physics Model Energy (kWh)', color='tab:red', alpha=0.6)
+        ax.set_xlabel('Time (minutes)', fontsize=10 * scaling)
+        ax.set_ylabel('Energy (kWh)', fontsize=10 * scaling)
+        ax.plot(t_min, energy_data_cumulative, label='Data', color='tab:blue', alpha=0.6)
+        ax.plot(t_min, energy_phys_cumulative, label='Physics Model', color='tab:red', alpha=0.6)
         if 'Power_hybrid' in data.columns:
-            ax.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model Energy (kWh)', color='tab:green', alpha=0.6)
+            ax.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model', color='tab:green', alpha=0.6)
 
         ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
         ax.set_title(title, pad=10)
-        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=16, weight='bold', ha='left')  # Add marker
+        ax.tick_params(axis='both', which='major', labelsize=10 * scaling)
+        ax.text(-0.1, 1.05, marker, transform=ax.transAxes, size=16*scaling, weight='bold', ha='left')  # Add marker
 
     # Plot for city_cycle1 power in the first row, first column
-    process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle 1 - Power Comparison')
+    process_and_plot_power(city_cycle1, axs[0, 0], 'A', 'City Cycle 1')
 
     # Plot for city_cycle1 energy in the second row, first column
-    process_and_plot_energy(city_cycle1, axs[1, 0], 'B', 'City Cycle 1 - Energy Comparison')
+    process_and_plot_energy(city_cycle1, axs[1, 0], 'B', 'City Cycle 1')
 
     # Plot for city_cycle2 power in the first row, second column
-    process_and_plot_power(city_cycle2, axs[0, 1], 'C', 'City Cycle 2 - Power Comparison')
+    process_and_plot_power(city_cycle2, axs[0, 1], 'C', 'City Cycle 2')
 
     # Plot for city_cycle2 energy in the second row, second column
-    process_and_plot_energy(city_cycle2, axs[1, 1], 'D', 'City Cycle 2 - Energy Comparison')
+    process_and_plot_energy(city_cycle2, axs[1, 1], 'D', 'City Cycle 2')
 
     # Plot for highway_cycle1 power in the first row, third column
-    process_and_plot_power(highway_cycle1, axs[0, 2], 'E', 'Highway Cycle 1 - Power Comparison')
+    process_and_plot_power(highway_cycle1, axs[0, 2], 'E', 'Highway Cycle 1')
 
     # Plot for highway_cycle1 energy in the second row, third column
-    process_and_plot_energy(highway_cycle1, axs[1, 2], 'F', 'Highway Cycle 1 - Energy Comparison')
+    process_and_plot_energy(highway_cycle1, axs[1, 2], 'F', 'Highway Cycle 1')
 
     # Plot for highway_cycle2 power in the first row, fourth column
-    process_and_plot_power(highway_cycle2, axs[0, 3], 'G', 'Highway Cycle 2 - Power Comparison')
+    process_and_plot_power(highway_cycle2, axs[0, 3], 'G', 'Highway Cycle 2')
 
     # Plot for highway_cycle2 energy in the second row, fourth column
-    process_and_plot_energy(highway_cycle2, axs[1, 3], 'H', 'Highway Cycle 2 - Energy Comparison')
+    process_and_plot_energy(highway_cycle2, axs[1, 3], 'H', 'Highway Cycle 2')
 
     # Adjust layout and save the figure
     plt.tight_layout()

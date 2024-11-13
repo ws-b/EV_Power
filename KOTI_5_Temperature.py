@@ -6,8 +6,13 @@ from dotenv import load_dotenv
 from scipy.spatial import cKDTree
 import requests
 import time
+from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Custom exception for rate limit exceeded
+class RateLimitExceededError(Exception):
+    """Exception raised when the API rate limit is exceeded."""
+    pass
 
 # 1. 데이터 로드 및 전처리를 위한 함수 정의
 
@@ -16,13 +21,11 @@ def load_data(file_path):
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
     return df
 
-
 def load_stations(stations_file):
     stations = pd.read_csv(stations_file)
     stations['longitude'] = stations['LON'].astype(float)
     stations['latitude'] = stations['LAT'].astype(float)
     return stations
-
 
 def find_nearest_stations(df, stations):
     station_coords = stations[['longitude', 'latitude']].values
@@ -32,12 +35,10 @@ def find_nearest_stations(df, stations):
     df['STN_ID'] = stations.iloc[indices]['STN_ID'].values
     return df
 
-
 def prepare_unique_requests(df):
     df['tm'] = df['time'].dt.strftime('%Y%m%d%H00')  # 'yyyymmddHH00' 형식
     unique_requests = df[['tm', 'STN_ID']].drop_duplicates()
     return unique_requests
-
 
 def get_observation_data_text(tm, stn, auth_key, help_param=0):
     url = 'https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php'
@@ -49,12 +50,17 @@ def get_observation_data_text(tm, stn, auth_key, help_param=0):
     }
     try:
         response = requests.get(url, params=params)
-        response.raise_for_status()  # HTTP 에러 발생 시 예외 발생
-        return response.text  # 텍스트 형식으로 응답을 반환
+        if response.status_code == 403:
+            # Rate limit exceeded
+            raise RateLimitExceededError(f"Rate limit exceeded for tm={tm}, stn={stn}")
+        response.raise_for_status()  # Raise an error for bad status codes
+        return response.text  # Return the response text
+    except RateLimitExceededError as e:
+        print(e)
+        raise  # Re-raise the exception to stop processing
     except requests.exceptions.RequestException as e:
         print(f"Request failed for tm={tm}, stn={stn}: {e}")
         return None
-
 
 def fetch_observation_data(unique_requests, auth_key, help_param=0, max_workers=10):
     observation_data = {}
@@ -65,17 +71,22 @@ def fetch_observation_data(unique_requests, auth_key, help_param=0, max_workers=
         data = get_observation_data_text(tm, stn, auth_key, help_param)
         if data:
             observation_data[(tm, stn)] = data
-        # API 호출 간 간단한 지연을 추가하여 서버 부하를 줄일 수 있습니다.
+        # Add a small delay to reduce server load
         time.sleep(0.1)
         return
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(fetch_and_store_text, row) for idx, row in unique_requests.iterrows()]
         for future in as_completed(futures):
-            pass  # 모든 작업이 완료될 때까지 대기
-
+            try:
+                future.result()
+            except RateLimitExceededError as e:
+                print(f"Rate limit exceeded: {e}")
+                executor.shutdown(wait=False)
+                raise e  # Re-raise to stop further processing
+            except Exception as e:
+                print(f"An error occurred: {e}")
     return observation_data
-
 
 def parse_observation_text(text_content):
     try:
@@ -83,27 +94,27 @@ def parse_observation_text(text_content):
         data_line = None
         for line in lines:
             if line.startswith('#'):
-                continue  # 주석 라인 건너뛰기
+                continue  # Skip comment lines
             if line.strip() == '':
-                continue  # 빈 라인 건너뛰기
+                continue  # Skip empty lines
             data_line = line.strip()
-            break  # 첫 번째 데이터 라인 찾기
+            break  # Found the first data line
 
         if not data_line:
             print("No data line found in the response.")
             return {'TA': np.nan}
 
-        # 데이터 라인을 공백으로 분할
+        # Split the data line by whitespace
         fields = data_line.split()
 
         if len(fields) < 12:
             print("Insufficient number of fields in the data line.")
             return {'TA': np.nan}
 
-        # 'TA'는 12번째 필드 (인덱스 11)
+        # 'TA' is the 12th field (index 11)
         ta = fields[11]
 
-        # 'TA'가 숫자인지 확인하고, 숫자가 아니면 NaN으로 처리
+        # Check if 'TA' is numeric, else set as NaN
         try:
             ta_float = float(ta)
         except ValueError:
@@ -114,7 +125,6 @@ def parse_observation_text(text_content):
         print(f"Error parsing observation text: {e}")
         return {'TA': np.nan}
 
-
 def parse_all_observations(observation_data):
     parsed_data = {}
     for key, text_content in observation_data.items():
@@ -122,60 +132,68 @@ def parse_all_observations(observation_data):
         parsed_data[key] = data
     return parsed_data
 
-
 def add_external_temp(df, parsed_data):
     def extract_TA_text(row):
         key = (row['tm'], row['STN_ID'])
         data = parsed_data.get(key, {})
         try:
-            return data.get('TA', np.nan)  # 'TA' 필드가 없으면 NaN 반환
+            return data.get('TA', np.nan)  # Return NaN if 'TA' field is missing
         except (ValueError, TypeError):
             return np.nan
 
     df['ext_temp'] = df.apply(extract_TA_text, axis=1)
     return df
 
-
 def save_processed_data(df, original_file):
-    # 저장할 컬럼 정의
+    # Define columns to save
     columns_tosave = ['time', 'x', 'y', 'longitude', 'latitude', 'speed', 'acceleration', 'ext_temp']
 
-    # 원본 파일에 덮어쓰기
+    # Overwrite the original file
     df.to_csv(original_file, columns=columns_tosave, index=False)
-    print(f"데이터 저장 완료: {original_file}")
-
+    print(f"Data saved successfully: {original_file}")
 
 # 2. 파일별 처리 함수 정의
 
 def process_file(file_path, stations, auth_key, help_param=0):
     print(f"Processing file: {file_path}")
 
-    # 데이터 로드
+    # Load data
     df = load_data(file_path)
 
-    # 가장 가까운 지상관측소 찾기
+    # Find nearest observation stations
     df = find_nearest_stations(df, stations)
 
-    # 고유한 API 요청 준비
+    # Prepare unique API requests
     unique_requests = prepare_unique_requests(df)
 
-    # API 호출을 통해 관측 데이터 가져오기
+    # Fetch observation data via API calls
     observation_data = fetch_observation_data(unique_requests, auth_key, help_param)
 
-    # 모든 API 응답 파싱
+    # Parse all API responses
     parsed_data = parse_all_observations(observation_data)
 
-    # 외부 온도 데이터 추가
+    # Add external temperature data
     df = add_external_temp(df, parsed_data)
 
-    # 원본 파일에 덮어쓰기
+    # Overwrite the original file
     save_processed_data(df, file_path)
 
+def load_processed_files(processed_files_path):
+    if os.path.exists(processed_files_path):
+        with open(processed_files_path, 'r') as f:
+            processed_files = f.read().splitlines()
+    else:
+        processed_files = []
+    return processed_files
+
+def save_processed_file(processed_files_path, file_name):
+    with open(processed_files_path, 'a') as f:
+        f.write(file_name + '\n')
 
 # 3. 메인 함수 정의
 
 def main():
-    # .env 파일 로드
+    # Load .env file
     load_dotenv()
     auth_key = os.getenv('KMA_API_KEY')
     if not auth_key:
@@ -184,31 +202,45 @@ def main():
 
     help_param = 0
 
-    # 폴더 경로 정의
-    input_folder = r"D:\SamsungSTF\Data\Cycle\HW_KOTI"
+    # Define folder paths
+    input_folder = r"D:\SamsungSTF\Processed_Data\KOTI"
     stations_file = r"D:\SamsungSTF\Data\KMA\Stations.csv"
 
-    # 관측소 데이터 로드 (한 번만 로드)
+    # Load station data (only once)
     stations = load_stations(stations_file)
 
-    # 입력 폴더 내 모든 CSV 파일 목록 가져오기
+    # Get list of all CSV files in the input folder
     csv_files = glob.glob(os.path.join(input_folder, "*.csv"))
 
     if not csv_files:
-        print(f"폴더 내에 CSV 파일이 없습니다: {input_folder}")
+        print(f"No CSV files found in the folder: {input_folder}")
         return
 
-    print(f"처리할 CSV 파일 수: {len(csv_files)}개")
+    print(f"Number of CSV files to process: {len(csv_files)}")
 
-    # 파일별로 순차 처리 (병렬 처리 시 API 호출 제한 주의)
-    for file in csv_files:
+    # Load list of processed files
+    processed_files_path = 'processed_files.txt'
+    processed_files = load_processed_files(processed_files_path)
+
+    # Process files one by one
+    for file in tqdm(csv_files):
+        file_name = os.path.basename(file)
+        if file_name in processed_files:
+            print(f"File already processed. Skipping: {file_name}")
+            continue  # Skip already processed files
+
         try:
             process_file(file, stations, auth_key, help_param)
+            # Record the file as processed
+            save_processed_file(processed_files_path, file_name)
+        except RateLimitExceededError as e:
+            print(f"Rate limit exceeded: {e}")
+            print("Processing stopped due to rate limit.")
+            break  # Stop processing further files
         except Exception as e:
-            print(f"파일 처리 중 에러 발생 ({file}): {e}")
+            print(f"Error processing file ({file}): {e}")
 
-    print("모든 파일이 처리되었습니다.")
-
+    print("All files have been processed.")
 
 if __name__ == "__main__":
     main()

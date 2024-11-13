@@ -113,7 +113,7 @@ def figure5(vehicle_files, selected_cars):
                        color=colors[j],
                        label='Hybrid Model' if j == 0 else "")
 
-        # 로그 스케일에 맞춰 데이터 변환
+        # log scale data
         log_data_energy = np.log(energies_dict[selected_car]['data'])
         log_phys_energy = np.log(energies_dict[selected_car]['phys'])
         log_hybrid_energy = np.log(energies_dict[selected_car]['hybrid'])
@@ -130,15 +130,15 @@ def figure5(vehicle_files, selected_cars):
                 color='lightblue')
 
         ax.plot(np.array(energies_dict[selected_car]['data']),
-                np.exp(intercept + slope * np.log(energies_dict[selected_car]['data'])),
-                'b')
-        # MAPE & RRMSE calculations using the entire dataset
+                np.exp(intercept + slope * np.log(energies_dict[selected_car]['data'])),'b')
+
+        # MAPE calculations using the entire dataset
         mape_before = calculate_mape(np.array(all_energies_dict[selected_car]['data']),
                                      np.array(all_energies_dict[selected_car]['phys']))
         mape_after = calculate_mape(np.array(all_energies_dict[selected_car]['data']),
                                     np.array(all_energies_dict[selected_car]['hybrid']))
 
-        # Displaying the MAPE and RRMSE values in the plot
+        # Displaying the MAPE in the plot
         ax.text(0.6, 0.15,
                 f'MAPE (Before): {mape_before:.2f}%\n'
                 f'MAPE (After): {mape_after:.2f}%\n',
@@ -228,11 +228,11 @@ def figure5(vehicle_files, selected_cars):
             ax.plot(filtered_data_energy, np.exp(intercept + slope * np.log(filtered_data_energy)),
                     color=color_map[id])
 
-            # Calculate RMSE & NRMSE for each car
+            # Calculate RMSE for each car
             mape_before = calculate_mape(np.array(energies_data[id]), np.array(energies_phys[id]))
             mape_after = calculate_mape(np.array(energies_data[id]), np.array(energies_hybrid[id]))
 
-            ax.text(0.05, 0.95 - j * 0.07,
+            ax.text(0.05, 0.95 - j * 0.08,
                     f'{selected_car} {driver_label}\nMAPE (Before): {mape_before:.2f}%\nMAPE (After): {mape_after:.2f}%',
                     transform=ax.transAxes, fontsize=8, verticalalignment='top', color=color_map[id])
 

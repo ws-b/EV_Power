@@ -34,6 +34,17 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
         'EV6': [154.0, 243.5]
     }
 
+    # Set font sizes using the scaling factor
+    scaling = 1
+    plt.rcParams['font.size'] = 10 * scaling  # Base font size
+    plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+    plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+    plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+    plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+    plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+    plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+    plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
+
     # Function to process energy data
     def process_energy_data(file_lists):
         all_ecr_phys = []
@@ -87,7 +98,6 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     dis_energies_ev6 = process_energy_data(file_lists_ev6)
     dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
 
-    # Create subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
 
     # Plot for EV6

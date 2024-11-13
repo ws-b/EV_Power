@@ -180,12 +180,12 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
         if 'altitude' in combined_df.columns:
             combined_df['delta altitude'] = combined_df['altitude'].diff()
             data_save = combined_df[
-                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                 'altitude', 'pack_volt', 'pack_current', 'Power_data']].copy()
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'mod_temp_list', 'soc', 'soh', 'chrg_cable_conn',
+                 'altitude', 'cell_volt_list', 'pack_volt', 'pack_current', 'Power_data']].copy()
         else:
             data_save = combined_df[
-                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'soc', 'soh', 'chrg_cable_conn',
-                 'pack_volt', 'pack_current', 'Power_data']].copy()
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'mod_temp_list', 'soc', 'soh', 'chrg_cable_conn',
+                 'pack_volt', 'cell_volt_list', 'pack_current', 'Power_data']].copy()
 
         data_save.to_csv(output_file_path, index=False)
 

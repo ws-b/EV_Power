@@ -1,244 +1,252 @@
+# 필요한 라이브러리 임포트
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
-from datetime import datetime
-import cartopy.crs as ccrs
-import cartopy.io.img_tiles as cimgt
-import cartopy.feature as cfeature
-from PIL import Image
-from io import BytesIO
-import matplotlib.font_manager as fm
 import numpy as np
-from matplotlib.patches import Rectangle
+import folium
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import time
+import os
+from io import BytesIO
+from PIL import Image
 
-# List of CSV files to process
+# WebDriverWait을 위한 라이브러리 추가
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# CSV 파일 목록
 csv_files = [
     r"D:\SamsungSTF\Data\Cycle\City_KOTI\20190101_240493.csv",
     r"D:\SamsungSTF\Data\Cycle\HW_KOTI\20190119_1903235.csv"
 ]
 
-# Save path for the combined figure
+# 저장 경로
 save_path = r"C:\Users\BSL\Desktop\Figures\figure8.png"
 
-# Labels for subplots (updated for 2x4 grid)
+# 서브플롯 레이블
 labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
-# Create a 2x4 Figure and Axes with appropriate projections
-fig = plt.figure(figsize=(24, 12))
+# 2x4 Figure 생성
+fig = plt.figure(figsize=(24, 10))
 
-# Define projection for map subplots
-projection = ccrs.PlateCarree()
+scaling = 1.4
+# Set font sizes using the scaling factor
+plt.rcParams['font.size'] = 10 * scaling  # Base font size
+plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
 
-# Create axes manually to assign projections only to map subplots
 axes = []
 for i in range(8):
-    if i % 4 == 0:
-        ax = fig.add_subplot(2, 4, i+1, projection=projection)
-    else:
-        ax = fig.add_subplot(2, 4, i+1)
+    ax = fig.add_subplot(2, 4, i+1)
     axes.append(ax)
 
-# Initialize OSM Tiles
-osm_tiles = cimgt.OSM()
-
-def add_north_arrow(ax, size=0.1, loc=(0.95, 0.95)):
-    """
-    Adds a north arrow to a Cartopy GeoAxes.
-
-    Parameters:
-    - ax: The GeoAxes to add the arrow to.
-    - size: Size of the arrow.
-    - loc: Location of the arrow in axis coordinates (x, y).
-    """
-    ax.annotate('N',
-                xy=loc, xycoords='axes fraction',
-                xytext=(loc[0], loc[1] - size),
-                arrowprops=dict(facecolor='black', width=5, headwidth=15),
-                ha='center', va='center', fontsize=12,
-                bbox=dict(facecolor='white', edgecolor='black', boxstyle='circle,pad=0.1'))
-
 for idx, csv_file in enumerate(csv_files):
-    # Read CSV file
+    # CSV 파일 읽기
     df = pd.read_csv(csv_file)
 
-    # Convert 'time' column to datetime format
+    # 시간 데이터 처리
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S')
-
-    # Calculate elapsed time based on start time (in seconds)
     start_time = df['time'].iloc[0]
     df['elapsed_time_sec'] = (df['time'] - start_time).dt.total_seconds()
-
-    # Convert elapsed time to minutes
     df['elapsed_time_min'] = df['elapsed_time_sec'] / 60
-
-    # Set the dataframe index to time
     df.set_index('time', inplace=True)
 
-    # Sample coordinate data at 10-second intervals
+    # 좌표 데이터 샘플링
     df_sampled = df.resample('10s').first().dropna(subset=['latitude', 'longitude'])
 
-    # Determine the starting index for subplots (updated for 4 columns)
+    # 서브플롯 시작 인덱스
     subplot_start = idx * 4
 
-    ### 첫 번째 플롯: Cartopy와 OSM을 사용하여 경로 그리기 ###
+    ### 첫 번째 플롯: Folium 지도로 경로 표시 ###
     ax_map = axes[subplot_start]
 
-    # Extract sampled latitudes and longitudes as lists
+    # 샘플링된 위도와 경도 추출
     latitudes = df_sampled['latitude'].tolist()
     longitudes = df_sampled['longitude'].tolist()
 
     if latitudes and longitudes:
-        # Calculate center as the midpoint of the coordinates
+        # 중심 좌표 계산
         center_lat = np.mean(latitudes)
         center_lon = np.mean(longitudes)
 
-        # Set extent to include all points with some padding
-        buffer = 0.01  # degrees
-        min_lon, max_lon = min(longitudes) - buffer, max(longitudes) + buffer
-        min_lat, max_lat = min(latitudes) - buffer, max(latitudes) + buffer
-        ax_map.set_extent([min_lon, max_lon, min_lat, max_lat], crs=ccrs.PlateCarree())
+        # Folium 지도 생성 시 타일 옵션 설정 (컬러 지도와 영어 라벨)
+        tile_option = 'CartoDB positron'  # 컬러 지도와 영어 라벨
 
-        # Add OSM tiles as the background
-        ax_map.add_image(osm_tiles, 12)  # 12은 확대 수준 (Zoom level)
+        # 줌 레벨 설정 및 줌 컨트롤 제거, 축척 표시 추가
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=15 if idx == 0 else 12,
+                       tiles=tile_option, zoom_control=False, control_scale=True)
 
-        # Plot the route
-        ax_map.plot(longitudes, latitudes, color='red', linewidth=2, marker='o', transform=ccrs.PlateCarree())
+        # 축척 위치를 왼쪽 하단으로 이동시키고 크기를 키우는 CSS 추가
+        scale_position_css = '''
+        <style>
+        .leaflet-control-scale {
+            position: absolute !important;
+            bottom: 10px !important;
+            left: 10px !important;
+            right: auto !important;
+        }
+        </style>
+        '''
+        m.get_root().html.add_child(folium.Element(scale_position_css))
 
-        # Add features
-        ax_map.add_feature(cfeature.BORDERS, linestyle=':', edgecolor='gray')
-        ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray')
+        # 경로 추가
+        folium.PolyLine(list(zip(latitudes, longitudes)), color="blue", weight=5).add_to(m)
 
+        # 지도를 HTML로 저장
+        map_html = f"map_{idx}.html"
+        m.save(map_html)
+
+        # Selenium을 사용하여 지도 이미지를 캡처
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--window-size=1600x1600")
+        options.add_argument("--hide-scrollbars")
+        driver = webdriver.Chrome(options=options)
+        driver.get(f"file://{os.getcwd()}/{map_html}")
+
+        # 축척이 로드될 때까지 기다리기 (최대 10초)
+        try:
+            wait = WebDriverWait(driver, 10)
+            wait.until(EC.presence_of_element_located((By.CLASS_NAME, "leaflet-control-scale-line")))
+            time.sleep(1)  # 추가로 1초 대기하여 완전히 로드되도록 함
+        except Exception as e:
+            print(f"축척을 찾을 수 없습니다: {e}")
+
+        # 지도의 스크린샷 캡처
+        png = driver.get_screenshot_as_png()
+        driver.quit()
+
+        # 이미지를 읽어와서 표시
+        img = Image.open(BytesIO(png))
+
+        # 이미지를 Axes에 표시 (origin='upper'로 설정하여 y축 방향 수정)
+        ax_map.imshow(img, origin='upper')
+        ax_map.axis('off')
+
+        # 우측 상단에 'N' 표시
+        ax_map.text(0.95, 0.95, 'N', transform=ax_map.transAxes, fontsize=16, fontweight='bold',
+                    va='top', ha='right',
+                    bbox=dict(facecolor='white', edgecolor='black', boxstyle='circle,pad=0.1'))
+
+        # 제목 설정
         if idx == 0:
             ax_map.set_title('City Cycle Route Map')
         else:
             ax_map.set_title('Highway Cycle Route Map')
 
-        # 검은색 테두리 추가
-        rect = Rectangle((0, 0), 1, 1, transform=ax_map.transAxes, linewidth=2, edgecolor='black', facecolor='none')
-        ax_map.add_patch(rect)
-
-        # 방향 표시 추가
-        add_north_arrow(ax_map, size=0.05, loc=(0.95, 0.95))
+        # 서브플롯 레이블 추가
+        label_text = labels[subplot_start]
+        fontsize = 16 * scaling
+        ax_map.text(-0.1, 1.05, label_text, transform=ax_map.transAxes, fontsize=fontsize, fontweight='bold',
+                    va='bottom', ha='right')
     else:
         ax_map.text(0.5, 0.5, 'No sampled coordinates', horizontalalignment='center', verticalalignment='center')
         ax_map.set_axis_off()
 
-    # Add label
-    if latitudes and longitudes:
-        ax_map.text(-0.1, 1.05, labels[subplot_start], transform=ax_map.transAxes, fontsize=16, fontweight='bold',
-                    va='bottom', ha='right')
-
-    ### 두 번째 플롯: 속도와 가속도 (전체 데이터) ###
+    ### 두 번째 플롯: 속도와 가속도 ###
     ax_speed = axes[subplot_start + 1]
     ax_accel = ax_speed.twinx()
 
-    # 속도: km/h로 변환 (m/s * 3.6)
+    # 속도: km/h로 변환
     speed_kmh = df['speed'] * 3.6
     ax_speed.plot(df['elapsed_time_min'], speed_kmh, color='tab:blue', label='Speed')
 
-    # 가속도: tab:red
+    # 가속도
     ax_accel.plot(df['elapsed_time_min'], df['acceleration'], color='tab:red', label='Acceleration')
 
-    ax_speed.set_xlabel('Elapsed Time (min)')
+    ax_speed.set_xlabel('Time (minutes)')
     ax_speed.set_ylabel('Speed (km/h)', color='tab:blue')
-    ax_accel.set_ylabel('Acceleration', color='tab:red')
+    ax_accel.set_ylabel('Acceleration (m/s²)', color='tab:red')
 
     ax_speed.tick_params(axis='y', labelcolor='tab:blue')
     ax_accel.tick_params(axis='y', labelcolor='tab:red')
 
     ax_speed.set_title('Speed and Acceleration')
 
-    # Add legend
+    # 범례 추가
     lines_1, labels_1 = ax_speed.get_legend_handles_labels()
     lines_2, labels_2 = ax_accel.get_legend_handles_labels()
     ax_speed.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right')
 
-    # Add label
-    ax_speed.text(-0.1, 1.05, labels[subplot_start + 1], transform=ax_speed.transAxes, fontsize=16, fontweight='bold',
+    # 서브플롯 레이블 추가
+    label_text = labels[subplot_start + 1]
+    fontsize = 16 * scaling
+    ax_speed.text(-0.1, 1.05, label_text, transform=ax_speed.transAxes, fontsize=fontsize, fontweight='bold',
                   va='bottom', ha='right')
 
-    ### 세 번째 플롯: 파워 하이브리드 및 파워 피직스 (전체 데이터) ###
+    ### 세 번째 플롯: 파워 하이브리드와 파워 피지컬 ###
     ax_power = axes[subplot_start + 2]
 
-    # Plot Power_hybrid and Power_phys
-    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color='tab:red', label='Power Phys', alpha=0.7)
-    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color='tab:green', label='Power Hybrid', alpha=0.7)
+    # 파워 플롯
+    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color='tab:red', label='Physcis Model', alpha=0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color='tab:green', label='Hybrid Model', alpha=0.7)
 
-    # Set labels and title
-    ax_power.set_xlabel('Elapsed Time (min)')
+    ax_power.set_xlabel('Time (minutes)')
     ax_power.set_ylabel('Power (kW)')
-    ax_power.set_title('Power Over Time')
+    ax_power.set_title('Power')
 
-    # Add legend to distinguish between the two power metrics
-    ax_power.legend(loc='upper right')
+    ax_power.legend(loc='upper left')
 
-    # Optionally, set y-axis tick colors to default or customize as needed
-    ax_power.tick_params(axis='y', labelcolor='black')
-
-    # Add subplot label
-    ax_power.text(-0.1, 1.05, labels[subplot_start + 2], transform=ax_power.transAxes, fontsize=16, fontweight='bold',
+    # 서브플롯 레이블 추가
+    label_text = labels[subplot_start + 2]
+    fontsize = 16 * scaling
+    ax_power.text(-0.1, 1.05, label_text, transform=ax_power.transAxes, fontsize=fontsize, fontweight='bold',
                   va='bottom', ha='right')
 
-    ### 네 번째 플롯: 누적 에너지 (적분) ###
+    ### 네 번째 플롯: 누적 에너지 ###
     ax_energy = axes[subplot_start + 3]
 
-    # Compute cumulative energy using manual cumulative trapezoidal integration
-    # Convert elapsed_time_min to hours for kWh calculation
+    # 누적 에너지 계산
     elapsed_time_hours = df['elapsed_time_min'] / 60
 
-    # Initialize energy arrays
     energy_phys = [0]
     energy_hybrid = [0]
 
-    # Iterate through the data to compute cumulative energy
     for i in range(1, len(df)):
-        # Current and previous time points
         t_prev = elapsed_time_hours.iloc[i-1]
         t_curr = elapsed_time_hours.iloc[i]
         dt = t_curr - t_prev
 
-        # Average power between current and previous points
         p_phys_avg = (df['Power_phys'].iloc[i-1] + df['Power_phys'].iloc[i]) / 2 / 1000  # kW
         p_hybrid_avg = (df['Power_hybrid'].iloc[i-1] + df['Power_hybrid'].iloc[i]) / 2 / 1000  # kW
 
-        # Incremental energy
         energy_phys.append(energy_phys[-1] + p_phys_avg * dt)
         energy_hybrid.append(energy_hybrid[-1] + p_hybrid_avg * dt)
 
-    # Convert to NumPy arrays for plotting
     energy_phys = np.array(energy_phys)
     energy_hybrid = np.array(energy_hybrid)
 
-    # Align energy arrays with elapsed_time_min
     energy_phys = energy_phys[:len(df)]
     energy_hybrid = energy_hybrid[:len(df)]
 
-    # Plot cumulative energy
-    ax_energy.plot(df['elapsed_time_min'], energy_phys, color='tab:red', label='Energy Phys', alpha=0.7)
-    ax_energy.plot(df['elapsed_time_min'], energy_hybrid, color='tab:green', label='Energy Hybrid', alpha=0.7)
+    # 누적 에너지 플롯
+    ax_energy.plot(df['elapsed_time_min'], energy_phys, color='tab:red', label='Physics Model', alpha=0.7)
+    ax_energy.plot(df['elapsed_time_min'], energy_hybrid, color='tab:green', label='Hybrid Model', alpha=0.7)
 
-    # Set labels and title
-    ax_energy.set_xlabel('Elapsed Time (min)')
+    ax_energy.set_xlabel('Time (minutes)')
     ax_energy.set_ylabel('Energy (kWh)')
-    ax_energy.set_title('Cumulative Energy Over Time')
+    ax_energy.set_title('Cumulative Energy')
 
-    # Add legend
-    ax_energy.legend(loc='upper right')
+    ax_energy.legend(loc='upper left')
 
-    # Optionally, set y-axis tick colors to default or customize as needed
-    ax_energy.tick_params(axis='y', labelcolor='black')
-
-    # Add subplot label
-    ax_energy.text(-0.1, 1.05, labels[subplot_start + 3], transform=ax_energy.transAxes, fontsize=16, fontweight='bold',
+    # 서브플롯 레이블 추가
+    label_text = labels[subplot_start + 3]
+    fontsize = 16 * scaling
+    ax_energy.text(-0.1, 1.05, label_text, transform=ax_energy.transAxes, fontsize=fontsize, fontweight='bold',
                   va='bottom', ha='right')
 
-# If there are remaining subplot axes (e.g., if less than 8 subplots), hide them
+# 남은 서브플롯 숨기기
 total_plots = len(csv_files) * 4
 for i in range(total_plots, len(axes)):
     axes[i].axis('off')
 
-# Adjust layout to prevent overlap
+# 레이아웃 조정 및 저장
 plt.tight_layout()
 plt.savefig(save_path, dpi=300)
-
 plt.show()

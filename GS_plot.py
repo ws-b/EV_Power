@@ -957,8 +957,27 @@ def plot_composite_contour(
     # Create a figure with 1 row and 3 columns
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
 
+    # Set font sizes using the scaling factor
+    scaling = 1.25
+    plt.rcParams['font.size'] = 10 * scaling  # Base font size
+    plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+    plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+    plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+    plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+    plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+    plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+    plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
+
     # Define label mapping based on selected_car
-    labels = ['A', 'B', 'C'] if selected_car != 'Ioniq5' else ['D', 'E', 'F']
+    if selected_car == 'Ioniq5' or selected_car == 'NiroEV':
+        labels = ['D', 'E', 'F']
+
+    elif selected_car == 'GV60':
+        labels = ['G', 'H', 'I']
+    elif selected_car == 'Ioniq6':
+        labels = ['J', 'K', 'L']
+    else:
+        labels = ['A', 'B', 'C']
 
     # Define plot configurations
     plot_configs = [
@@ -993,7 +1012,7 @@ def plot_composite_contour(
         ax.text(
             -0.1, 1.05, config['label'],
             transform=ax.transAxes,
-            fontsize=14,
+            fontsize=14*scaling,
             weight='bold',
             ha='left',
             va='bottom'

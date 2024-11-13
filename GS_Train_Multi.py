@@ -35,7 +35,7 @@ def run_only_xgb_validate(sampled_vehicle_files, selected_car, adjusted_params_M
         print(f"Only ML(XGBoost) cross_validate error: {e}")
 
 def run_evaluate(vehicle_files, selected_car):
-    vehicle_file_sizes = [5, 7, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 10000]
+    vehicle_file_sizes = [10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 10000]
 
     l2lambda = {selected_car: []}
     results_dict = {selected_car: {}}
@@ -92,7 +92,7 @@ def run_evaluate(vehicle_files, selected_car):
                 })
 
             # Adjust hyperparameters for models that require them
-            adjustment_factor = N_total / size
+            adjustment_factor = (N_total / size)^2
             adjusted_params_XGB = best_params_XGB.copy()
             for param in adjusted_params_XGB:
                 if param != 'eta':  # Exclude learning_rate
@@ -152,7 +152,10 @@ def run_evaluate(vehicle_files, selected_car):
 
 def plot_rmse_results(results_dict, selected_car, save_path):
     results_car = results_dict[selected_car]
+    # Convert the keys of results_car to integers
+    results_car = {int(size): data for size, data in results_car.items()}
     sizes = sorted(results_car.keys())
+    sizes = [s for s in sizes if s >= 10]
 
     # 평균 RMSE와 표준편차를 저장할 리스트 초기화
     phys_rmse_mean = []
@@ -229,23 +232,31 @@ def plot_rmse_results(results_dict, selected_car, save_path):
 
     # 정규화된 RMSE 계산 (Physics-Based 모델의 RMSE를 1로 설정)
     normalized_xgb_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(xgb_rmse_mean, phys_rmse_mean)]
-    normalized_xgb_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(xgb_rmse_std, phys_rmse_mean)]
+    normalized_xgb_rmse_std = [ (x / p if p != 0 else 0) * 0.6745 for x, p in zip(xgb_rmse_std, phys_rmse_mean)]
     normalized_lr_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(lr_rmse_mean, phys_rmse_mean)]
-    normalized_lr_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(lr_rmse_std, phys_rmse_mean)]
+    normalized_lr_rmse_std = [ (x / p if p != 0 else 0) * 0.6745 for x, p in zip(lr_rmse_std, phys_rmse_mean)]
     normalized_only_ml_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(only_ml_rmse_mean, phys_rmse_mean)]
-    normalized_only_ml_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(only_ml_rmse_std, phys_rmse_mean)]
+    normalized_only_ml_rmse_std = [ (x / p if p != 0 else 0) * 0.6745 for x, p in zip(only_ml_rmse_std, phys_rmse_mean)]
     normalized_only_lr_rmse_mean = [x / p if p != 0 else 0 for x, p in zip(only_lr_rmse_mean, phys_rmse_mean)]
-    normalized_only_lr_rmse_std = [ (x / p if p != 0 else 0) * 1.645 for x, p in zip(only_lr_rmse_std, phys_rmse_mean)]
+    normalized_only_lr_rmse_std = [ (x / p if p != 0 else 0) * 0.6745 for x, p in zip(only_lr_rmse_std, phys_rmse_mean)]
     normalized_phys_rmse_mean = [1.0 for _ in phys_rmse_mean]
     normalized_phys_rmse_std = [0.0 for _ in phys_rmse_mean]  # 항상 1이므로 표준편차 없음
 
+    # # 정규화된 RMSE 플롯
+    # plt.figure(figsize=(6, 5))
+    # plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
+    # plt.errorbar(sizes, normalized_only_ml_rmse_mean, yerr=normalized_only_ml_rmse_std, label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none',capsize=5)
+    # plt.errorbar(sizes, normalized_only_lr_rmse_mean, yerr=normalized_only_lr_rmse_std, label='Only ML(LR)', marker='o', color='#FFA500', mfc='none', capsize=5)
+    # plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none',capsize=5)
+    # plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700', mfc='none', capsize=5)
+
     # 정규화된 RMSE 플롯
     plt.figure(figsize=(6, 5))
-    plt.errorbar(sizes, normalized_phys_rmse_mean, yerr=normalized_phys_rmse_std, label='Physics-Based', linestyle='--', color='#FF6347', capsize=5)
-    plt.errorbar(sizes, normalized_only_ml_rmse_mean, yerr=normalized_only_ml_rmse_std, label='Only ML(XGBoost)', marker='o', color='#32CD32', mfc='none',capsize=5)
-    plt.errorbar(sizes, normalized_only_lr_rmse_mean, yerr=normalized_only_lr_rmse_std, label='Only ML(LR)', marker='o', color='#FFA500', mfc='none', capsize=5)
-    plt.errorbar(sizes, normalized_lr_rmse_mean, yerr=normalized_lr_rmse_std, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4', mfc='none',capsize=5)
-    plt.errorbar(sizes, normalized_xgb_rmse_mean, yerr=normalized_xgb_rmse_std, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700', mfc='none', capsize=5)
+    plt.plot(sizes, normalized_phys_rmse_mean, label='Physics-Based', linestyle='--', color='#FF6347')
+    plt.plot(sizes, normalized_only_ml_rmse_mean, label='Only ML(XGBoost)', marker='o', color='#32CD32')
+    plt.plot(sizes, normalized_only_lr_rmse_mean, label='Only ML(LR)', marker='o', color='#FFA500')
+    plt.plot(sizes, normalized_lr_rmse_mean, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4')
+    plt.plot(sizes, normalized_xgb_rmse_mean, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700')
 
     plt.xlabel('Number of Trips')
     plt.ylabel('Normalized RMSE')
@@ -254,7 +265,7 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     plt.grid(False)
     plt.xscale('log')
     plt.xticks(sizes, [str(size) for size in sizes], rotation=45)
-    plt.xlim(min(sizes) - 1, max(sizes) + 1000)
+    plt.xlim(min(sizes) - 1, max(sizes) - 1)
     plt.tight_layout()
     if save_path:
         plt.savefig(os.path.join(save_path, f"{selected_car}_rmse_normalized.png"), dpi=300)

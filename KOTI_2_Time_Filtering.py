@@ -27,8 +27,8 @@ for file in tqdm(csv_files):
     invalid_years = df[~df['time'].dt.year.isin([2018, 2019, 2020])]
 
     if not invalid_years.empty:
-        # 파일을 invalid_year 폴더로 이동
-        shutil.move(file_path, os.path.join(invalid_year_path, file))
+        # 파일을 삭제
+        os.remove(file_path)
         continue
 
 print("Processing and file moving completed.")
