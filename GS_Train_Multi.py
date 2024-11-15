@@ -92,7 +92,7 @@ def run_evaluate(vehicle_files, selected_car):
                 })
 
             # Adjust hyperparameters for models that require them
-            adjustment_factor = (N_total / size)^2
+            adjustment_factor = N_total / size
             adjusted_params_XGB = best_params_XGB.copy()
             for param in adjusted_params_XGB:
                 if param != 'eta':  # Exclude learning_rate

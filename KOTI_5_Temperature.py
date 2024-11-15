@@ -7,7 +7,7 @@ from scipy.spatial import cKDTree
 import requests
 import time
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 
 # Custom exception for rate limit exceeded
 class RateLimitExceededError(Exception):
@@ -54,6 +54,9 @@ def get_observation_data_text(tm, stn, auth_key, help_param=0):
             # Rate limit exceeded
             raise RateLimitExceededError(f"Rate limit exceeded for tm={tm}, stn={stn}")
         response.raise_for_status()  # Raise an error for bad status codes
+        if not response.text.strip():
+            print(f"Empty response for tm={tm}, stn={stn}")
+            return None
         return response.text  # Return the response text
     except RateLimitExceededError as e:
         print(e)
@@ -64,7 +67,6 @@ def get_observation_data_text(tm, stn, auth_key, help_param=0):
 
 def fetch_observation_data(unique_requests, auth_key, help_param=0, max_workers=10):
     observation_data = {}
-
     def fetch_and_store_text(row):
         tm = row['tm']
         stn = row['STN_ID']
@@ -190,8 +192,23 @@ def save_processed_file(processed_files_path, file_name):
     with open(processed_files_path, 'a') as f:
         f.write(file_name + '\n')
 
-# 3. 메인 함수 정의
 
+# Helper function for parallel processing
+def check_file_needs_processing(file_path):
+    try:
+        df = pd.read_csv(file_path)
+        if 'ext_temp' not in df.columns:
+            return (file_path, True)
+        elif df['ext_temp'].isna().any():
+            return (file_path, True)
+        else:
+            return (file_path, False)
+    except Exception as e:
+        print(f"Error reading file ({file_path}): {e}")
+        return (file_path, False)
+
+
+# 3. 메인 함수 정의
 def main():
     # Load .env file
     load_dotenv()
@@ -216,23 +233,29 @@ def main():
         print(f"No CSV files found in the folder: {input_folder}")
         return
 
-    print(f"Number of CSV files to process: {len(csv_files)}")
+    print(f"Number of CSV files found: {len(csv_files)}")
 
-    # Load list of processed files
-    processed_files_path = 'processed_files.txt'
-    processed_files = load_processed_files(processed_files_path)
+    # 병렬로 파일 검사 수행
+    files_to_process = []
+    with ProcessPoolExecutor() as executor:
+        # Submit all tasks
+        future_to_file = {executor.submit(check_file_needs_processing, file): file for file in csv_files}
+        # Iterate over completed tasks with tqdm progress bar
+        for future in tqdm(as_completed(future_to_file), total=len(csv_files), desc="Checking files for 'ext_temp'"):
+            file, needs_processing = future.result()
+            if needs_processing:
+                files_to_process.append(file)
+
+    if not files_to_process:
+        print("No files require processing (no missing 'ext_temp' values).")
+        return
+
+    print(f"Number of CSV files to process: {len(files_to_process)}")
 
     # Process files one by one
-    for file in tqdm(csv_files):
-        file_name = os.path.basename(file)
-        if file_name in processed_files:
-            print(f"File already processed. Skipping: {file_name}")
-            continue  # Skip already processed files
-
+    for file in tqdm(files_to_process, desc="Processing files"):
         try:
             process_file(file, stations, auth_key, help_param)
-            # Record the file as processed
-            save_processed_file(processed_files_path, file_name)
         except RateLimitExceededError as e:
             print(f"Rate limit exceeded: {e}")
             print("Processing stopped due to rate limit.")
@@ -240,7 +263,7 @@ def main():
         except Exception as e:
             print(f"Error processing file ({file}): {e}")
 
-    print("All files have been processed.")
+    print("All applicable files have been processed.")
 
 if __name__ == "__main__":
     main()

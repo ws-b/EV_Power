@@ -18,7 +18,22 @@ csv_files = [f for f in os.listdir(processed_path) if f.endswith('.csv')]
 # 모든 CSV 파일 처리
 for file in tqdm(csv_files):
     file_path = os.path.join(processed_path, file)
-    df = pd.read_csv(file_path)
+
+    try:
+        # CSV 파일 읽기
+        df = pd.read_csv(file_path)
+    except Exception as e:
+        print(f"Error reading {file}: {e}")
+        continue
+
+    # 데이터가 없는 파일(컬럼명만 있는 경우) 삭제
+    if df.empty:
+        try:
+            os.remove(file_path)
+            print(f"Deleted empty file: {file}")
+        except Exception as e:
+            print(f"Error deleting {file}: {e}")
+        continue  # 다음 파일로 넘어감
 
     # time 열을 datetime으로 변환
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
