@@ -784,7 +784,79 @@ def plot_power_and_energy(data):
         plt.legend()
         plt.tight_layout()
         plt.show()
+def plot_hybrid_power_and_energy(data):
+    """
+    선택한 trip_id들에 대해 Power_data, Power_phys와 Energy_data, Energy_phys를 시간에 따라 플롯합니다.
 
+    Parameters:
+        data (pd.DataFrame): 전체 데이터프레임
+        trip_ids (list): 플롯할 trip_id들의 리스트
+    """
+
+    def calculate_energy(trip_data):
+        """
+        시간에 따른 Power를 적분하여 Energy를 계산합니다.
+
+        Parameters:
+            trip_data (pd.DataFrame): 특정 trip_id에 해당하는 데이터프레임
+
+        Returns:
+            pd.DataFrame: Energy_data와 Energy_phys가 추가된 데이터프레임
+        """
+        # 'time'을 초 단위로 변환
+        trip_data = trip_data.sort_values(by='time')
+        time_seconds = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds()
+        trip_data['Power_hybrid'] = trip_data['Power_phys']+trip_data['y_pred']
+        # 누적 적분 계산 (초 단위로)
+        energy_data = cumulative_trapezoid(trip_data['Power_data'], time_seconds, initial=0)
+        energy_phys = cumulative_trapezoid(trip_data['Power_phys'], time_seconds, initial=0)
+        energy_pred = cumulative_trapezoid(trip_data['Power_hybrid'], time_seconds, initial=0)
+
+        trip_data = trip_data.copy()
+        trip_data['Energy_data'] = energy_data / 3600000
+        trip_data['Energy_phys'] = energy_phys / 3600000
+        trip_data['Energy_pred'] = energy_pred / 3600000
+        return trip_data
+
+    for trip_id in [0, 1]:
+        trip_data = data[data['trip_id'] == trip_id]
+        if trip_data.empty:
+            print(f"trip_id {trip_id}에 대한 데이터가 없습니다.")
+            continue
+
+        # Energy 계산
+        trip_data = calculate_energy(trip_data)
+
+        # 'elapsed_time' 계산 (초 단위)
+        trip_data = trip_data.sort_values(by='time')
+        trip_data['elapsed_time'] = (trip_data['time'] - trip_data['time'].min()).dt.total_seconds()
+
+        # Power 플롯
+        plt.figure(figsize=(12, 6))
+        plt.plot(trip_data['elapsed_time'], trip_data['Power_data'] / 1000, label='Power_data', color='tab:blue',
+                 alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Power_phys'] / 1000, label='Power_phys', color='tab:red',
+                 alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Power_hybrid'] / 1000, label='Power_pred', color='tab:green',
+                 alpha=0.7)
+        plt.xlabel('Elapsed Time (s)')
+        plt.ylabel('Power(kW)')
+        plt.title(f'Trip ID: {trip_id} - Power over Elapsed Time')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+        # Energy 플롯
+        plt.figure(figsize=(12, 6))
+        plt.plot(trip_data['elapsed_time'], trip_data['Energy_data'], label='Energy_data', color='tab:blue', alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Energy_phys'], label='Energy_phys', color='tab:red', alpha=0.7)
+        plt.plot(trip_data['elapsed_time'], trip_data['Energy_pred'], label='Energy_pred', color='tab:green', alpha=0.7)
+        plt.xlabel('Elapsed Time (s)')
+        plt.ylabel('Energy(kWh)')
+        plt.title(f'Trip ID: {trip_id} - Energy over Elapsed Time')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 
 def plot_shap_values(model, X_train, feature_names, selected_car, save_path=None):
     """
