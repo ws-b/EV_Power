@@ -106,7 +106,7 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     plt.text(mean_value_ev6 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6:.2f}', color='red', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim((50, 400))
-    plt.ylim(0, 2500)
+    plt.ylim(0, 2300)
     plt.ylabel('Number of trips')
     ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
     ax1.set_title("Energy Consumption Rate Distribution : EV6", pad=10)  # Title below (a)
