@@ -22,16 +22,27 @@ def get_file_lists(directory):
 # Example usage of the function
 directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
 vehicle_files = get_file_lists(directory)
-selected_cars = ['EV6', 'Ioniq5']
+selected_cars = ['KonaEV', 'NiroEV']
 
 #save_path
-fig_save_path = r"C:\Users\BSL\Desktop\Figures"
+fig_save_path = r"C:\Users\BSL\Desktop\Figures\Supplementary"
 
 def figure6(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
     official_efficiency = {
         'Ioniq5': [158.7, 238.0],
-        'EV6': [154.0, 243.5]
+        'EV6': [154.0, 243.5],
+        'KonaEV': [159.9 ,203.3],
+        'NiroEV': [166.2, 207.4],
+        'GV60': [167.5, 255.4],
+        'Ioniq6': [136.9, 222.8]
+    }
+
+    ylim = {
+        'KonaEV': [0, 700],
+        'NiroEV': [0, 500],
+        'GV60': [0, 250],
+        'Ioniq6': [0, 160]
     }
 
     # Set font sizes using the scaling factor
@@ -92,7 +103,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
                 ylim = plt.gca().get_ylim()
                 plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
                 plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.6, 'EPA Efficiency',
-                         color='orange', fontsize=12, alpha=0.7)
+                         color='orange', fontsize=12, alpha=0.9)
 
     # Process the data for EV6 and Ioniq5
     dis_energies_ev6 = process_energy_data(file_lists_ev6)
@@ -104,8 +115,9 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     num_bins = 70  # Adjust the number of bins as needed
     bins = np.linspace(bin_start, bin_end, num_bins)
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
+    label = ["A", "B"] if selected_cars[0] == "KonaEV" else ["C", "D"]
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
     mean_value_ev6_phys = np.mean(dis_energies_ev6[0])
@@ -126,11 +138,11 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
              color='green', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim((50, 400))
-    plt.ylim(0, 3500)
+    plt.ylim(ylim[selected_cars[0]])
     plt.ylabel('Number of trips')
-    ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
-    ax1.set_title("Energy Consumption Rate Distribution : EV6", pad=10)  # Title below (a)
-    add_efficiency_lines('EV6')
+    ax1.text(-0.1, 1.05, label[0], transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
+    ax1.set_title(f"Energy Consumption Rate Distribution : {selected_cars[0]}", pad=10)  # Title below (a)
+    add_efficiency_lines(f'{selected_cars[0]}')
     plt.grid(False)
     plt.legend(loc='upper right')
 
@@ -154,19 +166,20 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
              color='green', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim(50, 400)
-    plt.ylim(0, 2000)
+    plt.ylim(ylim[selected_cars[1]])
     plt.ylabel('Number of trips')
-    ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
-    ax2.set_title("Energy Consumption Rate Distribution : Ioniq5", pad=10)  # Title below (b)
-    add_efficiency_lines('Ioniq5')
+    ax2.text(-0.1, 1.05, label[1], transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
+    ax2.set_title(f"Energy Consumption Rate Distribution : {selected_cars[1]}", pad=10)  # Title below (b)
+    add_efficiency_lines(f'{selected_cars[1]}')
     plt.grid(False)
     plt.legend(loc='upper right')
 
     # Save the figure with dpi 300
-    save_path = os.path.join(fig_save_path, 'figure6.png')
+    file_name = 'figureS7_1.png' if selected_cars[0] == 'KonaEV' else 'figureS7_2.png'
+    save_path = os.path.join(fig_save_path, file_name)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.show()
 
 
-figure6(vehicle_files['EV6'], vehicle_files['Ioniq5'])
+figure6(vehicle_files[selected_cars[0]], vehicle_files[selected_cars[1]])

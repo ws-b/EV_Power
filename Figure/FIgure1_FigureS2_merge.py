@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-def figure3(img1_path, img2_path, save_path, figsize=(6, 6), dpi=300):
+def figure3(img1_path, img2_path, save_path, figsize=(12, 10), dpi=300):
 
     # Load the two images
     img1 = mpimg.imread(img1_path)
@@ -17,17 +17,17 @@ def figure3(img1_path, img2_path, save_path, figsize=(6, 6), dpi=300):
     for ax in axs:
         ax.axis('off')
 
-    # Add 'A' and 'B' labels to the top-left corner of each subplot
-    axs[0].text(-0.1, 1.1, 'A', transform=axs[0].transAxes, fontsize=11, fontweight='bold', va='top', ha='right')
-    axs[1].text(-0.1, 1.1, 'B', transform=axs[1].transAxes, fontsize=11, fontweight='bold', va='top', ha='right')
+    # # Add 'A' and 'B' labels to the top-left corner of each subplot
+    # axs[0].text(0.02, 1.00, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+    # axs[1].text(0.02, 1.00, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
 
     # Save the final image
     plt.tight_layout()
     plt.savefig(save_path, dpi=dpi)
     plt.show()
 
-img1_path = r"C:\Users\BSL\Desktop\Figures\Result\shap_values_EV6.png"
-img2_path = r"C:\Users\BSL\Desktop\Figures\Result\shap_values_Ioniq5.png"
-save_path = r'C:\Users\BSL\Desktop\Figures\figure_S9.png'
+img1_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figureS2_1.png"
+img2_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figureS2_2.png"
+save_path = r'C:\Users\BSL\Desktop\Figures\Supplementary\figureS2.png'
 
 figure3(img1_path, img2_path, save_path)

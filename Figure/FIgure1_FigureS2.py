@@ -26,7 +26,7 @@ vehicle_files = get_file_lists(directory)
 selected_cars = ['KonaEV', 'NiroEV']
 
 #save_path
-fig_save_path = r"C:\Users\BSL\Desktop\Figures"
+fig_save_path = r"C:\Users\BSL\Desktop\Figures\Supplementary"
 
 def figure1(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
@@ -37,6 +37,13 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
         'NiroEV': [166.2, 207.4],
         'GV60': [167.5, 255.4],
         'Ioniq6': [136.9, 222.8]
+    }
+
+    ylim = {
+        'KonaEV': [0, 430],
+        'NiroEV': [0, 350],
+        'GV60': [0, 170],
+        'Ioniq6': [0, 150]
     }
 
     # Set font sizes using the scaling factor
@@ -96,8 +103,9 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     bins = np.linspace(bin_start, bin_end, num_bins)
 
     # Create subplots
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
+    label = ["A", "B"] if selected_cars[0] == "KonaEV" else ["C", "D"]
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
     mean_value_ev6 = np.mean(dis_ecr_ev6)
@@ -106,11 +114,11 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     plt.text(mean_value_ev6 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6:.2f}', color='red', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim((50, 400))
-    plt.ylim(0, 2500)
+    plt.ylim(ylim[selected_cars[0]])
     plt.ylabel('Number of trips')
-    ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
-    ax1.set_title("Energy Consumption Rate Distribution : EV6", pad=10)  # Title below (a)
-    add_efficiency_lines('EV6')
+    ax1.text(-0.1, 1.05, label[0], transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
+    ax1.set_title(f"Energy Consumption Rate Distribution : {selected_cars[0]}", pad=10)  # Title below (a)
+    add_efficiency_lines(f'{selected_cars[0]}')
     plt.grid(False)
 
     # Plot for Ioniq5
@@ -121,17 +129,18 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     plt.text(mean_value_ioniq5 + 0.05, plt.gca().get_ylim()[1] * 0.95, f'Mean: {mean_value_ioniq5:.2f}', color='red', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim(50, 400)
-    plt.ylim(0, 1400)
+    plt.ylim(ylim[selected_cars[1]])
     plt.ylabel('Number of trips')
-    ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
-    ax2.set_title("Energy Consumption Rate Distribution : Ioniq5", pad=10)  # Title below (b)
-    add_efficiency_lines('Ioniq5')
+    ax2.text(-0.1, 1.05, label[1], transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
+    ax2.set_title(f"Energy Consumption Rate Distribution : {selected_cars[1]}", pad=10)  # Title below (b)
+    add_efficiency_lines(f'{selected_cars[1]}')
     plt.grid(False)
 
     # Save the figure with dpi 300
-    save_path = os.path.join(fig_save_path, 'figure1.png')
+    file_name = 'figureS2_1.png' if selected_cars[0] == 'KonaEV' else 'figureS2_2.png'
+    save_path = os.path.join(fig_save_path, file_name)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.show()
 
-figure1(vehicle_files['EV6'], vehicle_files['Ioniq5'])
+figure1(vehicle_files[selected_cars[0]], vehicle_files[selected_cars[1]])

@@ -32,10 +32,10 @@ def get_file_lists(directory):
 # Example usage of the function
 directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
 vehicle_files = get_file_lists(directory)
-selected_cars = ['EV6', 'Ioniq5']
+selected_cars = ['GV60', 'Ioniq6']
 
 #save_path
-fig_save_path = r"C:\Users\BSL\Desktop\Figures"
+fig_save_path = r"C:\Users\BSL\Desktop\Figures\Supplementary"
 
 def calculate_prediction_interval(x_val, x, y, slope, intercept, confidence=0.95):
     """
@@ -119,7 +119,7 @@ def figure5(vehicle_files, selected_cars):
 
         ax.set_xlabel('Data Energy (kWh)')
         ax.set_ylabel('Model Energy (kWh)')
-        ax.text(-0.1, 1.05, chr(65 + i), transform=ax.transAxes, size=14, weight='bold')
+        ax.text(-0.1, 1.05, chr(65 + i +4), transform=ax.transAxes, size=14, weight='bold')
 
         # log scale data
         log_data_energy = np.log(all_energies_dict[selected_car]['data'])
@@ -296,10 +296,10 @@ def figure5(vehicle_files, selected_cars):
         # Set titles, labels, and markers for C and D
         ax.set_xlabel('Data Energy (kWh)')
         ax.set_ylabel('Model Energy (kWh)')
-        ax.text(-0.1, 1.05, chr(67 + i), transform=ax.transAxes, size=16, weight='bold')
+        ax.text(-0.1, 1.05, chr(67 + i +4), transform=ax.transAxes, size=16, weight='bold')
         ax.set_title(f"{selected_car}'s Driver : Data Energy vs. Hybrid Model Energy")
 
-    save_path = os.path.join(fig_save_path, 'figure5.png')
+    save_path = os.path.join(fig_save_path, 'figureS6.png')
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.show()

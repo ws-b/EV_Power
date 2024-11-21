@@ -4,6 +4,7 @@ import xgboost as xgb
 import pickle
 from sklearn.preprocessing import MinMaxScaler
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
 # 모델과 스케일러 로드
 def load_model_and_scaler(model_path, scaler_path):
     """
@@ -117,7 +118,7 @@ def process_multiple_new_files(file_paths, model, scaler):
         # 각 파일에 대해 process_single_new_file 함수를 실행
         futures = [
             executor.submit(process_single_new_file, file_path, model, scaler)
-            for file_path in file_paths
+            for file_path in tqdm(file_paths, desc="Processing Hybrid Model")
         ]
 
         # 모든 작업이 완료될 때까지 기다림
@@ -132,7 +133,7 @@ def main():
     scaler_path = "D:\SamsungSTF\Processed_Data\Models\XGB_scaler_EV6.pkl"
 
     # CSV 파일들이 위치한 디렉토리 설정
-    csv_folder = r"D:\SamsungSTF\Data\Cycle\HW_KOTI" # 실제 CSV 파일들이 있는 폴더 경로로 변경
+    csv_folder = r"D:\SamsungSTF\Processed_Data\KOTI"
 
     # 처리할 CSV 파일 리스트 가져오기
     file_paths = [os.path.join(csv_folder, file) for file in os.listdir(csv_folder) if file.endswith('.csv')]
