@@ -18,16 +18,16 @@ def figure3(img1_path, img2_path, save_path, figsize=(12, 10), dpi=300):
         ax.axis('off')
 
     # # Add 'A' and 'B' labels to the top-left corner of each subplot
-    # axs[0].text(0.02, 1.00, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
-    # axs[1].text(0.02, 1.00, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+    axs[0].text(0.02, 1.00, 'A', transform=axs[0].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
+    axs[1].text(0.02, 1.00, 'B', transform=axs[1].transAxes, fontsize=16, fontweight='bold', va='top', ha='right')
 
     # Save the final image
     plt.tight_layout()
     plt.savefig(save_path, dpi=dpi)
     plt.show()
 
-img1_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figureS2_1.png"
-img2_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figureS2_2.png"
-save_path = r'C:\Users\BSL\Desktop\Figures\Supplementary\figureS2.png'
+img1_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figure_S5_1.png"
+img2_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figure_S5_2.png"
+save_path = r'C:\Users\BSL\Desktop\Figures\Supplementary\figureS5.png'
 
 figure3(img1_path, img2_path, save_path)

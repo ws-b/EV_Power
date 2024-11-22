@@ -3,9 +3,7 @@ from PIL import Image
 # 이미지 경로 설정
 img_paths = [
     r"C:\Users\BSL\Desktop\Figures\Figure7_KonaEV_Composite.png",
-    r"C:\Users\BSL\Desktop\Figures\Figure7_NiroEV_Composite.png",
-    r"C:\Users\BSL\Desktop\Figures\Figure7_GV60_Composite.png",
-    r"C:\Users\BSL\Desktop\Figures\Figure7_Ioniq6_Composite.png"
+    r"C:\Users\BSL\Desktop\Figures\Figure7_GV60_Composite.png"
 ]
 
 # 이미지 불러오기

@@ -22,7 +22,7 @@ def get_file_lists(directory):
 # Example usage of the function
 directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
 vehicle_files = get_file_lists(directory)
-selected_cars = ['KonaEV', 'NiroEV']
+selected_cars = ['KonaEV', 'GV60']
 
 #save_path
 fig_save_path = r"C:\Users\BSL\Desktop\Figures\Supplementary"
@@ -115,7 +115,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     num_bins = 70  # Adjust the number of bins as needed
     bins = np.linspace(bin_start, bin_end, num_bins)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
 
     label = ["A", "B"] if selected_cars[0] == "KonaEV" else ["C", "D"]
     # Plot for EV6
@@ -175,7 +175,7 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     plt.legend(loc='upper right')
 
     # Save the figure with dpi 300
-    file_name = 'figureS7_1.png' if selected_cars[0] == 'KonaEV' else 'figureS7_2.png'
+    file_name = 'figureS7.png'
     save_path = os.path.join(fig_save_path, file_name)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
