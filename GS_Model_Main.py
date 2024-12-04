@@ -12,6 +12,7 @@ from GS_Train_LinearR import cross_validate as lr_cross_validate
 from GS_Train_LightGBM import cross_validate as lgbm_cross_validate
 from GS_Train_Multi import run_evaluate, plot_rmse_results
 from GS_Train_SVR import cross_validate as svr_cross_validate
+from Obsolete.GS_Train_Compare_LR import cross_validate_models
 def main():
     car_options = {
         1: 'EV6',
@@ -63,7 +64,8 @@ def main():
                 print("5: Train Models")
                 print("6: Hybrid(SVR) Model")
                 print("7: Only ML(LR) Model")
-                print("8: Return to previous menu")
+                print("8: Compare ML(LR), Hybrid(LR)")
+                print("9: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -71,7 +73,7 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 8:
+                if train_choice == 9:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
@@ -88,7 +90,7 @@ def main():
                     if train_choice == 1:
                         start_time = time.perf_counter()
 
-                        results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=None)
+                        results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, False,  save_dir=None)
 
                         end_time = time.perf_counter()
                         elapsed_time = end_time - start_time
@@ -97,24 +99,20 @@ def main():
                         if results:
                             rmse_values = []
                             mape_values = []
-                            rrmse_values = []
 
                             for res in results:
                                 fold_num = res['fold']
                                 rmse = res['rmse']
-                                rrmse_test = res['test_rrmse']
                                 mape_test = res['test_mape']
 
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAPE: {mape_test}")
 
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
-                                rrmse_values.append(rrmse_test)
 
                             # XGB 딕셔너리에 결과 저장
                             XGB[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
                                 'MAPE': mape_values
                             }
 
@@ -132,22 +130,18 @@ def main():
                         if results:
                             rmse_values = []
                             mape_values = []
-                            rrmse_values = []
                             for res in results:
                                 fold_num = res['fold']
                                 rmse = res['rmse']
-                                rrmse_test = res['test_rrmse']
                                 mape_test = res['test_mape']
 
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAPE: {mape_test}")
 
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
-                                rrmse_values.append(rrmse_test)
 
                             LR[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
                                 'MAPE': mape_values
                             }
                         else:
@@ -164,22 +158,18 @@ def main():
                         if results:
                             rmse_values = []
                             mape_values = []
-                            rrmse_values = []
                             for res in results:
                                 fold_num = res['fold']
                                 rmse = res['rmse']
-                                rrmse_test = res['test_rrmse']
                                 mape_test = res['test_mape']
 
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAPE: {mape_test}")
 
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
-                                rrmse_values.append(rrmse_test)
 
                             LGBM[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
                                 'MAPE': mape_values
                             }
                         else:
@@ -197,22 +187,18 @@ def main():
                         if results:
                             mape_values = []
                             rmse_values = []
-                            rrmse_values = []
                             for res in results:
                                 fold_num = res['fold']
                                 rmse = res['rmse']
-                                rrmse_test = res['test_rrmse']
                                 mape_test = res['test_mape']
 
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAPE: {mape_test}")
 
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
-                                rrmse_values.append(rrmse_test)
 
                             ONLY_ML[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
                                 'MAPE': mape_values
                             }
                         else:
@@ -252,22 +238,18 @@ def main():
                         if results:
                             rmse_values = []
                             mape_values = []
-                            rrmse_values = []
                             for res in results:
                                 fold_num = res['fold']
                                 rmse = res['rmse']
-                                rrmse_test = res['test_rrmse']
                                 mape_test = res['test_mape']
 
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAPE: {mape_test}")
 
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
-                                rrmse_values.append(rrmse_test)
 
                             SVR[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
                                 'MAPE': mape_values
                             }
 
@@ -285,33 +267,37 @@ def main():
                         if results:
                             mape_values = []
                             rmse_values = []
-                            rrmse_values = []
                             for res in results:
                                 fold_num = res['fold']
                                 rmse = res['rmse']
-                                rrmse_test = res['test_rrmse']
                                 mape_test = res['test_mape']
 
-                                print(f"Fold: {fold_num}, RMSE: {rmse}, RRMSE: {rrmse_test}, MAPE: {mape_test}")
+                                print(f"Fold: {fold_num}, RMSE: {rmse}, MAPE: {mape_test}")
 
                                 rmse_values.append(rmse)
                                 mape_values.append(mape_test)
-                                rrmse_values.append(rrmse_test)
 
                             ONLY_ML_LR[selected_car] = {
                                 'RMSE': rmse_values,
-                                'RRMSE': rrmse_values,
                                 'MAPE': mape_values
                             }
                         else:
                             print(f"No results for the selected vehicle: {selected_car}")
+                    if train_choice == 8:
+                        start_time = time.perf_counter()
 
-                print(f"XGB RRMSE & MAPE: {XGB}")
-                print(f"LR RRMSE & MAPE: {LR}")
-                print(f"LGBM RRMSE & MAPE: {LGBM}")
-                print(f"ONLY ML RRMSE & MAPE: {ONLY_ML}")
-                print(f"Only ML LR RRMSE & MAPE: {ONLY_ML_LR}")
-                print(f"SVR RRMSE & MAPE: {SVR}")
+                        results = cross_validate_models(vehicle_files, selected_car)
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Total Execution Time: {elapsed_time:.2f} seconds")
+
+                print(f"XGB MAPE: {XGB}")
+                print(f"LR MAPE: {LR}")
+                print(f"LGBM MAPE: {LGBM}")
+                print(f"ONLY ML MAPE: {ONLY_ML}")
+                print(f"Only ML LR MAPE: {ONLY_ML_LR}")
+                print(f"SVR MAPE: {SVR}")
 
         elif task_choice == 3:
             for selected_car in selected_cars:

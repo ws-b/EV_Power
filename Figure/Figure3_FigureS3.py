@@ -28,6 +28,6 @@ def figure3(img1_path, img2_path, save_path, figsize=(6, 10), dpi=300):
 
 img1_path = r"C:\Users\BSL\Desktop\Figures\Result\KonaEV_rmse_normalized.png"
 img2_path = r"C:\Users\BSL\Desktop\Figures\Result\GV60_rmse_normalized.png"
-save_path = r'C:\Users\BSL\Desktop\Figures\figureS3.png'
+save_path = r'C:\Users\BSL\Desktop\Figures\Supplementary\figureS3.png'
 
 figure3(img1_path, img2_path, save_path)

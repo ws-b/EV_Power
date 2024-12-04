@@ -255,7 +255,7 @@ def plot_rmse_results(results_dict, selected_car, save_path):
     plt.plot(sizes, normalized_phys_rmse_mean, label='Physics-Based', linestyle='--', color='#FF6347')
     plt.plot(sizes, normalized_only_ml_rmse_mean, label='Only ML(XGBoost)', marker='o', color='#32CD32')
     plt.plot(sizes, normalized_only_lr_rmse_mean, label='Only ML(LR)', marker='o', color='#FFA500')
-    plt.plot(sizes, normalized_lr_rmse_mean, label='Hybrid Model(Linear Regression)', marker='o', color='#4682B4')
+    plt.plot(sizes, normalized_lr_rmse_mean, label='Hybrid Model(LR)', marker='o', color='#4682B4')
     plt.plot(sizes, normalized_xgb_rmse_mean, label='Hybrid Model(XGBoost)', marker='D', color='#FFD700')
 
     plt.xlabel('Number of Trips')

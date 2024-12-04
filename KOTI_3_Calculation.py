@@ -55,35 +55,29 @@ for file_name in tqdm(all_files, desc="Processing CSV files"):
             df['prev_latitude'],
             df['longitude'],
             df['latitude']
-        ).fillna(0)  # 첫 행의 거리는 0
+        )
 
         # 시간 차이 계산 (초 단위)
-        df['time_diff'] = df['time'].diff().dt.total_seconds().fillna(0)  # 첫 행의 시간 차이는 0
+        df['time_diff'] = df['time'].diff().dt.total_seconds()
+
+        # time_diff가 0이거나 NaN인 행 제거
+        df = df[df['time_diff'] != 0].reset_index(drop=True)
+
+        # distance와 time_diff에서 NaN이 있는 행 제거
+        df = df.dropna(subset=['distance', 'time_diff']).reset_index(drop=True)
 
         # 속도 계산 (미터/초)
-        df['speed'] = df['distance'] / df['time_diff'].replace(0, 1e-6)  # 0으로 나누는 것을 방지
-        df.loc[df['time_diff'] == 0, 'speed'] = 0  # time_diff가 0인 경우 속도는 0
+        df['speed'] = df['distance'] / df['time_diff']
 
         # 가속도 계산 (미터/초²)
-        df['acceleration'] = df['speed'].diff() / df['time_diff'].replace(0, 1e-6)
-        df.loc[df['time_diff'] == 0, 'acceleration'] = 0  # time_diff가 0인 경우 가속도는 0
-        df['acceleration'] = df['acceleration'].fillna(0)
+        df['acceleration'] = df['speed'].diff() / df['time_diff']
+        df.at[0, 'acceleration'] = df.at[1, 'acceleration']
 
         # 불필요한 컬럼 제거
-        df.drop(['prev_longitude', 'prev_latitude'], axis=1, inplace=True)
-
-        # 무한대 및 NaN 값 처리
-        df['acceleration'] = df['acceleration'].replace([np.inf, -np.inf], 0).fillna(0)
-
-        # 첫 행의 속도 및 가속도를 0으로 설정 (이미 처리되었지만 명시적으로 설정)
-        df.at[0, 'speed'] = 0.0
-        df.at[0, 'acceleration'] = 0.0
-
-        # 저장할 컬럼 정의
-        columns_tosave = ['time', 'x', 'y', 'longitude', 'latitude', 'speed', 'acceleration']
+        df.drop(['prev_longitude', 'prev_latitude', 'distance', 'time_diff'], axis=1, inplace=True)
 
         # CSV 파일에 저장
-        df.to_csv(file_path, columns=columns_tosave, index=False)
+        df.to_csv(file_path, index=False)
 
     except Exception as e:
         print(f"Error processing {file_name}: {e}")

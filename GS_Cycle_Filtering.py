@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import shutil
+import random
 from tqdm import tqdm
 
 # 파일을 읽을 폴더 경로 설정
@@ -45,11 +46,18 @@ for file_name in tqdm(all_files):
         high_speed_time_ratio = len(df[df['speed'] >= 70/3.6]) / len(df)
 
         # 마지막 속도가 0이어야 한다는 조건 추가
-        if 70/3.6 <= speed_mean <= 80/3.6 and high_speed_time_ratio >= 0.5 and 1200 <= total_time <= 1800 and df['speed'].iloc[-1] == 0:
+        if 70/3.6 <= speed_mean <= 80/3.6 and high_speed_time_ratio >= 0.5 and 2400 <= total_time <= 3600 and df['speed'].iloc[-1] == 0:
             highway_cycle_files.append(file_name)
             shutil.copy(file_path, os.path.join(highway_cycle_folder, file_name))
 
 
-# 결과 출력
-print("City Cycle 파일들:", city_cycle_files)
-print("Highway Cycle 파일들:", highway_cycle_files)
+# City Cycle에서 8개의 파일 무작위 선택
+random.shuffle(city_cycle_files)  # 리스트를 섞는다
+target_city_cycle_file = city_cycle_files[:8]  # 앞에서 8개 선택
+
+# Highway Cycle에서 8개의 파일 무작위 선택
+random.shuffle(highway_cycle_files)  # 리스트를 섞는다
+target_highway_cycle_file = highway_cycle_files[:8]  # 앞에서 8개 선택
+
+print("City Cycle 파일들:", target_city_cycle_file)
+print("Highway Cycle 파일들:", target_highway_cycle_file)

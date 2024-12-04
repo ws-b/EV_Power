@@ -36,7 +36,7 @@ for file_name in tqdm(all_files):
         stop_time_ratio = len(df[df['speed'] == 0]) / len(df)
 
         # 마지막 속도가 0이어야 한다는 조건 추가
-        if 15 <= speed_mean <= 30 and 600 <= total_time <= 1200 and max_speed < 70 and stop_time_ratio >= 0.05 \
+        if 15/3.6 <= speed_mean <= 30/3.6 and 600 <= total_time <= 1200 and max_speed < 70/3.6 and stop_time_ratio >= 0.05 \
                 and df['speed'].iloc[-1] == 0:
             city_cycle_files.append(file_name)
             shutil.copy(file_path, os.path.join(city_cycle_folder, file_name))
@@ -55,8 +55,7 @@ for file_name in tqdm(all_files):
         first_5_min_speed_mean = first_5_min['speed'].mean()
         last_5_min_speed_mean = last_5_min['speed'].mean()
 
-        # 마지막 속도가 0이어야 한다는 조건 추가
-        if 70 <= speed_mean <= 80 and high_speed_time_ratio >= 0.5 and 1200 <= total_time <= 1800 and df['speed'].iloc[-1] == 0:
+        if 70/3.6 <= speed_mean <= 90/3.6 and 1200 <= total_time <= 3600 and  df['speed'].iloc[-1] == 0:
             highway_cycle_files.append(file_name)
             shutil.copy(file_path, os.path.join(highway_cycle_folder, file_name))
 

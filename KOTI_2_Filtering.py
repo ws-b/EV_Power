@@ -1,8 +1,5 @@
 import pandas as pd
-import numpy as np
 import os
-import shutil
-from pyproj import Transformer
 from tqdm import tqdm
 
 # 경로 설정
@@ -16,7 +13,7 @@ os.makedirs(invalid_year_path, exist_ok=True)
 csv_files = [f for f in os.listdir(processed_path) if f.endswith('.csv')]
 
 # 모든 CSV 파일 처리
-for file in tqdm(csv_files):
+for file in tqdm(csv_files, desc="Processing CSV files"):
     file_path = os.path.join(processed_path, file)
 
     try:
@@ -32,18 +29,31 @@ for file in tqdm(csv_files):
             os.remove(file_path)
             print(f"Deleted empty file: {file}")
         except Exception as e:
-            print(f"Error deleting {file}: {e}")
+            print(f"Error deleting empty file {file}: {e}")
+        continue  # 다음 파일로 넘어감
+
+    # 행 수가 2개 이하인 파일 삭제
+    if len(df) <= 2:
+        try:
+            os.remove(file_path)
+            print(f"Deleted file with <=2 rows: {file}")
+        except Exception as e:
+            print(f"Error deleting file with <=2 rows {file}: {e}")
         continue  # 다음 파일로 넘어감
 
     # time 열을 datetime으로 변환
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
 
     # 잘못된 연도 찾기 (2018, 2019, 2020년 외의 값 확인)
-    invalid_years = df[~df['time'].dt.year.isin([2018, 2019, 2020])]
+    # 'time' 컬럼에 NaT가 있는 경우도 제외
+    invalid_years = df[~df['time'].dt.year.isin([2018, 2019, 2020]) | df['time'].isna()]
 
     if not invalid_years.empty:
-        # 파일을 삭제
-        os.remove(file_path)
+        try:
+            os.remove(file_path)
+            print(f"Deleted file with invalid years: {file}")
+        except Exception as e:
+            print(f"Error deleting file with invalid years {file}: {e}")
         continue
 
 print("Processing and file moving completed.")

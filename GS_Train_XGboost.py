@@ -8,7 +8,7 @@ from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.integrate import cumulative_trapezoid
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from GS_plot import plot_shap_values, plot_composite_contour
+from GS_plot import plot_shap_values, plot_composite_contour, plot_hybrid_power_and_energy
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from sklearn.metrics import mean_squared_error
 
@@ -280,6 +280,9 @@ def cross_validate(vehicle_files, selected_car, params=None, plot=False, save_di
                 min_count=10,
                 save_directory=r"C:\Users\BSL\Desktop\Figures"
             )
+            plot_hybrid_power_and_energy(test_data)
+
+
 
         # 트립별로 적분 수행
         train_trip_groups = train_data.groupby('trip_id')
