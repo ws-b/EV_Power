@@ -7,6 +7,7 @@ import matplotlib.cm as cm
 import random
 import shap
 from scipy.stats import binned_statistic_2d
+from matplotlib.collections import LineCollection
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.interpolate import griddata
 from scipy.integrate import cumulative_trapezoid
@@ -933,6 +934,7 @@ def plot_shap_values(model, X_train, feature_names, selected_car, save_path=None
     # Display the plot
     plt.show()
 
+
 def plot_composite_contour(
         X_train, y_pred_train,
         X_test, y_pred_test1, y_pred_test2,
@@ -947,7 +949,8 @@ def plot_composite_contour(
     """
     Creates a composite figure with three plots labeled A, B, and C,
     displaying the mean values without interpolation and adjusting the
-    axis limits to exclude masked areas.
+    axis limits to exclude masked areas. An outline is added along the bin borders
+    to distinguish areas with data from those without, with transparency set to 0.7.
 
     Parameters:
     - X_train (np.ndarray): Training features with two columns ['speed', 'acceleration'].
@@ -965,7 +968,11 @@ def plot_composite_contour(
     - save_directory (str): Directory to save the composite figure.
     """
 
-    def create_contour(ax, X, y_pred, terminology, selected_car):
+    # Ensure save directory exists
+    os.makedirs(save_directory, exist_ok=True)
+
+    # Function to compute 'stat' without plotting
+    def compute_stat(X, y_pred):
         if X.shape[1] != 2:
             raise ValueError("Error: X should have 2 columns.")
 
@@ -982,10 +989,64 @@ def plot_composite_contour(
         y_edges = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids + 1)
 
         # Convert residuals to kilowatts
+        y_pred_kW = y_pred / 1000
+
+        # Compute the mean of y_pred in each grid cell
+        stat, _, _, _ = binned_statistic_2d(
+            X_orig[:, 0], X_orig[:, 1], y_pred_kW, statistic='mean', bins=[x_edges, y_edges]
+        )
+
+        # Compute density (number of points per grid cell)
+        count_stat, _, _, _ = binned_statistic_2d(
+            X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
+        )
+
+        # Mask cells with fewer than min_count observations
+        mask = count_stat < min_count
+        stat = np.ma.array(stat, mask=mask)
+
+        return stat, x_edges, y_edges
+
+    # Compute 'stat' for all datasets to find global vmin and vmax
+    stats = []
+    x_edges_list = []
+    y_edges_list = []
+    configs = [
+        {'X': X_train, 'y_pred': y_pred_train},
+        {'X': X_test, 'y_pred': y_pred_test1},
+        {'X': X_test, 'y_pred': y_pred_test2},
+    ]
+    for config in configs:
+        stat, x_edges, y_edges = compute_stat(config['X'], config['y_pred'])
+        stats.append(stat)
+        x_edges_list.append(x_edges)
+        y_edges_list.append(y_edges)
+
+    # Concatenate all stats to find global min and max, ignoring masked values
+    all_data = np.ma.concatenate([stat.compressed() for stat in stats])
+
+    absmax = np.abs(all_data).max()
+    global_vmin = -absmax
+    global_vmax = absmax
+
+    # Now define the modified create_contour function
+    def create_contour(ax, X, y_pred, terminology, x_edges, y_edges, vmin, vmax):
+        if X.shape[1] != 2:
+            raise ValueError("Error: X should have 2 columns.")
+
+        # Inverse transform to original scale
+        X_orig = scaler.inverse_transform(
+            np.hstack([X, np.zeros((X.shape[0], scaler.scale_.shape[0] - 2))])
+        )
+
+        # Convert speed to km/h (assuming first feature is 'speed')
+        X_orig[:, 0] *= 3.6
+
+        # Convert residuals to kilowatts
         y_pred_kW = y_pred / 1000  # Assuming y_pred is in watts
 
         # Compute the mean of y_pred in each grid cell
-        stat, x_edges, y_edges, binnumber = binned_statistic_2d(
+        stat, _, _, _ = binned_statistic_2d(
             X_orig[:, 0], X_orig[:, 1], y_pred_kW, statistic='mean', bins=[x_edges, y_edges]
         )
 
@@ -1001,8 +1062,52 @@ def plot_composite_contour(
         # Create a meshgrid for plotting
         Xc, Yc = np.meshgrid(x_edges, y_edges)
 
-        # Plot using pcolormesh
-        pc = ax.pcolormesh(Xc, Yc, stat.T, cmap='viridis', shading='auto')
+        # Use shading='flat' to match dimensions
+        pc = ax.pcolormesh(
+            Xc, Yc, stat.T, cmap='RdBu_r', shading='flat',
+            vmin=vmin, vmax=vmax, edgecolors='face', linewidths=0
+        )
+
+        # 경계선을 저장할 리스트 초기화
+        boundary_lines = []
+
+        nx, ny = stat.shape
+
+        for i in range(nx):
+            for j in range(ny):
+                if stat.mask[i, j]:
+                    continue  # 마스킹된 bin은 건너뜁니다
+
+                # 현재 bin의 좌표
+                x_left = x_edges[i]
+                x_right = x_edges[i + 1]
+                y_bottom = y_edges[j]
+                y_top = y_edges[j + 1]
+
+                # 상하좌우 인접 bin과의 경계 검사
+
+                # 왼쪽 경계
+                if i == 0 or stat.mask[i - 1, j]:
+                    boundary_lines.append([(x_left, y_bottom), (x_left, y_top)])
+
+                # 오른쪽 경계
+                if i == nx - 1 or stat.mask[i + 1, j]:
+                    boundary_lines.append([(x_right, y_bottom), (x_right, y_top)])
+
+                # 아래쪽 경계
+                if j == 0 or stat.mask[i, j - 1]:
+                    boundary_lines.append([(x_left, y_bottom), (x_right, y_bottom)])
+
+                # 위쪽 경계
+                if j == ny - 1 or stat.mask[i, j + 1]:
+                    boundary_lines.append([(x_left, y_top), (x_right, y_top)])
+
+        # 중복된 선 제거
+        boundary_lines = list(set([tuple(map(tuple, line)) for line in boundary_lines]))
+
+        # LineCollection으로 경계선 그리기
+        lc = LineCollection(boundary_lines, colors='black', linewidths=1, alpha=0.4)
+        ax.add_collection(lc)
 
         # Adjust axis limits to exclude masked areas
         if not np.all(mask):
@@ -1014,17 +1119,14 @@ def plot_composite_contour(
             y_unmasked = Yc[:-1, :-1][unmasked_indices[1], unmasked_indices[0]]
 
             # Set axis limits
-            ax.set_xlim(x_unmasked.min(), x_unmasked.max()+5)
-            ax.set_ylim(y_unmasked.min()-0.5, y_unmasked.max()+0.5)
+            ax.set_xlim(x_unmasked.min(), x_unmasked.max() + 5)
+            ax.set_ylim(y_unmasked.min() - 0.5, y_unmasked.max() + 0.5)
 
         ax.set_xlabel('Speed (km/h)', fontsize=12)
         ax.set_ylabel('Acceleration (m/s²)', fontsize=12)
         ax.set_title(f'{terminology}', fontsize=14)
 
         return pc
-
-    # Ensure save directory exists
-    os.makedirs(save_directory, exist_ok=True)
 
     # Create a figure with 1 row and 3 columns
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
@@ -1041,13 +1143,8 @@ def plot_composite_contour(
     plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
 
     # Define label mapping based on selected_car
-    if selected_car == 'Ioniq5' or selected_car == 'NiroEV':
+    if selected_car == 'Ioniq5' or selected_car == 'NiroEV' or selected_car == 'GV60':
         labels = ['D', 'E', 'F']
-
-    elif selected_car == 'GV60':
-        labels = ['G', 'H', 'I']
-    elif selected_car == 'Ioniq6':
-        labels = ['J', 'K', 'L']
     else:
         labels = ['A', 'B', 'C']
 
@@ -1057,19 +1154,25 @@ def plot_composite_contour(
             'X': X_train,
             'y_pred': y_pred_train,
             'terminology': terminology1,
-            'label': labels[0]
+            'label': labels[0],
+            'x_edges': x_edges_list[0],
+            'y_edges': y_edges_list[0],
         },
         {
             'X': X_test,
             'y_pred': y_pred_test1,
             'terminology': terminology2,
-            'label': labels[1]
+            'label': labels[1],
+            'x_edges': x_edges_list[1],
+            'y_edges': y_edges_list[1],
         },
         {
             'X': X_test,
             'y_pred': y_pred_test2,
             'terminology': terminology3,
-            'label': labels[2]
+            'label': labels[2],
+            'x_edges': x_edges_list[2],
+            'y_edges': y_edges_list[2],
         }
     ]
 
@@ -1077,21 +1180,26 @@ def plot_composite_contour(
     pc_objects = []
 
     for ax, config in zip(axes, plot_configs):
-        pc = create_contour(ax, config['X'], config['y_pred'], config['terminology'], selected_car)
+        pc = create_contour(
+            ax, config['X'], config['y_pred'], config['terminology'],
+            x_edges=config['x_edges'], y_edges=config['y_edges'],
+            vmin=global_vmin, vmax=global_vmax
+        )
         pc_objects.append(pc)
 
         # Add label (A, B, C) to the subplot
         ax.text(
             -0.1, 1.05, config['label'],
             transform=ax.transAxes,
-            fontsize=14*scaling,
+            fontsize=14 * scaling,
             weight='bold',
             ha='left',
             va='bottom'
         )
 
     # Add a single colorbar for all subplots
-    fig.colorbar(pc_objects[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04, label='Residual [kW]')
+    cbar = fig.colorbar(pc_objects[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
+    cbar.set_label('Residual [kW]')
 
     # Save the composite figure
     save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")

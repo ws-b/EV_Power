@@ -90,7 +90,7 @@ def main():
                     if train_choice == 1:
                         start_time = time.perf_counter()
 
-                        results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, False,  save_dir=None)
+                        results, scaler, _ = xgb_cross_validate(vehicle_files, selected_car, None, True,  save_dir=None)
 
                         end_time = time.perf_counter()
                         elapsed_time = end_time - start_time

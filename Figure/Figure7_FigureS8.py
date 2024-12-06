@@ -23,7 +23,7 @@ for img in images:
     current_height += img.height
 
 # 결과 저장
-combined_img_path = r"C:\Users\BSL\Desktop\Figures\figureS8.png"
+combined_img_path = r"C:\Users\BSL\Desktop\Figures\Supplementary\figureS8.png"
 combined_img.save(combined_img_path, dpi=(300, 300))
 
 # 결과 표시
