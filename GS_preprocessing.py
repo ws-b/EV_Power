@@ -180,12 +180,12 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
         if 'altitude' in combined_df.columns:
             combined_df['delta altitude'] = combined_df['altitude'].diff()
             data_save = combined_df[
-                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'mod_temp_list', 'soc', 'soh', 'chrg_cable_conn',
-                 'altitude', 'cell_volt_list', 'pack_volt', 'pack_current', 'Power_data']].copy()
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd', 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer', 'op_time', 'soc', 'soh', 'chrg_cable_conn',
+                 'altitude', 'cell_volt_list', 'min_deter', 'pack_volt', 'pack_current', 'Power_data']].copy()
         else:
             data_save = combined_df[
-                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'mod_temp_list', 'soc', 'soh', 'chrg_cable_conn',
-                 'pack_volt', 'cell_volt_list', 'pack_current', 'Power_data']].copy()
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd', 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer', 'op_time', 'soc', 'soh', 'chrg_cable_conn',
+                 'pack_volt', 'cell_volt_list', 'min_deter', 'pack_current', 'Power_data']].copy()
 
         data_save.to_csv(output_file_path, index=False)
 
@@ -199,13 +199,18 @@ def process_files_trip_by_trip(start_path, save_path):
     # Progress bar setup
     with tqdm(total=total_files, desc="Processing files", unit="file") as pbar:
         # Process files in parallel using ProcessPoolExecutor
+        future_to_file = {}
         with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(process_wrapper, file_path, save_path) for file_path in csv_files]
-            for future in as_completed(futures):
+            for file_path in csv_files:
+                future = executor.submit(process_wrapper, file_path, save_path)
+                future_to_file[future] = file_path
+
+            for future in as_completed(future_to_file):
+                file_path = future_to_file[future]
                 try:
                     future.result()
                 except Exception as exc:
-                    print(f'File {future_to_file[future]} generated an exception: {exc}')
+                    print(f'File {file_path} generated an exception: {exc}')
                 finally:
                     pbar.update(1)
 

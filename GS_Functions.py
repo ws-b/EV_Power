@@ -78,7 +78,6 @@ def sample_grid(speed, acceleration, grid_size=100, max_per_grid=30):
 
     return sampled_speeds, sampled_accelerations
 
-
 def calculate_mape(y_test, y_pred):
     # y_test가 0이 아닌 값들만 선택하여 MAPE 계산
     non_zero_indices = y_test != 0

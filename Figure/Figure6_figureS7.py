@@ -136,6 +136,8 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
              color='gray', fontsize=12, alpha=0.7)
     plt.text(mean_value_ev6_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ev6_hybrid:.2f}',
              color='green', fontsize=12, alpha=0.7)
+    plt.text(mean_value_ev6_phys + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ev6_phys:.2f}',
+             color='blue', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim((50, 400))
     plt.ylim(ylim[selected_cars[0]])
@@ -164,6 +166,8 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
              color='gray', fontsize=12, alpha=0.7)
     plt.text(mean_value_ioniq5_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ioniq5_hybrid:.2f}',
              color='green', fontsize=12, alpha=0.7)
+    plt.text(mean_value_ioniq5_phys + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ioniq5_phys:.2f}',
+             color='blue', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim(50, 400)
     plt.ylim(ylim[selected_cars[1]])

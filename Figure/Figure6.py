@@ -30,15 +30,26 @@ fig_save_path = r"C:\Users\BSL\Desktop\Figures"
 def figure6(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
     official_efficiency = {
-        'Ioniq5': [4.202, 6.303],
-        'EV6': [4.106, 6.494]
+        'Ioniq5': [158.7, 238.0],
+        'EV6': [154.0, 243.5]
     }
+
+    # Set font sizes using the scaling factor
+    scaling = 1
+    plt.rcParams['font.size'] = 10 * scaling  # Base font size
+    plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+    plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+    plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+    plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+    plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+    plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+    plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
 
     # Function to process energy data
     def process_energy_data(file_lists):
-        dis_energies_phys = []
-        dis_energies_data = []
-        dis_energies_hybrid = []
+        all_ecr_phys = []
+        all_ecr_data = []
+        all_ecr_hybrid = []
         for file in tqdm(file_lists):
             data = pd.read_csv(file)
 
@@ -53,23 +64,25 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
             total_distance = distance.cumsum()
 
             Power_data = np.array(data['Power_data'])
-            energy_data = Power_data * t_diff / 3600 / 1000
+            energy_data = Power_data * t_diff / 3600
             power_phys = np.array(data['Power_phys'])
-            energy_phys = power_phys * t_diff / 3600 / 1000
+            energy_phys = power_phys * t_diff / 3600
             power_hybrid = np.array(data['Power_hybrid'])
-            energy_hybrid = power_hybrid * t_diff / 3600 / 1000
+            energy_hybrid = power_hybrid * t_diff / 3600
 
-            dis_data_energy = ((total_distance[-1] / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
-                                                                                                -1] != 0 else 0
-            dis_energies_data.append(dis_data_energy)
-            dis_energy_phys = ((total_distance[-1] / 1000) / (energy_phys.cumsum()[-1])) if energy_phys.cumsum()[
-                                                                                                -1] != 0 else 0
-            dis_energies_phys.append(dis_energy_phys)
-            dis_energy_hybrid = ((total_distance[-1] / 1000) / (energy_hybrid.cumsum()[-1])) if energy_hybrid.cumsum()[
-                                                                                                    -1] != 0 else 0
-            dis_energies_hybrid.append(dis_energy_hybrid)
+            ecr_phys = ((energy_phys.cumsum()[-1])/ (total_distance[-1] / 1000)) if energy_data.cumsum()[
+                                                                                              -1] != 0 else 0
+            all_ecr_phys.append(ecr_phys)
 
-        return dis_energies_phys, dis_energies_data, dis_energies_hybrid
+            ecr_data = ((energy_data.cumsum()[-1])/ (total_distance[-1] / 1000)) if energy_phys.cumsum()[
+                                                                                              -1] != 0 else 0
+            all_ecr_data.append(ecr_data)
+
+            ecr_hybrid = ((energy_hybrid.cumsum()[-1])/ (total_distance[-1] / 1000)) if energy_hybrid.cumsum()[
+                                                                                              -1] != 0 else 0
+            all_ecr_hybrid.append(ecr_hybrid)
+
+        return all_ecr_phys, all_ecr_data, all_ecr_hybrid
 
     # Function to add official efficiency range for a specific car
     def add_efficiency_lines(selected_car):
@@ -78,14 +91,19 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
             if len(eff_range) == 2:
                 ylim = plt.gca().get_ylim()
                 plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
-                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'EPA Efficiency',
+                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.6, 'EPA Efficiency',
                          color='orange', fontsize=12, alpha=0.7)
 
     # Process the data for EV6 and Ioniq5
     dis_energies_ev6 = process_energy_data(file_lists_ev6)
     dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
 
-    # Create subplots
+    # Define common bins
+    bin_start = 50
+    bin_end = 400
+    num_bins = 70  # Adjust the number of bins as needed
+    bins = np.linspace(bin_start, bin_end, num_bins)
+
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
 
     # Plot for EV6
@@ -94,27 +112,29 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     mean_value_ev6_data = np.mean(dis_energies_ev6[1])
     mean_value_ev6_hybrid = np.mean(dis_energies_ev6[2])
 
-    sns.histplot(dis_energies_ev6[1], bins='auto', color='gray', kde=False, label='Data', alpha=0.5)
-    sns.histplot(dis_energies_ev6[0], bins='auto', color='blue', kde=False, label='Physics-based Model', alpha=0.5)
-    sns.histplot(dis_energies_ev6[2], bins='auto', color='green', kde=False, label='Hybrid Model', alpha=0.5)
+    sns.histplot(dis_energies_ev6[1], bins=bins, color='gray', kde=False, label='Data', alpha=0.5)
+    sns.histplot(dis_energies_ev6[0], bins=bins, color='blue', kde=False, label='Physics-based Model', alpha=0.5)
+    sns.histplot(dis_energies_ev6[2], bins=bins, color='green', kde=False, label='Hybrid Model', alpha=0.5)
 
     plt.axvline(mean_value_ev6_phys, color='blue', linestyle='--')
     plt.axvline(mean_value_ev6_data, color='gray', linestyle='--')
     plt.axvline(mean_value_ev6_hybrid, color='green', linestyle='--')
 
-    plt.text(mean_value_ev6_data + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6_data:.2f}',
+    plt.text(mean_value_ev6_data + 0.05, plt.gca().get_ylim()[1] * 0.77, f'Mean: {mean_value_ev6_data:.2f}',
              color='gray', fontsize=12, alpha=0.7)
-    plt.text(mean_value_ev6_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.65, f'Mean: {mean_value_ev6_hybrid:.2f}',
+    plt.text(mean_value_ev6_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ev6_hybrid:.2f}',
              color='green', fontsize=12, alpha=0.7)
-    plt.xlabel('Efficiency in km/kWh')
-    plt.xlim((0, 15))
-    plt.ylim(0, 1400)
+    plt.text(mean_value_ev6_phys + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ev6_phys:.2f}',
+             color='blue', fontsize=12, alpha=0.7)
+    plt.xlabel('ECR(Wh/km)')
+    plt.xlim((50, 400))
+    plt.ylim(0, 3500)
     plt.ylabel('Number of trips')
     ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
-    ax1.set_title("Energy Consumption Distribution : EV6", pad=10)  # Title below (a)
+    ax1.set_title("Energy Consumption Rate Distribution : EV6", pad=10)  # Title below (a)
     add_efficiency_lines('EV6')
     plt.grid(False)
-    plt.legend()
+    plt.legend(loc='upper right')
 
     # Plot for Ioniq5
     plt.sca(ax2)  # Set current axis to ax2
@@ -122,27 +142,29 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     mean_value_ioniq5_data = np.mean(dis_energies_ioniq5[1])
     mean_value_ioniq5_hybrid = np.mean(dis_energies_ioniq5[2])
 
-    sns.histplot(dis_energies_ioniq5[1], bins='auto', color='gray', kde=False, label='Data', alpha=0.5)
-    sns.histplot(dis_energies_ioniq5[0], bins='auto', color='blue', kde=False, label='Physics-based Model', alpha=0.5)
-    sns.histplot(dis_energies_ioniq5[2], bins='auto', color='green', kde=False, label='Hybrid Model', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[1], bins=bins, color='gray', kde=False, label='Data', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[0], bins=bins, color='blue', kde=False, label='Physics-based Model', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[2], bins=bins, color='green', kde=False, label='Hybrid Model', alpha=0.5)
 
     plt.axvline(mean_value_ioniq5_phys, color='blue', linestyle='--')
     plt.axvline(mean_value_ioniq5_data, color='gray', linestyle='--')
     plt.axvline(mean_value_ioniq5_hybrid, color='green', linestyle='--')
 
-    plt.text(mean_value_ioniq5_data + 0.05, plt.gca().get_ylim()[1] * 0.95, f'Mean: {mean_value_ioniq5_data:.2f}',
+    plt.text(mean_value_ioniq5_data + 0.05, plt.gca().get_ylim()[1] * 0.77, f'Mean: {mean_value_ioniq5_data:.2f}',
              color='gray', fontsize=12, alpha=0.7)
-    plt.text(mean_value_ioniq5_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.65, f'Mean: {mean_value_ioniq5_hybrid:.2f}',
+    plt.text(mean_value_ioniq5_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ioniq5_hybrid:.2f}',
              color='green', fontsize=12, alpha=0.7)
-    plt.xlabel('Efficiency in km/kWh')
-    plt.xlim(0, 15)
-    plt.ylim(0, 900)
+    plt.text(mean_value_ioniq5_phys + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ioniq5_phys:.2f}',
+             color='blue', fontsize=12, alpha=0.7)
+    plt.xlabel('ECR(Wh/km)')
+    plt.xlim(50, 400)
+    plt.ylim(0, 2000)
     plt.ylabel('Number of trips')
     ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
-    ax2.set_title("Energy Consumption Distribution : Ioniq5", pad=10)  # Title below (b)
+    ax2.set_title("Energy Consumption Rate Distribution : Ioniq5", pad=10)  # Title below (b)
     add_efficiency_lines('Ioniq5')
     plt.grid(False)
-    plt.legend()
+    plt.legend(loc='upper right')
 
     # Save the figure with dpi 300
     save_path = os.path.join(fig_save_path, 'figure6.png')

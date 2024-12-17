@@ -28,7 +28,7 @@ def pre_process():
 
         elif choice == 2:
             start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-            save_path = r'D:\SamsungSTF\Processed_Data/Merged_CELL'
+            save_path = r'D:\SamsungSTF\Processed_Data/Merged_DF'
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
@@ -37,8 +37,8 @@ def pre_process():
             break
 
         elif choice == 3:
-            start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged_CELL')
-            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_CELL')
+            start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged_DF')
+            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_DF')
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
             process_files_trip_by_trip(start_path, save_path)

@@ -23,7 +23,7 @@ def get_file_lists(directory):
 # Example usage of the function
 directory = r"D:\SamsungSTF\Processed_Data\TripByTrip"
 vehicle_files = get_file_lists(directory)
-selected_cars = ['EV6', 'Ioniq5']
+selected_cars = ['KonaEV', 'NiroEV']
 
 #save_path
 fig_save_path = r"C:\Users\BSL\Desktop\Figures"
@@ -31,13 +31,28 @@ fig_save_path = r"C:\Users\BSL\Desktop\Figures"
 def figure1(file_lists_ev6, file_lists_ioniq5):
     # Official fuel efficiency data (km/kWh)
     official_efficiency = {
-        'Ioniq5': [4.202, 6.303],
-        'EV6': [4.106, 6.494]
+        'Ioniq5': [158.7, 238.0],
+        'EV6': [154.0, 243.5],
+        'KonaEV': [159.9 ,203.3],
+        'NiroEV': [166.2, 207.4],
+        'GV60': [167.5, 255.4],
+        'Ioniq6': [136.9, 222.8]
     }
+
+    # Set font sizes using the scaling factor
+    scaling = 1
+    plt.rcParams['font.size'] = 10 * scaling  # Base font size
+    plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+    plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+    plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+    plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+    plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+    plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+    plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
 
     # Function to process energy data
     def process_energy_data(file_lists):
-        dis_energies_data = []
+        all_ecr_data = []
         for file in tqdm(file_lists):
             data = pd.read_csv(file)
 
@@ -52,13 +67,13 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
             total_distance = distance.cumsum()
 
             Power_data = np.array(data['Power_data'])
-            energy_data = Power_data * t_diff / 3600 / 1000
+            energy_data = Power_data * t_diff / 3600
 
-            dis_data_energy = ((total_distance[-1] / 1000) / (energy_data.cumsum()[-1])) if energy_data.cumsum()[
+            ecr_data = ((energy_data.cumsum()[-1])/ (total_distance[-1] / 1000)) if energy_data.cumsum()[
                                                                                               -1] != 0 else 0
-            dis_energies_data.append(dis_data_energy)
+            all_ecr_data.append(ecr_data)
 
-        return dis_energies_data
+        return all_ecr_data
 
     # Function to add official efficiency range for a specific car
     def add_efficiency_lines(selected_car):
@@ -67,43 +82,49 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
             if len(eff_range) == 2:
                 ylim = plt.gca().get_ylim()
                 plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
-                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'EPA Efficiency',
+                plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'EPA ECR',
                          color='orange', fontsize=12, alpha=0.7)
 
     # Process the data for EV6 and Ioniq5
-    dis_energies_ev6 = process_energy_data(file_lists_ev6)
-    dis_energies_ioniq5 = process_energy_data(file_lists_ioniq5)
+    dis_ecr_ev6 = process_energy_data(file_lists_ev6)
+    dis_ecr_ioniq5 = process_energy_data(file_lists_ioniq5)
+
+    # Define common bins
+    bin_start = 50
+    bin_end = 400
+    num_bins = 70  # Adjust the number of bins as needed
+    bins = np.linspace(bin_start, bin_end, num_bins)
 
     # Create subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
 
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
-    mean_value_ev6 = np.mean(dis_energies_ev6)
-    sns.histplot(dis_energies_ev6, bins='auto', color='gray', kde=False)
+    mean_value_ev6 = np.mean(dis_ecr_ev6)
+    sns.histplot(dis_ecr_ev6, bins=bins, color='gray', kde=False)
     plt.axvline(mean_value_ev6, color='red', linestyle='--')
     plt.text(mean_value_ev6 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6:.2f}', color='red', fontsize=12, alpha=0.7)
-    plt.xlabel('Efficiency in km/kWh')
-    plt.xlim((0, 15))
-    plt.ylim(0, 1400)
+    plt.xlabel('ECR(Wh/km)')
+    plt.xlim((50, 400))
+    plt.ylim(0, 2300)
     plt.ylabel('Number of trips')
     ax1.text(-0.1, 1.05, "A", transform=ax1.transAxes, size=16, weight='bold', ha='left')  # Move (a) to top-left
-    ax1.set_title("Energy Consumption Distribution : EV6", pad=10)  # Title below (a)
+    ax1.set_title("Energy Consumption Rate Distribution : EV6", pad=10)  # Title below (a)
     add_efficiency_lines('EV6')
     plt.grid(False)
 
     # Plot for Ioniq5
     plt.sca(ax2)  # Set current axis to ax2
-    mean_value_ioniq5 = np.mean(dis_energies_ioniq5)
-    sns.histplot(dis_energies_ioniq5, bins='auto', color='gray', kde=False)
+    mean_value_ioniq5 = np.mean(dis_ecr_ioniq5)
+    sns.histplot(dis_ecr_ioniq5, bins=bins, color='gray', kde=False)
     plt.axvline(mean_value_ioniq5, color='red', linestyle='--')
     plt.text(mean_value_ioniq5 + 0.05, plt.gca().get_ylim()[1] * 0.95, f'Mean: {mean_value_ioniq5:.2f}', color='red', fontsize=12, alpha=0.7)
-    plt.xlabel('Efficiency in km/kWh')
-    plt.xlim(0, 15)
-    plt.ylim(0, 900)
+    plt.xlabel('ECR(Wh/km)')
+    plt.xlim(50, 400)
+    plt.ylim(0, 1400)
     plt.ylabel('Number of trips')
     ax2.text(-0.1, 1.05, "B", transform=ax2.transAxes, size=16, weight='bold', ha='left')  # Move (b) to top-left
-    ax2.set_title("Energy Consumption Distribution : Ioniq5", pad=10)  # Title below (b)
+    ax2.set_title("Energy Consumption Rate Distribution : Ioniq5", pad=10)  # Title below (b)
     add_efficiency_lines('Ioniq5')
     plt.grid(False)
 

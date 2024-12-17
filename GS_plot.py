@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib.colors import TwoSlopeNorm
 import random
 import shap
 from scipy.stats import binned_statistic_2d
@@ -1025,9 +1026,11 @@ def plot_composite_contour(
     # Concatenate all stats to find global min and max, ignoring masked values
     all_data = np.ma.concatenate([stat.compressed() for stat in stats])
 
-    absmax = np.abs(all_data).max()
-    global_vmin = -absmax
-    global_vmax = absmax
+    global_vmin = all_data.min()
+    global_vmax = all_data.max()
+
+    # norm 정의: vcenter=0, vmin, vmax를 유지
+    norm = TwoSlopeNorm(vcenter=0, vmin=global_vmin, vmax=global_vmax)
 
     # Now define the modified create_contour function
     def create_contour(ax, X, y_pred, terminology, x_edges, y_edges, vmin, vmax):
@@ -1065,7 +1068,7 @@ def plot_composite_contour(
         # Use shading='flat' to match dimensions
         pc = ax.pcolormesh(
             Xc, Yc, stat.T, cmap='RdBu_r', shading='flat',
-            vmin=vmin, vmax=vmax, edgecolors='face', linewidths=0
+            norm=norm, edgecolors='face', linewidths=0
         )
 
         # 경계선을 저장할 리스트 초기화
@@ -1200,6 +1203,9 @@ def plot_composite_contour(
     # Add a single colorbar for all subplots
     cbar = fig.colorbar(pc_objects[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     cbar.set_label('Residual [kW]')
+    # 컬러바의 틱을 수동으로 설정하여 vmin, 0, vmax를 포함
+    cbar.set_ticks([global_vmin, 0, global_vmax])
+    cbar.set_ticklabels([f'{int(global_vmin)}', '0', f'{int(global_vmax)}'])
 
     # Save the composite figure
     save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")
