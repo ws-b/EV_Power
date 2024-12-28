@@ -42,11 +42,11 @@ def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2, fig_number
         # 그래프 그리기
         ax.set_xlabel('Time (minutes)', fontsize=10 * scaling)
         ax.set_ylabel('Power (kW)', fontsize=10 * scaling)
-        ax.plot(t_min, power_data, label='Data', color='tab:blue', alpha=0.6)
-        ax.plot(t_min, power_phys, label='Physics Model', color='tab:red', alpha=0.6)
+        ax.plot(t_min, power_data, label='Data', color="#0073c2ff", alpha=0.6)
+        ax.plot(t_min, power_phys, label='Physics Model', color="#EFC000FF", alpha=0.6)
 
         if 'Power_hybrid' in data.columns:
-            ax.plot(t_min, power_hybrid, label='Hybrid Model', color='tab:green', alpha=0.6)
+            ax.plot(t_min, power_hybrid, label='Hybrid Model(XGB)', color="#cd534cff", alpha=0.6)
 
         ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
         ax.set_title(title, pad=10)
@@ -79,10 +79,10 @@ def figure4(city_cycle1, highway_cycle1, city_cycle2, highway_cycle2, fig_number
         # 그래프 그리기
         ax.set_xlabel('Time (minutes)', fontsize=10 * scaling)
         ax.set_ylabel('Energy (kWh)', fontsize=10 * scaling)
-        ax.plot(t_min, energy_data_cumulative, label='Data', color='tab:blue', alpha=0.6)
-        ax.plot(t_min, energy_phys_cumulative, label='Physics Model', color='tab:red', alpha=0.6)
+        ax.plot(t_min, energy_data_cumulative, label='Data', color="#0073c2ff", alpha=0.6)
+        ax.plot(t_min, energy_phys_cumulative, label='Physics Model', color="#EFC000FF", alpha=0.6)
         if 'Power_hybrid' in data.columns:
-            ax.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model', color='tab:green', alpha=0.6)
+            ax.plot(t_min, energy_hybrid_cumulative, label='Hybrid Model(XGB)', color="#cd534cff", alpha=0.6)
 
         ax.legend(loc='upper left', bbox_to_anchor=(0, 0.99))
         ax.set_title(title, pad=10)

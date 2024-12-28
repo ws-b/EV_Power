@@ -120,7 +120,7 @@ def figure5(vehicle_files, selected_cars):
 
         ax.set_xlabel('Data Energy (kWh)')
         ax.set_ylabel('Model Energy (kWh)')
-        ax.text(-0.1, 1.05, chr(65 + i), transform=ax.transAxes, size=14, weight='bold')
+        ax.text(-0.1, 1.05, chr(65 + i), transform=ax.transAxes, size=16, weight='bold')
 
         # log scale data
         log_data_energy = np.log(all_energies_dict[selected_car]['data'])
@@ -143,18 +143,8 @@ def figure5(vehicle_files, selected_cars):
         y_hybrid = np.exp(intercept) * x_vals ** slope
 
         # 모델 예측 선 플롯 (레이블 포함)
-        line_hybrid, = ax.plot(x_vals, y_hybrid, color='green', label='Hybrid Model')
-        line_phys, = ax.plot(x_vals, y_phys, color='red', label='Physics-based Model')
-
-        # 예측 구간 계산
-
-        _, y_hybrid_lower, y_hybrid_upper = calculate_prediction_interval(np.log(x_vals), log_data_energy, log_hybrid_energy,
-                                                                          slope, intercept)
-        y_hybrid_lower_orig = np.exp(y_hybrid_lower)
-        y_hybrid_upper_orig = np.exp(y_hybrid_upper)
-
-        # 예측 구간 음영 영역 플롯
-        ax.fill_between(x_vals, y_hybrid_lower_orig, y_hybrid_upper_orig, color='green', alpha=0.2, label='_nolegend_')
+        line_phys, = ax.plot(x_vals, y_phys, color="#efc000ff", label='Physics-based Model')
+        line_hybrid, = ax.plot(x_vals, y_hybrid, color="#cd534cff", label='Hybrid Model(XGB)')
 
         # 예측 구간 계산 for Physics Model
         _, y_phys_lower, y_phys_upper = calculate_prediction_interval(
@@ -164,10 +154,19 @@ def figure5(vehicle_files, selected_cars):
         y_phys_upper_orig = np.exp(y_phys_upper)
 
         # 예측 구간 음영 영역 플롯 for Physics Model
-        ax.fill_between(x_vals, y_phys_lower_orig, y_phys_upper_orig, color='red', alpha=0.2, label='_nolegend_')
+        ax.fill_between(x_vals, y_phys_lower_orig, y_phys_upper_orig, color="#efc000ff", alpha=0.2, label='_nolegend_')
+
+        # 예측 구간 계산
+        _, y_hybrid_lower, y_hybrid_upper = calculate_prediction_interval(np.log(x_vals), log_data_energy, log_hybrid_energy,
+                                                                          slope, intercept)
+        y_hybrid_lower_orig = np.exp(y_hybrid_lower)
+        y_hybrid_upper_orig = np.exp(y_hybrid_upper)
+
+        # 예측 구간 음영 영역 플롯
+        ax.fill_between(x_vals, y_hybrid_lower_orig, y_hybrid_upper_orig, color="#cd534cff", alpha=0.2, label='_nolegend_')
 
         # 회색 패치를 생성하여 레전드에 추가
-        prediction_patch = mpatches.Patch(color='gray', alpha=0.2, label='Prediction Interval 90%')
+        prediction_patch = mpatches.Patch(color="#747678ff", alpha=0.2, label='Prediction Interval 90%')
 
         # MAPE calculations using the entire dataset
         mape_before = calculate_mape(np.array(all_energies_dict[selected_car]['data']),
@@ -201,7 +200,7 @@ def figure5(vehicle_files, selected_cars):
         ax.set_ylim(1, global_y_max * 1.05)
 
         # 레전드 항목을 수동으로 설정
-        handles = [line_hybrid, line_phys, prediction_patch]
+        handles = [line_phys, line_hybrid, prediction_patch]
         labels = [handle.get_label() for handle in handles]
         ax.legend(labels=labels,handles=handles, loc='upper left')
 
@@ -218,7 +217,10 @@ def figure5(vehicle_files, selected_cars):
         energies_hybrid = {}
 
         # 색상 범위를 조정하여
-        colors = cm.rainbow(np.linspace(0.2, 0.8, len(sample_files_dict)))
+        colors = [
+            "#0073c2ff", "#efc000ff", "#cd534cff", "#20854eff", "#925e9fff",
+            "#e18727ff", "#4dbbd5ff", "#ee4c97ff", "#7e6148ff", "#747678ff"
+        ]
 
         color_map = {}
         ax = axs[1, i]  # C and D are in the second row
@@ -261,7 +263,7 @@ def figure5(vehicle_files, selected_cars):
 
             # Scatter plot and regression line
             ax.scatter(filtered_data_energy, filtered_hybrid_energy, facecolors='none',
-                       edgecolors=color_map[id], label=f'{driver_label} Hybrid Model')
+                       edgecolors=color_map[id], label=f'{driver_label} Hybrid Model(XGB)')
 
             # 로그 스케일 회귀 분석
             log_data_energy = np.log(filtered_data_energy)

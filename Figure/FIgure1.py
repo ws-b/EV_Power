@@ -81,9 +81,9 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
             eff_range = official_efficiency[selected_car]
             if len(eff_range) == 2:
                 ylim = plt.gca().get_ylim()
-                plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
+                plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color="#E18727FF", alpha=0.3, hatch='/')
                 plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.8, 'EPA ECR',
-                         color='orange', fontsize=12, alpha=0.7)
+                         color="#E18727FF", fontsize=12, alpha=0.7)
 
     # Process the data for EV6 and Ioniq5
     dis_ecr_ev6 = process_energy_data(file_lists_ev6)
@@ -101,7 +101,7 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     # Plot for EV6
     plt.sca(ax1)  # Set current axis to ax1
     mean_value_ev6 = np.mean(dis_ecr_ev6)
-    sns.histplot(dis_ecr_ev6, bins=bins, color='gray', kde=False)
+    sns.histplot(dis_ecr_ev6, bins=bins, color="#747678ff", kde=False)
     plt.axvline(mean_value_ev6, color='red', linestyle='--')
     plt.text(mean_value_ev6 + 0.05, plt.gca().get_ylim()[1] * 0.9, f'Mean: {mean_value_ev6:.2f}', color='red', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
@@ -116,7 +116,7 @@ def figure1(file_lists_ev6, file_lists_ioniq5):
     # Plot for Ioniq5
     plt.sca(ax2)  # Set current axis to ax2
     mean_value_ioniq5 = np.mean(dis_ecr_ioniq5)
-    sns.histplot(dis_ecr_ioniq5, bins=bins, color='gray', kde=False)
+    sns.histplot(dis_ecr_ioniq5, bins=bins, color="#747678ff", kde=False)
     plt.axvline(mean_value_ioniq5, color='red', linestyle='--')
     plt.text(mean_value_ioniq5 + 0.05, plt.gca().get_ylim()[1] * 0.95, f'Mean: {mean_value_ioniq5:.2f}', color='red', fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')

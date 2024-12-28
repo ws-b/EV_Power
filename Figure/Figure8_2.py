@@ -155,17 +155,17 @@ for idx, csv_file in enumerate(csv_files):
 
     # 속도: km/h로 변환
     speed_kmh = df['speed'] * 3.6
-    ax_speed.plot(df['elapsed_time_min'], speed_kmh, color='tab:blue', label='Speed')
+    ax_speed.plot(df['elapsed_time_min'], speed_kmh, color="#0073C2FF", label='Speed')
 
     # 가속도
-    ax_accel.plot(df['elapsed_time_min'], df['acceleration'], color='tab:red', label='Acceleration')
+    ax_accel.plot(df['elapsed_time_min'], df['acceleration'], color="#EFC000FF", label='Acceleration')
 
     ax_speed.set_xlabel('Time (minutes)')
-    ax_speed.set_ylabel('Speed (km/h)', color='tab:blue')
-    ax_accel.set_ylabel('Acceleration (m/s²)', color='tab:red')
+    ax_speed.set_ylabel('Speed (km/h)', color="#0073C2FF")
+    ax_accel.set_ylabel('Acceleration (m/s²)', color="#EFC000FF")
 
-    ax_speed.tick_params(axis='y', labelcolor='tab:blue')
-    ax_accel.tick_params(axis='y', labelcolor='tab:red')
+    ax_speed.tick_params(axis='y', labelcolor="#0073C2FF")
+    ax_accel.tick_params(axis='y', labelcolor="#EFC000FF")
 
     ax_speed.set_title('Speed and Acceleration')
 
@@ -184,8 +184,8 @@ for idx, csv_file in enumerate(csv_files):
     ax_power = axes[subplot_start + 2]
 
     # 파워 플롯
-    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color='tab:red', label='Physcis Model', alpha=0.7)
-    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color='tab:green', label='Hybrid Model', alpha=0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color="#CD534CFF", label='Physcis Model', alpha=0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color="#20854EFF", label='Hybrid Model(XGB)', alpha=0.7)
 
     ax_power.set_xlabel('Time (minutes)')
     ax_power.set_ylabel('Power (kW)')
@@ -226,8 +226,8 @@ for idx, csv_file in enumerate(csv_files):
     energy_hybrid = energy_hybrid[:len(df)]
 
     # 누적 에너지 플롯
-    ax_energy.plot(df['elapsed_time_min'], energy_phys, color='tab:red', label='Physics Model', alpha=0.7)
-    ax_energy.plot(df['elapsed_time_min'], energy_hybrid, color='tab:green', label='Hybrid Model', alpha=0.7)
+    ax_energy.plot(df['elapsed_time_min'], energy_phys, color="#CD534CFF", label='Physics Model', alpha=0.7)
+    ax_energy.plot(df['elapsed_time_min'], energy_hybrid, color="#20854EFF", label='Hybrid Model(XGB)', alpha=0.7)
 
     ax_energy.set_xlabel('Time (minutes)')
     ax_energy.set_ylabel('Energy (kWh)')

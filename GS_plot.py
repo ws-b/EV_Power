@@ -9,6 +9,7 @@ import random
 import shap
 from scipy.stats import binned_statistic_2d
 from matplotlib.collections import LineCollection
+from matplotlib.colors import Normalize, LinearSegmentedColormap
 from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
 from scipy.interpolate import griddata
 from scipy.integrate import cumulative_trapezoid
@@ -936,6 +937,283 @@ def plot_shap_values(model, X_train, feature_names, selected_car, save_path=None
     plt.show()
 
 
+# def plot_composite_contour(
+#         X_train, y_pred_train,
+#         X_test, y_pred_test1, y_pred_test2,
+#         scaler, selected_car,
+#         terminology1='Train Residual',
+#         terminology2='Residual[1]',
+#         terminology3='Residual[2]',
+#         num_grids=30,
+#         min_count=10,
+#         save_directory=r"C:\Users\BSL\Desktop\Figures",
+# ):
+#     """
+#     Creates a composite figure with three plots labeled A, B, and C,
+#     displaying the mean values without interpolation and adjusting the
+#     axis limits to exclude masked areas. An outline is added along the bin borders
+#     to distinguish areas with data from those without, with transparency set to 0.7.
+#
+#     Parameters:
+#     - X_train (np.ndarray): Training features with two columns ['speed', 'acceleration'].
+#     - y_pred_train (np.ndarray): Predicted values for training data.
+#     - X_test (np.ndarray): Test features with two columns ['speed', 'acceleration'].
+#     - y_pred_test1 (np.ndarray): First set of predicted values for test data.
+#     - y_pred_test2 (np.ndarray): Second set of predicted values for test data.
+#     - scaler (sklearn.preprocessing scaler): Scaler used for inverse transformation.
+#     - selected_car (str): Identifier for the selected car.
+#     - terminology1 (str): Title for the first subplot.
+#     - terminology2 (str): Title for the second subplot.
+#     - terminology3 (str): Title for the third subplot.
+#     - num_grids (int): Number of grid points for the contour.
+#     - min_count (int): Minimum number of points per grid cell to display.
+#     - save_directory (str): Directory to save the composite figure.
+#     """
+#
+#     # Ensure save directory exists
+#     os.makedirs(save_directory, exist_ok=True)
+#
+#     # Function to compute 'stat' without plotting
+#     def compute_stat(X, y_pred):
+#         if X.shape[1] != 2:
+#             raise ValueError("Error: X should have 2 columns.")
+#
+#         # Inverse transform to original scale
+#         X_orig = scaler.inverse_transform(
+#             np.hstack([X, np.zeros((X.shape[0], scaler.scale_.shape[0] - 2))])
+#         )
+#
+#         # Convert speed to km/h (assuming first feature is 'speed')
+#         X_orig[:, 0] *= 3.6
+#
+#         # Define the edges of the grid
+#         x_edges = np.linspace(X_orig[:, 0].min(), X_orig[:, 0].max(), num_grids + 1)
+#         y_edges = np.linspace(X_orig[:, 1].min(), X_orig[:, 1].max(), num_grids + 1)
+#
+#         # Convert residuals to kilowatts
+#         y_pred_kW = y_pred / 1000
+#
+#         # Compute the mean of y_pred in each grid cell
+#         stat, _, _, _ = binned_statistic_2d(
+#             X_orig[:, 0], X_orig[:, 1], y_pred_kW, statistic='mean', bins=[x_edges, y_edges]
+#         )
+#
+#         # Compute density (number of points per grid cell)
+#         count_stat, _, _, _ = binned_statistic_2d(
+#             X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
+#         )
+#
+#         # Mask cells with fewer than min_count observations
+#         mask = count_stat < min_count
+#         stat = np.ma.array(stat, mask=mask)
+#
+#         return stat, x_edges, y_edges
+#
+#     # Compute 'stat' for all datasets to find global vmin and vmax
+#     stats = []
+#     x_edges_list = []
+#     y_edges_list = []
+#     configs = [
+#         {'X': X_train, 'y_pred': y_pred_train},
+#         {'X': X_test, 'y_pred': y_pred_test1},
+#         {'X': X_test, 'y_pred': y_pred_test2},
+#     ]
+#     for config in configs:
+#         stat, x_edges, y_edges = compute_stat(config['X'], config['y_pred'])
+#         stats.append(stat)
+#         x_edges_list.append(x_edges)
+#         y_edges_list.append(y_edges)
+#
+#     # Concatenate all stats to find global min and max, ignoring masked values
+#     all_data = np.ma.concatenate([stat.compressed() for stat in stats])
+#
+#     global_vmin = all_data.min()
+#     global_vmax = all_data.max()
+#
+#     # norm 정의: vcenter=0, vmin, vmax를 유지
+#     norm = TwoSlopeNorm(vcenter=0, vmin=global_vmin, vmax=global_vmax)
+#
+#     # Now define the modified create_contour function
+#     def create_contour(ax, X, y_pred, terminology, x_edges, y_edges, vmin, vmax):
+#         if X.shape[1] != 2:
+#             raise ValueError("Error: X should have 2 columns.")
+#
+#         # Inverse transform to original scale
+#         X_orig = scaler.inverse_transform(
+#             np.hstack([X, np.zeros((X.shape[0], scaler.scale_.shape[0] - 2))])
+#         )
+#
+#         # Convert speed to km/h (assuming first feature is 'speed')
+#         X_orig[:, 0] *= 3.6
+#
+#         # Convert residuals to kilowatts
+#         y_pred_kW = y_pred / 1000  # Assuming y_pred is in watts
+#
+#         # Compute the mean of y_pred in each grid cell
+#         stat, _, _, _ = binned_statistic_2d(
+#             X_orig[:, 0], X_orig[:, 1], y_pred_kW, statistic='mean', bins=[x_edges, y_edges]
+#         )
+#
+#         # Compute density (number of points per grid cell)
+#         count_stat, _, _, _ = binned_statistic_2d(
+#             X_orig[:, 0], X_orig[:, 1], None, statistic='count', bins=[x_edges, y_edges]
+#         )
+#
+#         # Mask cells with fewer than min_count observations
+#         mask = count_stat < min_count
+#         stat = np.ma.array(stat, mask=mask)
+#
+#         # Create a meshgrid for plotting
+#         Xc, Yc = np.meshgrid(x_edges, y_edges)
+#
+#         # Use shading='flat' to match dimensions
+#         pc = ax.pcolormesh(
+#             Xc, Yc, stat.T, cmap='RdBu_r', shading='flat',
+#             norm=norm, edgecolors='face', linewidths=0
+#         )
+#
+#         # 경계선을 저장할 리스트 초기화
+#         boundary_lines = []
+#
+#         nx, ny = stat.shape
+#
+#         for i in range(nx):
+#             for j in range(ny):
+#                 if stat.mask[i, j]:
+#                     continue  # 마스킹된 bin은 건너뜁니다
+#
+#                 # 현재 bin의 좌표
+#                 x_left = x_edges[i]
+#                 x_right = x_edges[i + 1]
+#                 y_bottom = y_edges[j]
+#                 y_top = y_edges[j + 1]
+#
+#                 # 상하좌우 인접 bin과의 경계 검사
+#
+#                 # 왼쪽 경계
+#                 if i == 0 or stat.mask[i - 1, j]:
+#                     boundary_lines.append([(x_left, y_bottom), (x_left, y_top)])
+#
+#                 # 오른쪽 경계
+#                 if i == nx - 1 or stat.mask[i + 1, j]:
+#                     boundary_lines.append([(x_right, y_bottom), (x_right, y_top)])
+#
+#                 # 아래쪽 경계
+#                 if j == 0 or stat.mask[i, j - 1]:
+#                     boundary_lines.append([(x_left, y_bottom), (x_right, y_bottom)])
+#
+#                 # 위쪽 경계
+#                 if j == ny - 1 or stat.mask[i, j + 1]:
+#                     boundary_lines.append([(x_left, y_top), (x_right, y_top)])
+#
+#         # 중복된 선 제거
+#         boundary_lines = list(set([tuple(map(tuple, line)) for line in boundary_lines]))
+#
+#         # LineCollection으로 경계선 그리기
+#         lc = LineCollection(boundary_lines, colors='black', linewidths=1, alpha=0.4)
+#         ax.add_collection(lc)
+#
+#         # Adjust axis limits to exclude masked areas
+#         if not np.all(mask):
+#             # Find the indices where data is not masked
+#             unmasked_indices = np.where(~stat.mask)
+#
+#             # Get the corresponding x and y values
+#             x_unmasked = Xc[:-1, :-1][unmasked_indices[1], unmasked_indices[0]]
+#             y_unmasked = Yc[:-1, :-1][unmasked_indices[1], unmasked_indices[0]]
+#
+#             # Set axis limits
+#             ax.set_xlim(x_unmasked.min(), x_unmasked.max() + 5)
+#             ax.set_ylim(y_unmasked.min() - 0.5, y_unmasked.max() + 0.5)
+#
+#         ax.set_xlabel('Speed (km/h)', fontsize=12)
+#         ax.set_ylabel('Acceleration (m/s²)', fontsize=12)
+#         ax.set_title(f'{terminology}', fontsize=14)
+#
+#         return pc
+#
+#     # Create a figure with 1 row and 3 columns
+#     fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
+#
+#     # Set font sizes using the scaling factor
+#     scaling = 1.25
+#     plt.rcParams['font.size'] = 10 * scaling  # Base font size
+#     plt.rcParams['axes.titlesize'] = 12 * scaling  # Title font size
+#     plt.rcParams['axes.labelsize'] = 10 * scaling  # Axis label font size
+#     plt.rcParams['xtick.labelsize'] = 10 * scaling  # X-axis tick label font size
+#     plt.rcParams['ytick.labelsize'] = 10 * scaling  # Y-axis tick label font size
+#     plt.rcParams['legend.fontsize'] = 10 * scaling  # Legend font size
+#     plt.rcParams['legend.title_fontsize'] = 10 * scaling  # Legend title font size
+#     plt.rcParams['figure.titlesize'] = 12 * scaling  # Figure title font size
+#
+#     # Define label mapping based on selected_car
+#     if selected_car == 'Ioniq5' or selected_car == 'NiroEV' or selected_car == 'GV60':
+#         labels = ['D', 'E', 'F']
+#     else:
+#         labels = ['A', 'B', 'C']
+#
+#     # Define plot configurations
+#     plot_configs = [
+#         {
+#             'X': X_train,
+#             'y_pred': y_pred_train,
+#             'terminology': terminology1,
+#             'label': labels[0],
+#             'x_edges': x_edges_list[0],
+#             'y_edges': y_edges_list[0],
+#         },
+#         {
+#             'X': X_test,
+#             'y_pred': y_pred_test1,
+#             'terminology': terminology2,
+#             'label': labels[1],
+#             'x_edges': x_edges_list[1],
+#             'y_edges': y_edges_list[1],
+#         },
+#         {
+#             'X': X_test,
+#             'y_pred': y_pred_test2,
+#             'terminology': terminology3,
+#             'label': labels[2],
+#             'x_edges': x_edges_list[2],
+#             'y_edges': y_edges_list[2],
+#         }
+#     ]
+#
+#     # List to store pcolormesh objects for the colorbar
+#     pc_objects = []
+#
+#     for ax, config in zip(axes, plot_configs):
+#         pc = create_contour(
+#             ax, config['X'], config['y_pred'], config['terminology'],
+#             x_edges=config['x_edges'], y_edges=config['y_edges'],
+#             vmin=global_vmin, vmax=global_vmax
+#         )
+#         pc_objects.append(pc)
+#
+#         # Add label (A, B, C) to the subplot
+#         ax.text(
+#             -0.1, 1.05, config['label'],
+#             transform=ax.transAxes,
+#             fontsize=14 * scaling,
+#             weight='bold',
+#             ha='left',
+#             va='bottom'
+#         )
+#
+#     # Add a single colorbar for all subplots
+#     cbar = fig.colorbar(pc_objects[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
+#     cbar.set_label('Residual [kW]')
+#     # 컬러바의 틱을 수동으로 설정하여 vmin, 0, vmax를 포함
+#     cbar.set_ticks([global_vmin, 0, global_vmax])
+#     cbar.set_ticklabels([f'{int(global_vmin)}', '0', f'{int(global_vmax)}'])
+#
+#     # Save the composite figure
+#     save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")
+#     plt.savefig(save_path, dpi=300, bbox_inches='tight')
+#
+#     plt.show()
+
 def plot_composite_contour(
         X_train, y_pred_train,
         X_test, y_pred_test1, y_pred_test2,
@@ -952,21 +1230,6 @@ def plot_composite_contour(
     displaying the mean values without interpolation and adjusting the
     axis limits to exclude masked areas. An outline is added along the bin borders
     to distinguish areas with data from those without, with transparency set to 0.7.
-
-    Parameters:
-    - X_train (np.ndarray): Training features with two columns ['speed', 'acceleration'].
-    - y_pred_train (np.ndarray): Predicted values for training data.
-    - X_test (np.ndarray): Test features with two columns ['speed', 'acceleration'].
-    - y_pred_test1 (np.ndarray): First set of predicted values for test data.
-    - y_pred_test2 (np.ndarray): Second set of predicted values for test data.
-    - scaler (sklearn.preprocessing scaler): Scaler used for inverse transformation.
-    - selected_car (str): Identifier for the selected car.
-    - terminology1 (str): Title for the first subplot.
-    - terminology2 (str): Title for the second subplot.
-    - terminology3 (str): Title for the third subplot.
-    - num_grids (int): Number of grid points for the contour.
-    - min_count (int): Minimum number of points per grid cell to display.
-    - save_directory (str): Directory to save the composite figure.
     """
 
     # Ensure save directory exists
@@ -1029,8 +1292,32 @@ def plot_composite_contour(
     global_vmin = all_data.min()
     global_vmax = all_data.max()
 
-    # norm 정의: vcenter=0, vmin, vmax를 유지
-    norm = TwoSlopeNorm(vcenter=0, vmin=global_vmin, vmax=global_vmax)
+    # 0이 차지하는 위치 비율 계산
+    # 범위: global_vmin ~ global_vmax
+    # 0은 global_vmin보다 (0 - global_vmin) 만큼 위쪽
+    zero_point = (0 - global_vmin) / (global_vmax - global_vmin)
+    # zero_point이 [0,1] 범위 내에 있어야 함. (일반적으로 그럴 것이지만 혹시 모를 경우)
+    zero_point = min(max(zero_point, 0), 1)
+
+    # RdBu_r 컬러맵에서 선택한 색상 코드
+    rdbu_r_colors = {
+        'red': '#67001F',  # 진한 빨간색
+        'white': '#FFFFFF',  # 흰색
+        'blue': '#053061'  # 진한 파란색
+    }
+
+    # zero_point에 흰색을 할당하고, 좌우로 RdBu_r의 색상 사용
+    cmap = LinearSegmentedColormap.from_list(
+        'CustomRdBuWhite',
+        [
+            (0.0, rdbu_r_colors['blue']),  # global_vmin
+            (zero_point, rdbu_r_colors['white']),  # zero_point 지점에서 흰색
+            (1.0, rdbu_r_colors['red'])  # global_vmax
+        ]
+    )
+
+    # Normalize 사용
+    norm = Normalize(vmin=global_vmin, vmax=global_vmax)
 
     # Now define the modified create_contour function
     def create_contour(ax, X, y_pred, terminology, x_edges, y_edges, vmin, vmax):
@@ -1065,9 +1352,8 @@ def plot_composite_contour(
         # Create a meshgrid for plotting
         Xc, Yc = np.meshgrid(x_edges, y_edges)
 
-        # Use shading='flat' to match dimensions
         pc = ax.pcolormesh(
-            Xc, Yc, stat.T, cmap='RdBu_r', shading='flat',
+            Xc, Yc, stat.T, cmap=cmap, shading='flat',
             norm=norm, edgecolors='face', linewidths=0
         )
 
@@ -1190,7 +1476,7 @@ def plot_composite_contour(
         )
         pc_objects.append(pc)
 
-        # Add label (A, B, C) to the subplot
+        # Add label (A, B, C or D, E, F) to the subplot
         ax.text(
             -0.1, 1.05, config['label'],
             transform=ax.transAxes,
@@ -1203,9 +1489,8 @@ def plot_composite_contour(
     # Add a single colorbar for all subplots
     cbar = fig.colorbar(pc_objects[0], ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     cbar.set_label('Residual [kW]')
-    # 컬러바의 틱을 수동으로 설정하여 vmin, 0, vmax를 포함
-    cbar.set_ticks([global_vmin, 0, global_vmax])
-    cbar.set_ticklabels([f'{int(global_vmin)}', '0', f'{int(global_vmax)}'])
+    # cbar.set_ticks([global_vmin, 0, global_vmax])
+    # cbar.set_ticklabels([f'{int(global_vmin)}', '0', f'{int(global_vmax)}'])
 
     # Save the composite figure
     save_path = os.path.join(save_directory, f"Figure7_{selected_car}_Composite.png")

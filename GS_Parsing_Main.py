@@ -19,16 +19,16 @@ def pre_process():
         choice = int(choice)
 
         if choice == 1:
-            source_paths = r"C:\Users\BSL\Desktop\BMS+ALTITUDE 9월분 6개"
-            destination_root = r"D:\SamsungSTF\Data\GSmbiz\BMS_Data"
+            source_paths = r"C:\Users\BSL\Desktop\새 폴더" # 옮길 파일이 들어있는 폴더
+            destination_root = r"D:\SamsungSTF\Data\GSmbiz\BMS_Data" # 옮길 폴더
             process_device_folders(source_paths, destination_root, False)
             process_device_folders(source_paths, destination_root, True)
             delete_zero_kb_files(destination_root)
             break
 
         elif choice == 2:
-            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'
-            save_path = r'D:\SamsungSTF\Processed_Data/Merged_DF'
+            start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data' # Raw Data 폴더
+            save_path = r'D:\SamsungSTF\Processed_Data/Merged_DF'# 월별 데이터 병합 폴더
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
@@ -37,8 +37,8 @@ def pre_process():
             break
 
         elif choice == 3:
-            start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged_DF')
-            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_DF')
+            start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
+            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_GPS')
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
             process_files_trip_by_trip(start_path, save_path)

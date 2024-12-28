@@ -101,9 +101,9 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
             eff_range = official_efficiency[selected_car]
             if len(eff_range) == 2:
                 ylim = plt.gca().get_ylim()
-                plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color='orange', alpha=0.3, hatch='/')
+                plt.fill_betweenx(ylim, eff_range[0], eff_range[1], color="#E18727FF", alpha=0.3, hatch='/')
                 plt.text(eff_range[1] + 0.15, plt.gca().get_ylim()[1] * 0.6, 'EPA Efficiency',
-                         color='orange', fontsize=12, alpha=0.9)
+                         color="#E18727FF", fontsize=12, alpha=0.9)
 
     # Process the data for EV6 and Ioniq5
     dis_energies_ev6 = process_energy_data(file_lists_ev6)
@@ -124,20 +124,20 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     mean_value_ev6_data = np.mean(dis_energies_ev6[1])
     mean_value_ev6_hybrid = np.mean(dis_energies_ev6[2])
 
-    sns.histplot(dis_energies_ev6[1], bins=bins, color='gray', kde=False, label='Data', alpha=0.5)
-    sns.histplot(dis_energies_ev6[0], bins=bins, color='blue', kde=False, label='Physics-based Model', alpha=0.5)
-    sns.histplot(dis_energies_ev6[2], bins=bins, color='green', kde=False, label='Hybrid Model', alpha=0.5)
+    sns.histplot(dis_energies_ev6[1], bins=bins, color="#747678FF", kde=False, label='Data', alpha=0.5)
+    sns.histplot(dis_energies_ev6[0], bins=bins, color="#0073C2FF", kde=False, label='Physics-based Model', alpha=0.5)
+    sns.histplot(dis_energies_ev6[2], bins=bins, color="#EFC000FF", kde=False, label='Hybrid Model(XGB)', alpha=0.5)
 
-    plt.axvline(mean_value_ev6_phys, color='blue', linestyle='--')
-    plt.axvline(mean_value_ev6_data, color='gray', linestyle='--')
-    plt.axvline(mean_value_ev6_hybrid, color='green', linestyle='--')
+    plt.axvline(mean_value_ev6_phys, color="#0073C2FF", linestyle='--')
+    plt.axvline(mean_value_ev6_data, color="#747678FF", linestyle='--')
+    plt.axvline(mean_value_ev6_hybrid, color="#EFC000FF", linestyle='--')
 
     plt.text(mean_value_ev6_data + 0.05, plt.gca().get_ylim()[1] * 0.77, f'Mean: {mean_value_ev6_data:.2f}',
-             color='gray', fontsize=12, alpha=0.7)
+             color="#747678FF", fontsize=12, alpha=0.7)
     plt.text(mean_value_ev6_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ev6_hybrid:.2f}',
-             color='green', fontsize=12, alpha=0.7)
+             color="#EFC000FF", fontsize=12, alpha=0.7)
     plt.text(mean_value_ev6_phys + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ev6_phys:.2f}',
-             color='blue', fontsize=12, alpha=0.7)
+             color="#0073C2FF", fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim((50, 400))
     plt.ylim(ylim[selected_cars[0]])
@@ -154,20 +154,20 @@ def figure6(file_lists_ev6, file_lists_ioniq5):
     mean_value_ioniq5_data = np.mean(dis_energies_ioniq5[1])
     mean_value_ioniq5_hybrid = np.mean(dis_energies_ioniq5[2])
 
-    sns.histplot(dis_energies_ioniq5[1], bins=bins, color='gray', kde=False, label='Data', alpha=0.5)
-    sns.histplot(dis_energies_ioniq5[0], bins=bins, color='blue', kde=False, label='Physics-based Model', alpha=0.5)
-    sns.histplot(dis_energies_ioniq5[2], bins=bins, color='green', kde=False, label='Hybrid Model', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[1], bins=bins, color="#747678FF", kde=False, label='Data', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[0], bins=bins, color="#0073C2FF", kde=False, label='Physics-based Model', alpha=0.5)
+    sns.histplot(dis_energies_ioniq5[2], bins=bins, color="#EFC000FF", kde=False, label='Hybrid Model(XGB)', alpha=0.5)
 
-    plt.axvline(mean_value_ioniq5_phys, color='blue', linestyle='--')
-    plt.axvline(mean_value_ioniq5_data, color='gray', linestyle='--')
-    plt.axvline(mean_value_ioniq5_hybrid, color='green', linestyle='--')
+    plt.axvline(mean_value_ioniq5_phys, color="#0073C2FF", linestyle='--')
+    plt.axvline(mean_value_ioniq5_data, color="#747678FF", linestyle='--')
+    plt.axvline(mean_value_ioniq5_hybrid, color="#EFC000FF", linestyle='--')
 
     plt.text(mean_value_ioniq5_data + 0.05, plt.gca().get_ylim()[1] * 0.77, f'Mean: {mean_value_ioniq5_data:.2f}',
-             color='gray', fontsize=12, alpha=0.7)
+             color="#747678FF", fontsize=12, alpha=0.7)
     plt.text(mean_value_ioniq5_hybrid + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ioniq5_hybrid:.2f}',
-             color='green', fontsize=12, alpha=0.7)
+             color="#EFC000FF", fontsize=12, alpha=0.7)
     plt.text(mean_value_ioniq5_phys + 0.05, plt.gca().get_ylim()[1] * 0.45, f'Mean: {mean_value_ioniq5_phys:.2f}',
-             color='blue', fontsize=12, alpha=0.7)
+             color="#0073C2FF", fontsize=12, alpha=0.7)
     plt.xlabel('ECR(Wh/km)')
     plt.xlim(50, 400)
     plt.ylim(ylim[selected_cars[1]])

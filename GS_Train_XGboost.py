@@ -5,7 +5,7 @@ import numpy as np
 import xgboost as xgb
 import optuna
 import matplotlib.pyplot as plt
-from GS_Functions import calculate_rrmse, calculate_rmse, calculate_mape
+from GS_Functions import calculate_mape
 from scipy.integrate import cumulative_trapezoid
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -15,82 +15,80 @@ from sklearn.metrics import mean_squared_error
 from optuna.trial import TrialState
 
 # ----------------------------
-# 데이터 처리 함수
+# 전역 변수 / 상수 정의
 # ----------------------------
-def process_single_file(file):
-    try:
-        data = pd.read_csv(file)
-        if 'Power_phys' in data.columns and 'Power_data' in data.columns:
-            data['Residual'] = data['Power_data'] - data['Power_phys']
-            return data[['time', 'speed', 'acceleration', 'ext_temp', 'Residual', 'Power_phys', 'Power_data']]
-    except Exception as e:
-        print(f"Error processing file {file}: {e}")
-    return None
+SPEED_MIN = 0 / 3.6
+SPEED_MAX = 230 / 3.6
+ACCELERATION_MIN = -15
+ACCELERATION_MAX = 9
+TEMP_MIN = -30
+TEMP_MAX = 50
+ACCEL_STD_MAX = 10
+SPEED_STD_MAX = 30
 
-def process_files(files, scaler=None):
-    SPEED_MIN = 0 / 3.6
-    SPEED_MAX = 230 / 3.6
-    ACCELERATION_MIN = -15
-    ACCELERATION_MAX = 9
-    TEMP_MIN = -30
-    TEMP_MAX = 50
+window_sizes = [5]
 
-    # 샘플링 레이트 0.5Hz -> 1샘플 = 2초
-    # window_sizes = [5, 15, 30, 60] # 샘플 개수
-    # 실제 시간으로는 각각 10초, 30초, 60초, 120초에 해당
-    window_sizes = [5, 15, 30, 60]
-
+def generate_feature_columns():
     feature_cols = ['speed', 'acceleration', 'ext_temp']
     for w in window_sizes:
-        time_window = w * 2  # 실제 초 단위
+        time_window = w * 2
         feature_cols.extend([
             f'mean_accel_{time_window}',
             f'std_accel_{time_window}',
             f'mean_speed_{time_window}',
             f'std_speed_{time_window}'
         ])
+    return feature_cols
 
-    df_list = []
-    with ProcessPoolExecutor() as executor:
-        future_to_file = {executor.submit(process_single_file, file): file for file in files}
-        for future in as_completed(future_to_file):
-            file = future_to_file[future]
-            data = future.result()
-            if data is not None:
-                data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-                data['trip_id'] = files.index(file)
+FEATURE_COLS = generate_feature_columns()
 
-                # rolling 계산
-                for w in window_sizes:
-                    time_window = w * 2
-                    data[f'mean_accel_{time_window}'] = data['acceleration'].rolling(window=w, min_periods=1).mean().bfill()
-                    data[f'std_accel_{time_window}'] = data['acceleration'].rolling(window=w, min_periods=1).std().bfill().fillna(0)
-                    data[f'mean_speed_{time_window}'] = data['speed'].rolling(window=w, min_periods=1).mean().bfill()
-                    data[f'std_speed_{time_window}'] = data['speed'].rolling(window=w, min_periods=1).std().bfill().fillna(0)
-                df_list.append(data)
+# ----------------------------
+# 파일 처리 함수 (두번째 코드 유사 로직 적용)
+# ----------------------------
+def process_single_file(file, trip_id):
+    """
+    파일 하나를 읽어 해당 파일이 하나의 trip으로 가정하고,
+    rolling feature를 계산한 뒤 데이터를 반환.
+    """
+    try:
+        data = pd.read_csv(file)
+        if 'Power_phys' in data.columns and 'Power_data' in data.columns:
+            data['Residual'] = data['Power_data'] - data['Power_phys']
+            data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
 
-    if not df_list:
-        raise ValueError("No valid data files found. Please check the input files and try again.")
+            # rolling feature 계산
+            for w in window_sizes:
+                time_window = w * 2
+                data[f'mean_accel_{time_window}'] = data['acceleration'].rolling(window=w, min_periods=1).mean().bfill()
+                data[f'std_accel_{time_window}'] = data['acceleration'].rolling(window=w, min_periods=1).std().bfill().fillna(0)
+                data[f'mean_speed_{time_window}'] = data['speed'].rolling(window=w, min_periods=1).mean().bfill()
+                data[f'std_speed_{time_window}'] = data['speed'].rolling(window=w, min_periods=1).std().bfill().fillna(0)
 
-    full_data = pd.concat(df_list, ignore_index=True)
+            data['trip_id'] = trip_id
+            return data
+    except Exception as e:
+        print(f"Error processing file {file}: {e}")
+    return None
 
+def scale_data(df, scaler=None):
+    """
+    FEATURE_COLS에 대해 MinMaxScaling.
+    """
     if scaler is None:
-        ACCEL_STD_MAX = 10
-        SPEED_STD_MAX = 30
+        min_vals = [SPEED_MIN, ACCELERATION_MIN, TEMP_MIN]
+        max_vals = [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX]
         window_val_min = [ACCELERATION_MIN, 0, SPEED_MIN, 0]
         window_val_max = [ACCELERATION_MAX, ACCEL_STD_MAX, SPEED_MAX, SPEED_STD_MAX]
-        min_vals = [SPEED_MIN, ACCELERATION_MIN, TEMP_MIN]
+
         for w in window_sizes:
             min_vals.extend(window_val_min)
-        max_vals = [SPEED_MAX, ACCELERATION_MAX, TEMP_MAX]
-        for w in window_sizes:
             max_vals.extend(window_val_max)
 
         scaler = MinMaxScaler(feature_range=(0, 1))
-        scaler.fit(pd.DataFrame([min_vals, max_vals], columns=feature_cols))
+        scaler.fit(pd.DataFrame([min_vals, max_vals], columns=FEATURE_COLS))
 
-    full_data[feature_cols] = scaler.transform(full_data[feature_cols])
-    return full_data, scaler
+    df[FEATURE_COLS] = scaler.transform(df[FEATURE_COLS])
+    return df, scaler
 
 def integrate_and_compare(trip_data):
     trip_data = trip_data.sort_values(by='time')
@@ -104,9 +102,9 @@ def integrate_and_compare(trip_data):
     return hybrid_integral, data_integral
 
 # ----------------------------
-# 하이퍼파라미터 튜닝용 CV Objective
+# 파일기반 K-Fold용 CV Objective
 # ----------------------------
-def cv_objective(trial, X_train, y_train):
+def cv_objective(trial, train_files, scaler):
     # 하이퍼파라미터 샘플링
     reg_lambda = trial.suggest_float('reg_lambda', 1e-6, 1e5, log=True)
     reg_alpha = trial.suggest_float('reg_alpha', 1e-6, 1e5, log=True)
@@ -125,11 +123,34 @@ def cv_objective(trial, X_train, y_train):
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     rmse_list = []
-    for train_idx, val_idx in kf.split(X_train):
-        X_tr = X_train.iloc[train_idx]
-        y_tr = y_train.iloc[train_idx]
-        X_val = X_train.iloc[val_idx]
-        y_val = y_train.iloc[val_idx]
+    train_files = np.array(train_files)
+
+    for fold_i, (train_idx, val_idx) in enumerate(kf.split(train_files)):
+        fold_train_files = train_files[train_idx]
+        fold_val_files = train_files[val_idx]
+
+        fold_train_data_list = []
+        for i, f in enumerate(fold_train_files):
+            d = process_single_file(f, trip_id=i)
+            if d is not None:
+                fold_train_data_list.append(d)
+        fold_train_data = pd.concat(fold_train_data_list, ignore_index=True)
+
+        fold_val_data_list = []
+        for j, f in enumerate(fold_val_files):
+            d = process_single_file(f, trip_id=1000 + j)
+            if d is not None:
+                fold_val_data_list.append(d)
+        fold_val_data = pd.concat(fold_val_data_list, ignore_index=True)
+
+        # 스케일링
+        fold_train_data_scaled, _ = scale_data(fold_train_data.copy(), scaler)
+        fold_val_data_scaled, _ = scale_data(fold_val_data.copy(), scaler)
+
+        X_tr = fold_train_data_scaled[FEATURE_COLS]
+        y_tr = fold_train_data_scaled['Residual']
+        X_val = fold_val_data_scaled[FEATURE_COLS]
+        y_val = fold_val_data_scaled['Residual']
 
         dtrain = xgb.DMatrix(X_tr, label=y_tr)
         dval = xgb.DMatrix(X_val, label=y_val)
@@ -147,89 +168,81 @@ def cv_objective(trial, X_train, y_train):
         rmse = np.sqrt(mean_squared_error(y_val, preds))
         rmse_list.append(rmse)
 
-    # CVE = 5개 fold RMSE의 평균
     cve = np.mean(rmse_list)
     return cve
 
-
-def tune_hyperparameters(X_train, y_train):
-    """
-    하이퍼파라미터를 튜닝하고, Bayesian Optimization 과정 중 CVE 변화를 시각화한 후
-    지정된 경로에 그래프를 저장합니다.
-
-    Parameters:
-        X_train (pd.DataFrame or np.ndarray): 학습 데이터의 특성
-        y_train (pd.Series or np.ndarray): 학습 데이터의 타겟 변수
-
-    Returns:
-        dict: 최적의 하이퍼파라미터
-    """
+def tune_hyperparameters(train_files, scaler, selected_car, plot):
     # Optuna 스터디 생성
     study = optuna.create_study(direction='minimize', pruner=optuna.pruners.MedianPruner())
-    study.optimize(lambda trial: cv_objective(trial, X_train, y_train), n_trials=100)
+    study.optimize(lambda trial: cv_objective(trial, train_files, scaler), n_trials=100)
 
-    # 최적 trial 출력
     print(f"Best trial: {study.best_trial.params}")
+    if plot:
+        # 모든 trial의 결과를 DataFrame으로 변환
+        trials_df = study.trials_dataframe()
 
-    # 완료된 trials만 선택
-    complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
-    trial_numbers = [t.number for t in complete_trials]
-    trial_values = [t.value for t in complete_trials]
+        # CSV 파일로 내보내기
+        trials_save_path = r"C:\Users\BSL\Desktop\Results"
+        trials_save = os.path.join(trials_save_path, f"{selected_car}_optuna_trials_results.csv")
+        trials_df.to_csv(trials_save, index=False)
+        print("All trial results have been saved to optuna_trials_results.csv")
 
-    # 그래프 생성
-    plt.figure(figsize=(10, 6))
-    plt.plot(trial_numbers, trial_values, marker='o', linestyle='-', label='Trials')
+        # 완료된 trials만 선택
+        complete_trials = [t for t in study.trials if t.state == TrialState.COMPLETE]
+        trial_numbers = [t.number for t in complete_trials]
+        trial_values = [t.value for t in complete_trials]
 
-    # 최적 trial 정보 추출
-    best_trial = study.best_trial
-    best_trial_number = best_trial.number
-    best_trial_value = best_trial.value
+        # 그래프 생성
+        plt.figure(figsize=(10, 6))
+        plt.plot(trial_numbers, trial_values, marker='o', linestyle='-', label='Trials')
 
-    # 최적 trial을 빨간색으로 강조
-    plt.plot(best_trial_number, best_trial_value, marker='o', markersize=12, color='red', label='Best Trial')
+        # 최적 trial 정보 추출
+        best_trial = study.best_trial
+        best_trial_number = best_trial.number
+        best_trial_value = best_trial.value
 
-    # 축 및 제목 설정
-    plt.xlabel('Trial')
-    plt.ylabel('CVE (Mean of Fold RMSE)')
-    plt.title('CVE per Trial during Bayesian Optimization')
+        # 최적 trial을 빨간색으로 강조
+        plt.plot(best_trial_number, best_trial_value, marker='o', markersize=12, color='red', label='Best Trial')
 
-    # 범례 추가
-    plt.legend()
+        # 축 및 제목 설정
+        plt.xlabel('Trial')
+        plt.ylabel('CVE (Mean of Fold RMSE)')
+        plt.title('CVE per Trial during Bayesian Optimization')
 
-    # 최적 파라미터 표시
-    best_params_str = '\n'.join([f"{k}: {v:.4f}" for k, v in best_trial.params.items()])
-    plt.text(0.95, 0.95, best_params_str, transform=plt.gca().transAxes,
-             fontsize=10, va='top', ha='right',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
+        # 범례 추가
+        plt.legend()
 
-    # 레이아웃 조정
-    plt.tight_layout()
+        # 최적 파라미터 표시
+        best_params_str = '\n'.join([f"{k}: {v:.4f}" for k, v in best_trial.params.items()])
+        plt.text(0.95, 0.95, best_params_str, transform=plt.gca().transAxes,
+                 fontsize=10, va='top', ha='right',
+                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
 
-    # 그래프 저장 경로 설정
-    save_directory = r"C:\Users\BSL\Desktop\Figures\Supplementary"
-    save_filename = "FigurS10.png"
-    save_path = os.path.join(save_directory, save_filename)
+        # 레이아웃 조정
+        plt.tight_layout()
 
-    try:
-        # 디렉토리가 존재하지 않으면 생성
-        if not os.path.exists(save_directory):
-            os.makedirs(save_directory)
-            print(f"디렉토리가 생성되었습니다: {save_directory}")
+        # 그래프 저장 경로 설정
+        save_directory = r"C:\Users\BSL\Desktop\Figures\Supplementary"
+        save_filename = f"FigureS10_{selected_car}.png"
+        save_path = os.path.join(save_directory, save_filename)
 
-        # 그래프 저장
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"그래프가 저장되었습니다: {save_path}")
-    except Exception as e:
-        print(f"그래프 저장 중 오류가 발생했습니다: {e}")
+        try:
+            # 디렉토리가 존재하지 않으면 생성
+            if not os.path.exists(save_directory):
+                os.makedirs(save_directory)
+                print(f"디렉토리가 생성되었습니다: {save_directory}")
 
-    # 그래프 표시
-    plt.show()
+            # 그래프 저장
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"그래프가 저장되었습니다: {save_path}")
+        except Exception as e:
+            print(f"그래프 저장 중 오류가 발생했습니다: {e}")
 
-    return best_trial.params
+        # 그래프 표시
+        plt.show()
 
-# ----------------------------
-# 최종 모델 학습
-# ----------------------------
+    return study.best_trial.params
+
 def train_final_model(X_train, y_train, best_params):
     dtrain = xgb.DMatrix(X_train, label=y_train)
     params = {
@@ -248,48 +261,67 @@ def train_final_model(X_train, y_train, best_params):
 # ----------------------------
 # 워크플로우
 # ----------------------------
-def run_workflow(vehicle_files, selected_car, plot=False, save_dir="models"):
+def run_workflow(vehicle_files, selected_car, plot=False, save_dir="models", predefined_best_params=None):
     if selected_car not in vehicle_files or not vehicle_files[selected_car]:
         print(f"No files found for the selected vehicle: {selected_car}")
         return
 
     files = vehicle_files[selected_car]
 
-    # 전체 데이터 로드 및 전처리
-    full_data, scaler = process_files(files)
+    # 파일 단위 Train/Test 분할 (8:2)
+    train_files, test_files = train_test_split(files, test_size=0.2, random_state=42)
 
-    window_sizes = [5, 15, 30, 60]
-    feature_cols = ['speed', 'acceleration', 'ext_temp']
-    for w in window_sizes:
-        time_window = w * 2
-        feature_cols.extend([
-            f'mean_accel_{time_window}',
-            f'std_accel_{time_window}',
-            f'mean_speed_{time_window}',
-            f'std_speed_{time_window}'
-        ])
+    # Train 데이터 처리
+    train_data_list = []
+    for i, f in enumerate(train_files):
+        d = process_single_file(f, trip_id=i)
+        if d is not None:
+            train_data_list.append(d)
+    train_data = pd.concat(train_data_list, ignore_index=True)
 
-    X_full = full_data[feature_cols]
-    y_full = full_data['Residual']
+    # Scaler Fit
+    train_data_scaled, scaler = scale_data(train_data.copy(), scaler=None)
 
-    # 1. Train/Test = 8:2 분할
-    X_train, X_test, y_train, y_test = train_test_split(X_full, y_full, test_size=0.2, random_state=42)
-    full_train_data, full_test_data = train_test_split(full_data, test_size=0.2, random_state=42)
+    # Test 데이터 처리
+    test_data_list = []
+    for j, f in enumerate(test_files):
+        d = process_single_file(f, trip_id=1000 + j)
+        if d is not None:
+            test_data_list.append(d)
+    test_data = pd.concat(test_data_list, ignore_index=True)
 
-    # 2. Train Set 에서 5-Fold CV로 Hyperparameter Tuning
-    best_params = tune_hyperparameters(X_train, y_train)
+    # Test 데이터 스케일링
+    test_data_scaled, _ = scale_data(test_data.copy(), scaler)
 
-    # 3. 최적 하이퍼파라미터로 Train Set 전체 재학습 후 Test Set 성능 평가
+    X_train = train_data_scaled[FEATURE_COLS]
+    y_train = train_data_scaled['Residual']
+
+    X_test = test_data_scaled[FEATURE_COLS]
+    y_test = test_data_scaled['Residual']
+
+    # -----------------------
+    # Hyperparameter Tuning or Skip
+    # -----------------------
+
+    if predefined_best_params is None:
+        # Optuna로 하이퍼파라미터 튜닝
+        best_params = tune_hyperparameters(train_files, scaler, selected_car, plot)
+    else:
+        # 이미 주어진 파라미터 사용
+        best_params = predefined_best_params
+        print(f"Using predefined best_params: {best_params}")
+
+    # 최종 모델 학습
     bst = train_final_model(X_train, y_train, best_params)
+
     y_pred_test = bst.predict(xgb.DMatrix(X_test))
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
     print(f"Test RMSE with best_params: {test_rmse:.4f}")
 
-    # Test 데이터에 대해 y_pred 할당
-    full_test_data['y_pred'] = y_pred_test
+    test_data_scaled['y_pred'] = y_pred_test
 
-    # 트립별 적분 테스트
-    test_trip_groups = full_test_data.groupby('trip_id')
+    # trip_id별 적분 테스트
+    test_trip_groups = test_data_scaled.groupby('trip_id')
     hybrid_integrals_test, data_integrals_test = [], []
     for _, group in test_trip_groups:
         hybrid_integral, data_integral = integrate_and_compare(group)
@@ -308,17 +340,16 @@ def run_workflow(vehicle_files, selected_car, plot=False, save_dir="models"):
         'best_params': best_params
     })
 
-    if plot == True:
-        # contour와 shap plot
+    if plot:
         train_preds = bst.predict(xgb.DMatrix(X_train))
-        full_train_data['y_pred'] = train_preds
+        train_data_scaled['y_pred'] = train_preds
 
         plot_composite_contour(
             X_train=X_train[['speed', 'acceleration']].values,
             y_pred_train=train_preds,
             X_test=X_test[['speed', 'acceleration']].values,
             y_pred_test1=y_pred_test,
-            y_pred_test2=(full_test_data['Residual'] - full_test_data['y_pred']).values,
+            y_pred_test2=(test_data_scaled['Residual'] - test_data_scaled['y_pred']).values,
             scaler=scaler,
             selected_car=selected_car,
             terminology1=f'{selected_car} : Train Residual',
@@ -329,10 +360,10 @@ def run_workflow(vehicle_files, selected_car, plot=False, save_dir="models"):
             save_directory=r"C:\Users\BSL\Desktop\Figures"
         )
 
-        shap_value_save_path = fr"C:\Users\BSL\Desktop\Figures\Supplementary\FigureS11_{selected_car}.png"
-        plot_shap_values(bst, X_train, feature_cols, selected_car, shap_value_save_path)
+        # shap_value_save_path = fr"C:\Users\BSL\Desktop\Figures\Supplementary\FigureS11_{selected_car}.png"
+        # plot_shap_values(bst, X_train, FEATURE_COLS, selected_car, shap_value_save_path)
 
-    # 결과 저장
+    # 모델 및 스케일러 저장
     if save_dir:
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -361,6 +392,7 @@ def load_model_and_scaler(model_path, scaler_path):
 
     return model, scaler
 
+
 def process_single_new_file(file_path, model, scaler):
     try:
         data = pd.read_csv(file_path)
@@ -373,8 +405,6 @@ def process_single_new_file(file_path, model, scaler):
 
         data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
 
-        window_sizes = [5, 15, 30, 60]
-        # time_window = w*2를 적용한 컬럼명
         for w in window_sizes:
             time_window = w * 2
             data[f'mean_accel_{time_window}'] = data['acceleration'].rolling(window=w, min_periods=1).mean()
@@ -382,27 +412,12 @@ def process_single_new_file(file_path, model, scaler):
             data[f'mean_speed_{time_window}'] = data['speed'].rolling(window=w, min_periods=1).mean()
             data[f'std_speed_{time_window}'] = data['speed'].rolling(window=w, min_periods=1).std().fillna(0)
 
-        feature_cols = ['speed', 'acceleration', 'ext_temp']
-        for w in window_sizes:
-            time_window = w * 2
-            feature_cols.extend([
-                f'mean_accel_{time_window}',
-                f'std_accel_{time_window}',
-                f'mean_speed_{time_window}',
-                f'std_speed_{time_window}'
-            ])
-
-        missing_features = [col for col in feature_cols if col not in data.columns]
-        if missing_features:
-            raise ValueError(f"{file_path} 처리 후 누락된 특성 컬럼: {missing_features}")
-
-        scaled_features = scaler.transform(data[feature_cols])
-        dmatrix = xgb.DMatrix(scaled_features, feature_names=feature_cols)
+        scaled_features = scaler.transform(data[FEATURE_COLS])
+        dmatrix = xgb.DMatrix(scaled_features, feature_names=FEATURE_COLS)
         y_pred = model.predict(dmatrix)
         data['y_pred'] = y_pred
         data['Power_hybrid'] = data['Power_phys'] + data['y_pred']
 
-        # 불필요한 컬럼 제거
         columns_to_drop = []
         for w in window_sizes:
             time_window = w * 2
@@ -420,6 +435,7 @@ def process_single_new_file(file_path, model, scaler):
         print(f"'Power_hybrid' 컬럼이 {file_path} 에 추가되고 파일이 덮어쓰기 되었습니다.")
     except Exception as e:
         print(f"{file_path} 처리 중 오류 발생: {e}")
+
 
 def process_multiple_new_files(file_paths, model, scaler):
     with ProcessPoolExecutor() as executor:
