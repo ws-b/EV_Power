@@ -96,14 +96,14 @@ def run_evaluate(vehicle_files, selected_car):
     # Hybrid XGBoost의 best_params 저장
     l2lambda[selected_car].append({
         'model': 'Hybrid Model(XGBoost)',
-        'params': results_hybrid_xgb['best_params']
+        'params': results_hybrid_xgb[0]['best_params']
     })
 
     # Only XGBoost 모델의 best_params 저장
     results_only_xgb, _ = only_run_workflow(vehicle_files, selected_car,False, None, None)
     l2lambda[selected_car].append({
         'model': 'Only ML(XGBoost)',
-        'params': results_only_xgb['best_params']
+        'params': results_only_xgb[0]['best_params']
     })
 
     # 전체 dataset 크기
