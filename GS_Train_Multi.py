@@ -144,13 +144,13 @@ def run_evaluate(vehicle_files, selected_car):
             adjustment_factor = N_total / size
 
             # 하이브리드 XGBoost용 파라미터
-            adjusted_params_XGB = results_hybrid_xgb['best_params'].copy()
+            adjusted_params_XGB = results_hybrid_xgb[0]['best_params'].copy()
             for param in adjusted_params_XGB:
                 if param != 'eta':
                     adjusted_params_XGB[param] *= adjustment_factor
 
             # Only XGBoost용 파라미터
-            adjusted_params_ML = results_only_xgb['best_params'].copy()
+            adjusted_params_ML = results_only_xgb[0]['best_params'].copy()
             for param in adjusted_params_ML:
                 if param != 'eta':
                     adjusted_params_ML[param] *= adjustment_factor
