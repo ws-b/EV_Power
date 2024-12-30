@@ -17,7 +17,7 @@ def run_xgb_cross_validate(sampled_vehicle_files, selected_car, adjusted_params_
     try:
         # run_workflow 호출(하이브리드 XGBoost)
         #   predefined_best_params 에 이미 조정(스케일링)된 파라미터를 넘김
-        xgb_results, xgb_scaler, _ = xgb_run_workflow(
+        xgb_results, _ = xgb_run_workflow(
             sampled_vehicle_files,         # 샘플링된 파일 목록
             selected_car,
             plot=False,                    # 시각화 X
@@ -41,7 +41,7 @@ def run_only_xgb_validate(sampled_vehicle_files, selected_car, adjusted_params_M
     """
     try:
         # run_workflow 호출(Only XGBoost)
-        only_xgb_results, only_xgb_scaler, _ = only_run_workflow(
+        only_xgb_results, _ = only_run_workflow(
             sampled_vehicle_files,
             selected_car,
             plot=False,
