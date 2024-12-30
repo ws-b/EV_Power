@@ -105,6 +105,37 @@ def process_files(start_path, save_path, vehicle_type, altitude=False):
 
     print("모든 폴더의 파일 처리가 완료되었습니다.")
 
+def fill_altitude(df):
+    """
+    altitude 컬럼에 대하여,
+      1) 가장 처음 나온 altitude 값으로 이전 구간을 채우고
+      2) 중간 구간은 linear interpolation
+      3) 가장 마지막 altitude 값으로 이후 구간을 채우는 함수
+    """
+    # 혹시 모를 타입 변환(문자열 등) 방지
+    df['altitude'] = pd.to_numeric(df['altitude'], errors='coerce')
+
+    # altitude에 유효한 값(Non-NaN)이 전혀 없다면 그냥 그대로 반환
+    if df['altitude'].notnull().sum() == 0:
+        return df
+
+    # 가장 처음 & 마지막으로 altitude가 발견된 인덱스 구하기
+    first_valid_idx = df['altitude'].first_valid_index()
+    last_valid_idx = df['altitude'].last_valid_index()
+
+    # 1) '처음 발견된 altitude 값'으로 그 이전 구간 채우기
+    first_value = df.loc[first_valid_idx, 'altitude']
+    df.loc[:first_valid_idx, 'altitude'] = df.loc[:first_valid_idx, 'altitude'].fillna(first_value)
+
+    # 2) '마지막 발견된 altitude 값'으로 그 이후 구간 채우기
+    last_value = df.loc[last_valid_idx, 'altitude']
+    df.loc[last_valid_idx:, 'altitude'] = df.loc[last_valid_idx:, 'altitude'].fillna(last_value)
+
+    # 3) 중간 구간의 NaN 값들은 선형 보간으로 채우기
+    df['altitude'] = df['altitude'].interpolate(method='linear')
+
+    return df
+
 def process_folder(root, files, save_path, vehicle_type, altitude):
     if altitude:
         filtered_files = [f for f in files if f.endswith('.csv') and 'bms' in f and 'altitude' in f]
@@ -138,21 +169,23 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
 
         df = read_file_with_detected_encoding(file_path)
         if df is not None:
+            # 필요없는 컬럼 제거
             df = df.loc[:, ~df.columns.str.contains('Unnamed')]
+            # time 중복 제거
             df = df.drop_duplicates(subset='time')
-            # 'time' 컬럼을 datetime 형식으로 변환 시도
+            # time 컬럼 datetime 변환
             date_formats = ['%y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']
             for fmt in date_formats:
                 try:
                     df['time'] = pd.to_datetime(df['time'], format=fmt, errors='raise')
-                    break  # 성공 시 루프 종료
+                    break
                 except ValueError:
-                    continue  # 다음 형식 시도
+                    continue
             else:
                 print(f"Time format error in file {file_path}. Skipping this file.")
-                continue  # 모든 형식이 실패하면 해당 파일 건너뜀
+                continue
 
-            # 'time' 컬럼을 기준으로 정렬
+            # time 기준 정렬
             df = df.sort_values(by='time').reset_index(drop=True)
             dfs.append(df)
 
@@ -161,31 +194,41 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
         combined_df['time_diff'] = combined_df['time'].diff().dt.total_seconds()
         combined_df['speed'] = combined_df['emobility_spd'] * 0.27778
 
-        # Calculate acceleration using forward and backward differences
+        # 가속도 계산
         combined_df['acceleration'] = combined_df['speed'].diff() / combined_df['time_diff']
-
-        # Handle first and last row separately to avoid NaN values
         if len(combined_df) > 1:
             combined_df.at[0, 'acceleration'] = (combined_df.at[1, 'speed'] - combined_df.at[0, 'speed']) / \
                                                 combined_df.at[1, 'time_diff']
-            combined_df.at[len(combined_df) - 1, 'acceleration'] = (combined_df.at[
-                                                                        len(combined_df) - 1, 'speed'] -
-                                                                    combined_df.at[
-                                                                        len(combined_df) - 2, 'speed']) / \
-                                                                   combined_df.at[
-                                                                       len(combined_df) - 1, 'time_diff']
+            combined_df.at[len(combined_df) - 1, 'acceleration'] = (
+                combined_df.at[len(combined_df) - 1, 'speed'] - combined_df.at[len(combined_df) - 2, 'speed']
+            ) / combined_df.at[len(combined_df) - 1, 'time_diff']
 
         combined_df['acceleration'] = combined_df['acceleration'].fillna(0)
         combined_df['Power_data'] = combined_df['pack_volt'] * combined_df['pack_current']
-        if 'altitude' in combined_df.columns:
-            combined_df['delta altitude'] = combined_df['altitude'].diff()
+
+        if altitude:
+            # ------------------------------
+            # 1) altitude 결측 보정(선형 보간 + 양끝단 채우기)
+            combined_df = fill_altitude(combined_df)
+            # ------------------------------
+
             data_save = combined_df[
-                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd', 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer', 'op_time', 'soc', 'soh', 'chrg_cable_conn',
-                 'altitude', 'cell_volt_list', 'min_deter', 'pack_volt', 'pack_current', 'Power_data']].copy()
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
+                 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
+                 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
+                 'op_time', 'soc', 'soh', 'chrg_cable_conn',
+                 'altitude', 'cell_volt_list', 'min_deter',
+                 'pack_volt', 'pack_current', 'Power_data']
+            ].copy()
         else:
             data_save = combined_df[
-                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp', 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd', 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer', 'op_time', 'soc', 'soh', 'chrg_cable_conn',
-                 'pack_volt', 'cell_volt_list', 'min_deter', 'pack_current', 'Power_data']].copy()
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
+                 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
+                 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
+                 'op_time', 'soc', 'soh', 'chrg_cable_conn',
+                 'pack_volt', 'cell_volt_list', 'min_deter',
+                 'pack_current', 'Power_data']
+            ].copy()
 
         data_save.to_csv(output_file_path, index=False)
 

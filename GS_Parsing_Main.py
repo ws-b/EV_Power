@@ -28,17 +28,17 @@ def pre_process():
 
         elif choice == 2:
             start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data' # Raw Data 폴더
-            save_path = r'D:\SamsungSTF\Processed_Data/Merged_DF'# 월별 데이터 병합 폴더
+            save_path = r'D:\SamsungSTF\Processed_Data/Merged'# 월별 데이터 병합 폴더
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
-            process_files(start_path, save_path, vehicle_type, altitude=False)
+            # process_files(start_path, save_path, vehicle_type, altitude=False)
             process_files(start_path, save_path, vehicle_type, altitude=True)
             break
 
         elif choice == 3:
             start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
-            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_GPS')
+            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_DF')
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
             process_files_trip_by_trip(start_path, save_path)
