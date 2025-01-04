@@ -6,8 +6,8 @@ from threading import Thread
 from GS_Functions import compute_rmse
 from GS_Train_XGboost import run_workflow as xgb_run_workflow
 from GS_Train_Only_XGboost import run_workflow as only_run_workflow
-from GS_Train_LinearR import cross_validate as lr_cross_validate
-from GS_Train_Only_LR import cross_validate as only_lr_validate
+from GS_Train_LinearR import train_validate_test as lr_train_validate_test
+from GS_Train_Only_LR import train_validate_test as only_lr_train_validate_test
 import json
 def run_xgb_cross_validate(sampled_vehicle_files, selected_car, adjusted_params_XGB, results_dict, size):
     """
@@ -171,9 +171,9 @@ def run_evaluate(vehicle_files, selected_car):
 
             # (d) Hybrid Model (Linear Regression) 실행
             try:
-                hybrid_lr_results, hybrid_lr_scaler = lr_cross_validate(sampled_vehicle_files, selected_car)
+                hybrid_lr_results, _ = lr_train_validate_test(sampled_vehicle_files, selected_car)
                 if hybrid_lr_results:
-                    hybrid_lr_rmse_values = [result['rmse'] for result in hybrid_lr_results]
+                    hybrid_lr_rmse_values = [result['test_rmse'] for result in hybrid_lr_results]
                     results_dict[selected_car][size].append({
                         'model': 'Hybrid Model(Linear Regression)',
                         'rmse': hybrid_lr_rmse_values
@@ -183,9 +183,9 @@ def run_evaluate(vehicle_files, selected_car):
 
             # (e) Only LR 실행
             try:
-                only_lr_results, only_lr_scaler = only_lr_validate(sampled_vehicle_files, selected_car)
+                only_lr_results, _ = only_lr_train_validate_test(sampled_vehicle_files, selected_car)
                 if only_lr_results:
-                    only_lr_rmse_values = [result['rmse'] for result in only_lr_results]
+                    only_lr_rmse_values = [result['test_rmse'] for result in only_lr_results]
                     results_dict[selected_car][size].append({
                         'model': 'Only ML(LR)',
                         'rmse': only_lr_rmse_values
