@@ -77,17 +77,9 @@ def process_file_power(file, EV):
         E = np.where(v <= 0.5, EV.aux + EV.idle + E_hvac, EV.aux + E_hvac)
 
         # 고도 데이터 처리
-        if 'altitude' in data.columns and 'NONE' in data.columns:
-            # 고도 데이터를 숫자형으로 변환
-            data['altitude'] = pd.to_numeric(data['altitude'], errors='coerce')
-
-            # 결측치 처리 없이 선형 보간 수행
-            data['altitude'] = data['altitude'].interpolate(method='linear', limit_direction='both')
-
-            altitude = data['altitude'].to_numpy()
-
+        if 'altitude' in data.columns:
             # 고도 차이 계산 (현재와 이전 고도 차이)
-            altitude_diff = np.diff(altitude, prepend=altitude[0])
+            altitude_diff = np.diff(data['altitude'], prepend=data['altitude'][0])
 
             # 시간 차이 계산 (초 단위)
             time_diff = data['time'].diff().dt.total_seconds().fillna(2).to_numpy()
@@ -106,14 +98,7 @@ def process_file_power(file, EV):
         else:
             F = np.zeros_like(v)
 
-        # data['A'] = A
-        # data['B'] = B
-        # data['C'] = C
-        # data['D'] = D
-        # data['E'] = E
-        # data['F'] = F
-        data['Power_phys'] =  A + B + C + D + E + F
-        # data = data.drop(columns=['A', 'B', 'C', 'D', 'E', 'F'])
+        data['Power_phys'] =  A + B + C + D + E  # 고도 정보 포함을 위해서는 A~F 까지 더해야함
         data.to_csv(file, index=False)
 
     except Exception as e:

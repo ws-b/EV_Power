@@ -339,109 +339,118 @@ def process_single_file(file_path, save_path):
     3) CSV 파일을 일정 조건(trip)별로 쪼갬
     4) 조건이 충족되는 trip만 CSV로 저장
     """
-    # CSV 로드 (기본 pandas.read_csv, 인코딩 가정)
-    data = pd.read_csv(file_path)
-
-    # altitude 컬럼 존재 여부에 따라 파일명 규칙이 달라짐
-    if 'altitude' in data.columns:
-        parts = file_path.split(os.sep)
-        file_name = parts[-1]
-        name_parts = file_name.split('_')
-        device_no = name_parts[2]
-        year_month = name_parts[3][:7]
-    else:
-        parts = file_path.split(os.sep)
-        file_name = parts[-1]
-        name_parts = file_name.split('_')
-        device_no = name_parts[1]
-        year_month = name_parts[2][:7]
-
-    # 이미 해당 device_no와 year_month 관련 파일이 존재하면 스킵
-    altitude_file_pattern = f"bms_altitude_{device_no}-{year_month}-trip-"
-    non_altitude_file_pattern = f"bms_{device_no}-{year_month}-trip-"
-    existing_files = [f for f in os.listdir(save_path)
-                      if f.startswith(altitude_file_pattern) or f.startswith(non_altitude_file_pattern)]
-
-    if existing_files:
-        print(f"Files {device_no} and {year_month} already exist. Skipping all related files.")
-        return
-
-    cut = []
-
-    # 1) 충전 케이블 연결 상태(chrg_cable_conn)가 0 -> 1 혹은 1 -> 0으로 변할 때 trip 분리
-    if data.loc[0, 'chrg_cable_conn'] == 0:
-        cut.append(0)
-    for i in range(len(data) - 1):
-        if data.loc[i, 'chrg_cable_conn'] != data.loc[i + 1, 'chrg_cable_conn']:
-            cut.append(i + 1)
-    if data.loc[len(data) - 1, 'chrg_cable_conn'] == 0:
-        cut.append(len(data) - 1)
-
-    # 2) 시간 간격이 300초(5분) 이상 차이나면 다른 trip으로 인식
-    cut_time = pd.Timedelta(seconds=300)
-
-    # time 컬럼 datetime 변환 시도
     try:
-        data['time'] = pd.to_datetime(data['time'], format='%y-%m-%d %H:%M:%S')
-    except ValueError:
-        try:
-            data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
-        except ValueError as e:
-            print(f"Date format error: {e}")
+        # CSV 로드 (기본 pandas.read_csv, 인코딩 가정)
+        data = pd.read_csv(file_path)
+
+        # altitude 컬럼 존재 여부에 따라 파일명 규칙이 달라짐
+        if 'altitude' in data.columns:
+            parts = file_path.split(os.sep)
+            file_name = parts[-1]
+            name_parts = file_name.split('_')
+            device_no = name_parts[2]
+            year_month = name_parts[3][:7]
+        else:
+            parts = file_path.split(os.sep)
+            file_name = parts[-1]
+            name_parts = file_name.split('_')
+            device_no = name_parts[1]
+            year_month = name_parts[2][:7]
+
+        # 이미 해당 device_no와 year_month 관련 파일이 존재하면 스킵
+        altitude_file_pattern = f"bms_altitude_{device_no}-{year_month}-trip-"
+        non_altitude_file_pattern = f"bms_{device_no}-{year_month}-trip-"
+        existing_files = [
+            f for f in os.listdir(save_path)
+            if f.startswith(altitude_file_pattern) or f.startswith(non_altitude_file_pattern)
+        ]
+
+        if existing_files:
+            print(f"Files {device_no} and {year_month} already exist. Skipping all related files.")
             return
 
-    # 인접 행 간 time 차이가 300초 이상이면 trip 분할
-    for i in range(len(data) - 1):
-        if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
-            cut.append(i + 1)
+        cut = []
 
-    # 중복 제거 후 정렬
-    cut = list(set(cut))
-    cut.sort()
+        # 1) 충전 케이블 연결 상태(chrg_cable_conn)가 0 -> 1 혹은 1 -> 0으로 변할 때 trip 분리
+        if data.loc[0, 'chrg_cable_conn'] == 0:
+            cut.append(0)
+        for i in range(len(data) - 1):
+            if data.loc[i, 'chrg_cable_conn'] != data.loc[i + 1, 'chrg_cable_conn']:
+                cut.append(i + 1)
+        if data.loc[len(data) - 1, 'chrg_cable_conn'] == 0:
+            cut.append(len(data) - 1)
 
-    if not cut:
-        print(f"No cuts found in file: {file_path}")
-        return None
+        # 2) 시간 간격이 300초(5분) 이상 차이나면 다른 trip으로 인식
+        cut_time = pd.Timedelta(seconds=300)
 
-    trip_counter = 1  # trip 번호(1부터 시작)
+        # time 컬럼 datetime 변환 시도
+        try:
+            data['time'] = pd.to_datetime(data['time'], format='%y-%m-%d %H:%M:%S')
+        except ValueError:
+            try:
+                data['time'] = pd.to_datetime(data['time'], format='%Y-%m-%d %H:%M:%S')
+            except ValueError as e:
+                print(f"Date format error in file {file_path}: {e}")
+                return
 
-    # trip 구간별로 잘라내어 저장
-    for i in range(len(cut) - 1):
-        # 케이블 연결이 0(주행 상태)인 구간만 trip으로 인식
-        if data.loc[cut[i], 'chrg_cable_conn'] == 0:
-            trip = data.loc[cut[i]:cut[i + 1] - 1, :]
+        # 인접 행 간 time 차이가 300초 이상이면 trip 분할
+        for i in range(len(data) - 1):
+            if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
+                cut.append(i + 1)
 
-            # trip 조건(거리, 시간, 에너지 등) 검증
-            if not check_trip_conditions(trip):
-                continue
+        # 중복 제거 후 정렬
+        cut = list(set(cut))
+        cut.sort()
 
-            # 파일 이름 생성(bms_altitude 또는 bms)
-            if 'altitude' in data.columns:
-                filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
-            else:
-                filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
+        if not cut:
+            print(f"No cuts found in file: {file_path}")
+            return None
 
-            # trip 데이터를 저장
-            os.makedirs(save_path, exist_ok=True)
-            trip.to_csv(os.path.join(save_path, filename), index=False)
-            trip_counter += 1
+        trip_counter = 1  # trip 번호(1부터 시작)
 
-    # 마지막 구간 처리
-    if cut:
-        trip = data.loc[cut[-1]:, :]
+        # trip 구간별로 잘라내어 저장
+        for i in range(len(cut) - 1):
+            # 케이블 연결이 0(주행 상태)인 구간만 trip으로 인식
+            if data.loc[cut[i], 'chrg_cable_conn'] == 0:
+                trip = data.loc[cut[i]:cut[i + 1] - 1, :]
 
-        if check_trip_conditions(trip):
-            duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
-            # 5분 이상 + 케이블 연결 0인 경우에만 저장
-            if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
+                # trip 조건(거리, 시간, 에너지 등) 검증
+                if not check_trip_conditions(trip):
+                    continue
+
+                # 파일 이름 생성(bms_altitude 또는 bms)
                 if 'altitude' in data.columns:
                     filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
                 else:
                     filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
 
-                print(f"Files {device_no} and {year_month} successfully processed.")
+                # trip 데이터를 저장
                 os.makedirs(save_path, exist_ok=True)
                 trip.to_csv(os.path.join(save_path, filename), index=False)
+                trip_counter += 1
+
+        # 마지막 구간 처리
+        if cut:
+            trip = data.loc[cut[-1]:, :]
+
+            if check_trip_conditions(trip):
+                duration = trip['time'].iloc[-1] - trip['time'].iloc[0]
+                # 5분 이상 + 케이블 연결 0인 경우에만 저장
+                if duration >= pd.Timedelta(minutes=5) and data.loc[cut[-1], 'chrg_cable_conn'] == 0:
+                    if 'altitude' in data.columns:
+                        filename = f"bms_altitude_{device_no}-{year_month}-trip-{trip_counter}.csv"
+                    else:
+                        filename = f"bms_{device_no}-{year_month}-trip-{trip_counter}.csv"
+
+                    print(f"Files {device_no} and {year_month} successfully processed.")
+                    os.makedirs(save_path, exist_ok=True)
+                    trip.to_csv(os.path.join(save_path, filename), index=False)
+
+    except Exception as e:
+        # 오류가 발생하면 문제 파일명을 출력
+        print(f"[ERROR] {file_path} 처리 중 오류가 발생했습니다: {e}")
+        return
+
 
 def check_trip_conditions(trip):
     """

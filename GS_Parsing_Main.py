@@ -32,19 +32,21 @@ def pre_process():
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
                 
-            # process_files(start_path, save_path, vehicle_type, altitude=False)
+            process_files(start_path, save_path, vehicle_type, altitude=False)
             process_files(start_path, save_path, vehicle_type, altitude=True)
             break
 
         elif choice == 3:
             start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
-            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_DF')
+            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip')
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
             process_files_trip_by_trip(start_path, save_path)
             break
+
         elif choice == 4:
             break
+
         elif choice == 5:
             print("Quitting the program.")
             return
