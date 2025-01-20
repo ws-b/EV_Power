@@ -19,17 +19,17 @@ class Vehicle:
 
 def select_vehicle(car):
     if car == 'NiroEV':
-        return Vehicle(1928, 0, 32.717, -0.19110, 0.023073, 250, 350, 0, 0.9)
+        return Vehicle(1928, 100, 32.717, -0.19110, 0.023073, 250, 350, 0, 0.9)
     elif car == 'Ioniq5':
-        return Vehicle(2268, 0, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9) # parameters for Ioniq5
+        return Vehicle(2268, 100, 34.342, 0.21928, 0.022718, 250, 350, 0, 0.9)
     elif car == 'Ioniq6':
-        return Vehicle(2041.168, 0, 23.958, 0.15007, 0.015929, 250, 350, 0, 0.9) # parameters for Ionic6
+        return Vehicle(2041.168, 100, 23.958, 0.15007, 0.015929, 250, 350, 0, 0.9)
     elif car == 'KonaEV':
-        return Vehicle(1814, 0, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9) # parameters for Kona_EV
+        return Vehicle(1814, 100, 24.859, -0.20036, 0.023656, 250, 350, 0, 0.9)
     elif car == 'EV6':
-        return Vehicle(2154.564, 0, 36.158, 0.29099, 0.019825, 250, 350, 0 , 0.9) # parameters for EV6
+        return Vehicle(2154.564, 100, 36.158, 0.29099, 0.019825, 250, 350, 0 , 0.9)
     elif car == 'GV60':
-        return Vehicle(2154.564, 0, 23.290, 0.23788, 0.019822, 250, 350, 0, 0.9) # parameters for GV60
+        return Vehicle(2154.564, 100, 23.290, 0.23788, 0.019822, 250, 350, 0, 0.9)
     elif car == 'Bongo3EV':
         print("Bongo3EV Cannot calculate power consumption. Please select another vehicle.")
         return None
