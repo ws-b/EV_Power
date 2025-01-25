@@ -33,6 +33,16 @@ def load_data_by_vehicle(folder_path, vehicle_dict, selected_car):
     vehicle_files[selected_car] = all_files
     return vehicle_files
 
+def get_vehicle_type(device_no, vehicle_dict):
+    """
+    device_no를 받아서 어떤 차종인지 반환.
+    만약 vehicle_dict에 없으면 "Unknown" 반환
+    """
+    for vtype, dev_list in vehicle_dict.items():
+        if device_no in dev_list:
+            return vtype
+    return "Unknown"
+
 def process_device_folders(source_paths, destination_root, altitude=False):
     """
     주어진 source_paths(폴더 경로) 아래의 파일들을 순회하며,
@@ -170,7 +180,7 @@ def fill_altitude(df):
 
     return df
 
-def process_folder(root, files, save_path, vehicle_type, altitude):
+def process_folder(root, files, save_path, vehicle_dict, altitude):
     """
     주어진 root(leaf 디렉토리)에 있는 CSV 파일을 필터링 후,
     병합/처리하여 최종 CSV로 저장하는 함수입니다.
@@ -198,8 +208,9 @@ def process_folder(root, files, save_path, vehicle_type, altitude):
         date_parts = name_parts[2].split('-') if not altitude else name_parts[3].split('-')
         year_month = '-'.join(date_parts[:2])
 
-        # vehicle_type 딕셔너리에서 device_no에 해당하는 모델명 가져오기 (없으면 Unknown)
-        vehicle_model = vehicle_type.get(device_no, 'Unknown')
+        # 단말기번호에 대응되는 모델명 가져오기 (없으면 'Unknown')
+        vehicle_model = get_vehicle_type(device_no, vehicle_dict)
+
         save_folder = os.path.join(save_path, vehicle_model)
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
@@ -380,8 +391,8 @@ def process_single_file(file_path, save_path):
         if data.loc[len(data) - 1, 'chrg_cable_conn'] == 0:
             cut.append(len(data) - 1)
 
-        # 2) 시간 간격이 300초(5분) 이상 차이나면 다른 trip으로 인식
-        cut_time = pd.Timedelta(seconds=300)
+        # 2) 시간 간격이 10초 이상 차이나면 다른 trip으로 인식
+        cut_time = pd.Timedelta(seconds=10)
 
         # time 컬럼 datetime 변환 시도
         try:
@@ -393,7 +404,7 @@ def process_single_file(file_path, save_path):
                 print(f"Date format error in file {file_path}: {e}")
                 return
 
-        # 인접 행 간 time 차이가 300초 이상이면 trip 분할
+        # 인접 행 간 time 차이가 10초 이상이면 trip 분할
         for i in range(len(data) - 1):
             if data.loc[i + 1, 'time'] - data.loc[i, 'time'] > cut_time:
                 cut.append(i + 1)
