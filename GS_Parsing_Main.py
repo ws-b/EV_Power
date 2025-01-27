@@ -8,8 +8,8 @@ def pre_process():
         print("1: Move device folders based on device number and type (New Files Only)")
         print("2: Pre-Process BMS Files")
         print("3: Trip by Trip Parsing")
-        print("4: Pre-Process BMS Files(년 단위 묶음), N days Parsing")
-        print("5: Trip by Trip (SOC 추정용) Parsing")
+        print("4: Trip by Trip (SOC 추정용) Parsing")
+        print("5: Pre-Process BMS Files(년 단위 묶음), N days Parsing")
         print("6: Return to previous menu")
         print("7: Quitting the program.")
         choice = input("Enter the number you want to run: ")
@@ -47,6 +47,14 @@ def pre_process():
             break
 
         elif choice == 4:
+            start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
+            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_soc')
+            if not os.path.exists(save_path):
+                os.makedirs(save_path, exist_ok=True)
+            process_trip_by_trip_soc(start_path, save_path)
+            break
+
+        elif choice == 5:
             start_path = r'D:\SamsungSTF\Data\GSmbiz\BMS_Data'  # Raw Data 폴더
             save_path = r'D:\SamsungSTF\Processed_Data/Merged_period'  # 월별 데이터 병합 폴더
             if not os.path.exists(save_path):
@@ -54,14 +62,6 @@ def pre_process():
 
             merge_bms_data_by_device(start_path, save_path, vehicle_dict, altitude=False, period_days=7)
             merge_bms_data_by_device(start_path, save_path, vehicle_dict, altitude=True, period_days=7)
-            break
-
-        elif choice == 5:
-            start_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\Merged')
-            save_path = os.path.normpath(r'D:\SamsungSTF\Processed_Data\TripByTrip_soc')
-            if not os.path.exists(save_path):
-                os.makedirs(save_path, exist_ok=True)
-            process_trip_by_trip_soc(start_path, save_path)
             break
 
         elif choice == 6:

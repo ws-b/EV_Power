@@ -4,6 +4,7 @@ import pandas as pd
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 from GS_vehicle_dict import vehicle_dict
+from datetime import timedelta
 
 def get_vehicle_type(device_no, vehicle_dict):
     """
@@ -22,14 +23,12 @@ def read_file_with_detected_encoding(file_path):
     UTF-8 -> ISO-8859-1 -> Python engine UTF-8 순으로 시도.
     """
     try:
-        # 가장 먼저 UTF-8 인코딩(C engine) 시도
-        return pd.read_csv(file_path, encoding='utf-8')
+        return pd.read_csv(file_path, encoding='utf-8')  # 1) C engine, UTF-8
     except UnicodeDecodeError:
-        # UTF-8 실패 시 ISO-8859-1 인코딩 시도
         try:
-            return pd.read_csv(file_path, encoding='iso-8859-1')
+            return pd.read_csv(file_path, encoding='iso-8859-1')  # 2) ISO-8859-1
         except Exception:
-            # 둘 다 실패하면 Python engine + UTF-8 인코딩 시도
+            # 3) Python engine + UTF-8
             try:
                 return pd.read_csv(file_path, encoding='utf-8', engine='python')
             except Exception as e:
@@ -59,78 +58,111 @@ def fill_altitude(df):
     last_value = df.loc[last_valid_idx, 'altitude']
     df.loc[last_valid_idx:, 'altitude'] = df.loc[last_valid_idx:, 'altitude'].fillna(last_value)
 
-    # 3) 중간 구간은 선형 보간
+    # 3) 중간 구간 선형 보간
     df['altitude'] = df['altitude'].interpolate(method='linear')
     return df
 
 
-def remove_periodic_midnight_chunks(df, time_col='time', threshold_sec=60, period_days=7):
+def split_into_periods_keep_midnight(df, period_days=7,
+                                     midnight_gap_sec=60,   # 자정 ±1분
+                                     continuity_sec=10,     # 10초 미만이면 연속
+                                     pad_nextday_rows=15):  # 다음날 처음 15행
     """
-    (1) df 전체에서 인접 time 간격이 1분(60초) 이상이면 새로운 chunk로 구분.
-    (2) 'day_base'부터 N일마다 발생하는 자정(00:00:00) ±1분이 포함된 chunk를 제거.
-        - N=7이면 0,7,14,21...일마다의 자정을 제거
-        - i=0도 포함하므로, 첫날 자정(00:00)±1분도 제거 대상
-    (3) 제거된 chunk는 removed_df, 나머지는 filtered_df로 반환
+    df를 'period_days' 간격으로 나누면서:
+      - 첫 구간(i=0)일 경우:
+          자정 이전부터 이미 진행 중이던 이벤트 -> 제거
+          그 뒤에도 다음날 초반 15행 이어붙이기
+      - 이후 구간(i>0)은
+          자정 ±1분 & 직전 시점과 10초 미만으로 이어지는 구간은 cross
+          + 다음날 초반 15행 이어붙이기
+    """
 
-    파라미터:
-      - threshold_sec: 연속 구간(Chunk) 나누는 기준 (기본 60초)
-      - period_days: 7일, 10일 등, 자정 제거할 주기 일수 (기본 7)
-    """
     if df.empty:
-        return df, pd.DataFrame()
+        return {}
 
-    # 1) time 기준 정렬
-    df = df.sort_values(by=time_col).reset_index(drop=True)
+    df = df.sort_values('time').reset_index(drop=True)
 
-    # 2) Chunk 구분
-    time_diff = df[time_col].diff().dt.total_seconds().fillna(0)
-    df['chunk_id'] = (time_diff >= threshold_sec).cumsum()
+    start_time = df['time'].min()
+    end_time = df['time'].max()
 
-    # 3) period 경계 자정(±1분) 목록 계산
-    min_t = df[time_col].min()
-    max_t = df[time_col].max()
+    period_frames = {}
+    period_idx = 1
 
-    # day_base: 최소 시간의 일자(0시)
-    day_base = min_t.floor('D')
+    current_start = start_time
+    while current_start <= end_time:
+        current_end = current_start + pd.Timedelta(days=period_days)
 
-    # N일 마다의 자정:  day_base + k*period_days (k=0,1,2...)
-    boundary_times = []
-    k = 0
-    while True:
-        b_time = day_base + pd.Timedelta(days=period_days * k)
-        # 경계가 전체 데이터 범위를 벗어나면 중단
-        if b_time > (max_t + pd.Timedelta(days=1)):
-            break
-        boundary_times.append(b_time)
-        k += 1
+        subdf = df[(df['time'] >= current_start) & (df['time'] < current_end)].copy()
+        if subdf.empty:
+            current_start = current_end
+            period_idx += 1
+            continue
 
-    remove_chunk_ids = set()
-    for b_time in boundary_times:
-        # b_time ± 60초
-        start_t = b_time - pd.Timedelta(seconds=60)
-        end_t = b_time + pd.Timedelta(seconds=60)
-        mask = (df[time_col] >= start_t) & (df[time_col] <= end_t)
-        if mask.any():
-            remove_chunk_ids.update(df.loc[mask, 'chunk_id'].unique())
+        # -----------------------------
+        # (i=0) => 자정 이전 이벤트 제거
+        # -----------------------------
+        if period_idx == 1:
+            # “이미 진행 중이던 이벤트” 제거 로직:
+            #   - 보통 current_start가 자정이라면, 이전 데이터는 필터링에서 자연스럽게 제외
+            #   - 필요하다면 subdf 맨 앞에서 자정 이전부터 이어져 내려온 chunk를 제거할 수도 있음
+            pass
 
-    removed_df = df[df['chunk_id'].isin(remove_chunk_ids)].copy()
-    filtered_df = df[~df['chunk_id'].isin(remove_chunk_ids)].copy()
+        # -----------------------------
+        # 자정 경계 넘어가는 이벤트(cross) + 다음날 초반 15행 포함
+        # => i=0 이든 i>0 이든 '다음 period' next_df를 확인 후 처리
+        # -----------------------------
+        # subdf의 마지막 시간
+        last_time_subdf = subdf['time'].iloc[-1]
 
-    # 정리
-    removed_df.drop(columns='chunk_id', inplace=True)
-    filtered_df.drop(columns='chunk_id', inplace=True)
+        # 현재 구간 끝 시점(current_end) 이후(next_df)
+        next_df = df[df['time'] >= current_end].copy()
+        if not next_df.empty:
+            # next_df의 첫 시각
+            first_time_after_end = next_df['time'].iloc[0]
 
-    return filtered_df, removed_df
+            # 1) 자정 ±1분 안이고
+            if (first_time_after_end - current_end) < pd.Timedelta(seconds=midnight_gap_sec):
+                # 2) 연속(10초 미만)
+                if (first_time_after_end - last_time_subdf).total_seconds() < continuity_sec:
+                    # cross
+                    crossing_idx = []
+                    prev_t = last_time_subdf
+                    for idx2 in next_df.index:
+                        curr_t = next_df.loc[idx2, 'time']
+                        if (curr_t - prev_t).total_seconds() < continuity_sec:
+                            crossing_idx.append(idx2)
+                            prev_t = curr_t
+                        else:
+                            break
+                    if crossing_idx:
+                        crossing_df = next_df.loc[crossing_idx].copy()
+                        subdf = pd.concat([subdf, crossing_df], ignore_index=True)
+
+            # (공통) 다음날 초반부 15행 붙이기
+            pad_rows = next_df.head(pad_nextday_rows)
+            if not pad_rows.empty:
+                subdf = pd.concat([subdf, pad_rows], ignore_index=True)
+                subdf.drop_duplicates(subset='time', inplace=True)
+                subdf.sort_values('time', inplace=True)
+
+        # 저장
+        period_frames[period_idx] = subdf
+
+        # 다음 구간 준비
+        current_start = current_end
+        period_idx += 1
+
+    return period_frames
 
 
 def process_device_folder(device_folder_path, save_path, vehicle_type,
                           altitude=False, period_days=7):
     """
-    1) device_folder_path 내 CSV 병합
-    2) period_days(기본7일) 경계 자정(±1분) chunk 제거
-       - i=0(첫날 자정)도 제거 대상
-    3) 남은 데이터 N일씩 분할하여 CSV 저장
-    4) removed_df는 별도로 저장하지 않고, 제거 데이터로만 취급(사용 X)
+    1) CSV 병합
+    2) period_days 단위 split_into_periods_keep_midnight 로 나눔
+       - i=0: 자정 이전 이벤트 제거, + 다음날 15행
+       - i>0: cross + 다음날 15행
+    3) CSV 저장
     """
     device_no = os.path.basename(device_folder_path)  # 폴더 이름이 단말기번호
     vehicle_model = get_vehicle_type(device_no, vehicle_type)
@@ -204,7 +236,7 @@ def process_device_folder(device_folder_path, save_path, vehicle_type,
     else:
         combined_df['speed'] = 0
 
-    # accel = speed 차이 / time_diff
+    # accel = delta speed / delta time
     combined_df['acceleration'] = combined_df['speed'].diff() / combined_df['time_diff']
     if len(combined_df) > 1:
         combined_df.at[0, 'acceleration'] = (
@@ -226,55 +258,54 @@ def process_device_folder(device_folder_path, save_path, vehicle_type,
         combined_df = fill_altitude(combined_df)
 
     # -----------------------------
-    # 3) N일 경계 자정(±1분) 제거
-    #    (removed_df는 저장하지 않음)
+    # 3) N일 단위 분할
     # -----------------------------
-    filtered_df, removed_df = remove_periodic_midnight_chunks(
+    splitted = split_into_periods_keep_midnight(
         combined_df,
-        time_col='time',
-        threshold_sec=60,
-        period_days=period_days
+        period_days=period_days,
+        midnight_gap_sec=60,   # 자정 ±1분
+        continuity_sec=10,     # 10초 미만이면 연속
+        pad_nextday_rows=15    # 다음날 첫 15행
     )
 
-    if filtered_df.empty:
-        print(f"[{device_no}] All data removed by midnight-chunk removal.")
+    if not splitted:
+        print(f"[{device_no}] All data removed or no valid splitting.")
         return
 
     # -----------------------------
-    # 4) 남은 데이터 N일 간격으로 분할 & 저장
+    # 4) CSV 저장
     # -----------------------------
     device_save_folder = os.path.join(save_path, vehicle_model)
     os.makedirs(device_save_folder, exist_ok=True)
 
-    if altitude:
-        data_save = filtered_df[
-            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
-             'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
-             'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
-             'op_time', 'soc', 'soh', 'chrg_cable_conn',
-             'altitude', 'cell_volt_list', 'min_deter',
-             'pack_volt', 'pack_current', 'Power_data']
-        ].copy()
-    else:
-        data_save = filtered_df[
-            ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
-             'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
-             'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
-             'op_time', 'soc', 'soh', 'chrg_cable_conn',
-             'pack_volt', 'pack_current', 'cell_volt_list', 'min_deter',
-             'Power_data']
-        ].copy()
+    for p_idx, grp in splitted.items():
+        if grp.empty:
+            continue
 
-    start_time = data_save['time'].min()
-    # (time - start_time).days // period_days -> 0-based
-    # +1 해서 1-based로 period 인덱스
-    data_save['period_index'] = (data_save['time'] - start_time).dt.days // period_days + 1
+        # altitude 여부에 따라 열 구성 분기
+        if altitude:
+            data_save = grp[
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
+                 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
+                 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
+                 'op_time', 'soc', 'soh', 'chrg_cable_conn',
+                 'altitude', 'cell_volt_list', 'min_deter',
+                 'pack_volt', 'pack_current', 'Power_data']
+            ].copy()
+        else:
+            data_save = grp[
+                ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
+                 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
+                 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
+                 'op_time', 'soc', 'soh', 'chrg_cable_conn',
+                 'pack_volt', 'pack_current', 'cell_volt_list', 'min_deter',
+                 'Power_data']
+            ].copy()
 
-    for p_idx, grp in data_save.groupby('period_index'):
         output_name = f"{'bms_altitude' if altitude else 'bms'}_{device_no}_d{int(p_idx)}.csv"
         output_path = os.path.join(device_save_folder, output_name)
-        grp.drop(columns='period_index', inplace=False).to_csv(output_path, index=False)
-        print(f"[{device_no}] Period {p_idx} -> {output_path} (rows={len(grp)})")
+        data_save.to_csv(output_path, index=False, encoding='utf-8-sig')
+        print(f"[{device_no}] Period {p_idx} -> {output_path} (rows={len(data_save)})")
 
 
 def merge_bms_data_by_device(start_path, save_path,
@@ -283,9 +314,11 @@ def merge_bms_data_by_device(start_path, save_path,
                              period_days=7):
     """
     start_path 안의 디바이스 폴더 각각 병렬 처리:
-      1) N일 경계(0, N, 2N...) 자정 ±1분 chunk 제거
-      2) 제거된 구간(removed_df)은 따로 저장/사용하지 않음
-      3) 나머지 데이터만 N일 간격으로 분할하여 CSV 저장
+      1) CSV 병합
+      2) N일 단위 split_into_periods_keep_midnight() 로직
+         -> (i=0)도 다음날 15행 추가
+         -> (i>0)는 cross + 15행 추가
+      3) 결과 CSV 저장
     """
     if vehicle_type is None:
         vehicle_type = {}
@@ -326,6 +359,7 @@ def merge_bms_data_by_device(start_path, save_path,
                 pbar.update(1)
 
     print("=== All device folders processed. ===")
+
 
 def process_files_trip_by_trip(start_path, save_path):
     """
