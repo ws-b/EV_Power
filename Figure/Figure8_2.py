@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import folium
+from folium.plugins import FloatImage
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
@@ -75,28 +77,36 @@ for idx, csv_file in enumerate(csv_files):
         center_lat = np.mean(latitudes)
         center_lon = np.mean(longitudes)
 
-        # Folium 지도 생성 시 타일 옵션 설정 (컬러 지도와 영어 라벨)
-        tile_option = 'CartoDB positron'  # 컬러 지도와 영어 라벨
+        # 1) Folium 지도 생성 시 타일 옵션 설정
+        #    축척 표시(control_scale=True), 줌컨트롤 표시(zoom_control=False)
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=13 if idx == 0 else 11,
+            tiles='CartoDB Positron',
+            zoom_control=False,
+            control_scale=True
+        )
 
-        # 줌 레벨 설정 및 줌 컨트롤 제거, 축척 표시 추가
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=15 if idx == 0 else 12,
-                       tiles=tile_option, zoom_control=False, control_scale=True)
-
-        # 축척 위치를 왼쪽 하단으로 이동시키고 크기를 키우는 CSS 추가
+        # 2) CSS로 축척(Scale)의 위치/스타일 조정
         scale_position_css = '''
         <style>
         .leaflet-control-scale {
             position: absolute !important;
-            bottom: 10px !important;
+            bottom: 40px !important; /* 필요 시 값 조정 */
             left: 10px !important;
             right: auto !important;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 14px; /* 축척 글씨 크게 조정 */
         }
         </style>
         '''
         m.get_root().html.add_child(folium.Element(scale_position_css))
 
-        # 경로 추가
+        # 3) 경로 추가 (폴리라인)
         folium.PolyLine(list(zip(latitudes, longitudes)), color="blue", weight=5).add_to(m)
+
 
         # 지도를 HTML로 저장
         map_html = f"map_{idx}.html"
@@ -105,7 +115,8 @@ for idx, csv_file in enumerate(csv_files):
         # Selenium을 사용하여 지도 이미지를 캡처
         options = Options()
         options.add_argument("--headless")
-        options.add_argument("--window-size=1600x1600")
+        # 창 크기(스크린샷 해상도) 키우기
+        options.add_argument("--window-size=800,1000")
         options.add_argument("--hide-scrollbars")
         driver = webdriver.Chrome(options=options)
         driver.get(f"file://{os.getcwd()}/{map_html}")
@@ -125,14 +136,18 @@ for idx, csv_file in enumerate(csv_files):
         # 이미지를 읽어와서 표시
         img = Image.open(BytesIO(png))
 
-        # 이미지를 Axes에 표시 (origin='upper'로 설정하여 y축 방향 수정)
+        # 이미지를 Axes에 표시 (origin='upper'로 설정하여 y축 방향 유지)
         ax_map.imshow(img, origin='upper')
         ax_map.axis('off')
 
-        # 우측 상단에 'N' 표시
-        ax_map.text(0.95, 0.95, 'N', transform=ax_map.transAxes, fontsize=16, fontweight='bold',
-                    va='top', ha='right',
-                    bbox=dict(facecolor='white', edgecolor='black', boxstyle='circle,pad=0.1'))
+        # 우측 상단에 'N' 텍스트 박스 (단순하게 표시)
+        ax_map.text(
+            0.95, 0.95, 'N',
+            transform=ax_map.transAxes,
+            fontsize=16, fontweight='bold',
+            va='top', ha='right',
+            bbox=dict(facecolor='white', edgecolor='black', boxstyle='circle,pad=0.1')
+        )
 
         # 제목 설정
         if idx == 0:
@@ -180,12 +195,12 @@ for idx, csv_file in enumerate(csv_files):
     ax_speed.text(-0.1, 1.05, label_text, transform=ax_speed.transAxes, fontsize=fontsize, fontweight='bold',
                   va='bottom', ha='right')
 
-    ### 세 번째 플롯: 파워 하이브리드와 파워 피지컬 ###
+    ### 세 번째 플롯: 파워 (물리 vs 하이브리드) ###
     ax_power = axes[subplot_start + 2]
 
     # 파워 플롯
-    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color="#CD534CFF", label='Physcis Model', alpha=0.7)
-    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid'] / 1000, color="#20854EFF", label='Hybrid Model(XGB)', alpha=0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_phys']/1000, color="#CD534CFF", label='Physics Model', alpha=0.7)
+    ax_power.plot(df['elapsed_time_min'], df['Power_hybrid']/1000, color="#20854EFF", label='Hybrid Model(XGB)', alpha=0.7)
 
     ax_power.set_xlabel('Time (minutes)')
     ax_power.set_ylabel('Power (kW)')
