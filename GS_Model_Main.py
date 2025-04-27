@@ -27,7 +27,7 @@ def main():
     if platform.system() == "Windows":
         base_processed_path = r'D:\SamsungSTF\Processed_Data'
     else:
-        base_processed_path = "/home/ubuntu/EV_Power/Processed_Data"
+        base_processed_path = "/home/ubuntu/SamsungSTF/Processed_Data"
 
     folder_path = os.path.join(os.path.normpath(base_processed_path), 'TripByTrip')
 
