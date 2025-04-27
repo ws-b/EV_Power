@@ -21,7 +21,12 @@ def main():
         8: 'Porter2EV',
     }
 
-    folder_path = os.path.join(os.path.normpath(r'D:\SamsungSTF\Processed_Data'), 'TripByTrip')
+    if platform.system() == "Windows":
+        base_processed_path = r'D:\SamsungSTF\Processed_Data'
+    else:
+        base_processed_path = '/mnt/d/SamsungSTF/Processed_Data'
+
+    folder_path = os.path.join(os.path.normpath(base_processed_path), 'TripByTrip')
 
     while True:
         print("1: Calculate Power(W)")
