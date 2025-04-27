@@ -279,21 +279,15 @@ def process_folder(root, files, save_path, vehicle_dict, altitude):
             # altitude 컬럼 포함해서 저장할 컬럼 선택
             data_save = combined_df[
                 ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
-                 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
-                 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
-                 'op_time', 'soc', 'soh', 'chrg_cable_conn',
-                 'altitude', 'cell_volt_list', 'min_deter',
+                 'soc', 'soh', 'chrg_cable_conn', 'altitude',
                  'pack_volt', 'pack_current', 'Power_data']
             ].copy()
         else:
             # altitude 컬럼 없는 경우
             data_save = combined_df[
                 ['time', 'speed', 'acceleration', 'ext_temp', 'int_temp',
-                 'chrg_cnt', 'chrg_cnt_q', 'cumul_energy_chrgd',
-                 'cumul_energy_chrgd_q', 'mod_temp_list', 'odometer',
-                 'op_time', 'soc', 'soh', 'chrg_cable_conn',
-                 'pack_volt', 'cell_volt_list', 'min_deter',
-                 'pack_current', 'Power_data']
+                 'soc', 'soh', 'chrg_cable_conn',
+                 'pack_volt', 'pack_current', 'Power_data']
             ].copy()
 
         # 최종 CSV 저장

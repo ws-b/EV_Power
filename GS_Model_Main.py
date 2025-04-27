@@ -1,4 +1,5 @@
 import os
+import platform
 import time
 import random
 from GS_Merge_Power import process_files_power, select_vehicle
@@ -8,6 +9,8 @@ from GS_vehicle_dict import vehicle_dict
 from GS_Train_XGboost import run_workflow as xgb_run_workflow, process_multiple_new_files as xgb_process_multiple_new_files, load_model_and_scaler as xgb_load_model_and_scaler
 from GS_Train_Only_XGboost import run_workflow as only_run_workflow
 from GS_Train_Multi import run_evaluate, plot_rmse_results
+from GS_Train_DNN import run_dnn_workflow
+
 
 def main():
     car_options = {
@@ -24,7 +27,7 @@ def main():
     if platform.system() == "Windows":
         base_processed_path = r'D:\SamsungSTF\Processed_Data'
     else:
-        base_processed_path = '/mnt/d/SamsungSTF/Processed_Data'
+        base_processed_path = "/home/ubuntu/EV_Power/Processed_Data"
 
     folder_path = os.path.join(os.path.normpath(base_processed_path), 'TripByTrip')
 
@@ -60,8 +63,10 @@ def main():
             while True:
                 print("1: Hybrid(XGB) Model")
                 print("2: Only ML(XGB) Model")
-                print("3: Train Models")
-                print("4: Return to previous menu")
+                print("3: Train Models (Comparison)")
+                print("4: Train DNN Model")
+                print("5: Train Random Forest Model")
+                print("6: Return to previous menu")
                 print("0: Quitting the program")
                 try:
                     train_choice = int(input("Enter number you want to run: "))
@@ -69,13 +74,15 @@ def main():
                     print("Invalid input. Please enter a number.")
                     continue
 
-                if train_choice == 4:
+                if train_choice == 6:
                     break
                 elif train_choice == 0:
                     print("Quitting the program.")
                     return
                 XGB = {}
                 ONLY_ML = {}
+                DNN_RESULTS = {}
+                RF_RESULTS = {}
 
                 for selected_car in selected_cars:
                     XGB[selected_car] = {}
@@ -151,9 +158,57 @@ def main():
                         elapsed_time = end_time - start_time
 
                         print(f"Total Execution Time: {elapsed_time:.2f} seconds")
+                    if train_choice == 4:
+                        start_time = time.perf_counter()
+
+                        # run_dnn_workflow 호출
+                        # plot=True 로 설정하면 Optuna 및 contour 플롯 생성
+                        # save_dir 에 모델과 스케일러 저장 경로 지정
+                        dnn_results, dnn_scaler = run_dnn_workflow(
+                            vehicle_files=vehicle_files,
+                            selected_car=selected_car,
+                            plot=True, # 필요에 따라 True/False 설정
+                            save_dir=os.path.join(os.path.dirname(folder_path), 'Models_DNN'), # DNN 모델 저장 경로
+                            predefined_best_params=None # 미리 정의된 파라미터가 있다면 여기에 딕셔너리 전달
+                        )
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"DNN Workflow Total Execution Time for {selected_car}: {elapsed_time:.2f} seconds")
+
+                        # 결과 저장 (선택적)
+                        if dnn_results:
+                            DNN_RESULTS[selected_car] = dnn_results[0] # 결과 리스트의 첫번째 요소 (딕셔너리) 저장
+                            print(f"DNN Results for {selected_car}: RMSE={dnn_results[0]['rmse']:.4f}, MAPE={dnn_results[0]['test_mape']:.2f}%")
+                            # print(f"Best DNN Params: {dnn_results[0]['best_params']}")
+                        else:
+                            print(f"DNN workflow did not produce results for {selected_car}.")
+                    if train_choice == 5:
+                        start_time = time.perf_counter()
+
+                        # run_rf_workflow 호출
+                        rf_results, rf_scaler = run_rf_workflow(
+                            vehicle_files=vehicle_files,
+                            selected_car=selected_car,
+                            plot=True, # 특성 중요도 플롯 생성 여부
+                            save_dir=os.path.join(os.path.dirname(folder_path), 'Models_RF') # RF 모델 저장 경로
+                        )
+
+                        end_time = time.perf_counter()
+                        elapsed_time = end_time - start_time
+                        print(f"Random Forest Workflow Total Execution Time for {selected_car}: {elapsed_time:.2f} seconds")
+
+                        # 결과 저장 (선택적)
+                        if rf_results:
+                            RF_RESULTS[selected_car] = rf_results[0]
+                            print(f"RF Results for {selected_car}: RMSE={rf_results[0]['rmse']:.4f}, MAPE={rf_results[0]['test_mape']:.2f}%")
+                        else:
+                            print(f"RF workflow did not produce results for {selected_car}.")
+
 
                 print(f"XGB MAPE: {XGB}")
                 print(f"ONLY ML MAPE: {ONLY_ML}")
+                print(f"DNN Results: {DNN_RESULTS}")
 
         elif task_choice == 3:
             for selected_car in selected_cars:
