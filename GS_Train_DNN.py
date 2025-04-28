@@ -431,6 +431,12 @@ def run_dnn_workflow(vehicle_files, selected_car, plot=False, save_dir="models_d
     """
     PyTorch DNN 모델 학습 및 평가 워크플로우.
     """
+    print(torch.cuda.is_available())  # True면 GPU 사용 가능
+    print(torch.cuda.current_device())  # 현재 사용 중인 GPU 장치 번호
+    print(torch.cuda.get_device_name(0))  # 장치 이름 출력
+    print(torch.cuda.memory_allocated(0))  # 사용 중인 메모리 (bytes)
+    print(torch.cuda.memory_reserved(0))  # 예약한 메모리 (bytes)
+
     start_workflow_time = time.time()
     if selected_car not in vehicle_files or not vehicle_files[selected_car]:
         print(f"No files found for the selected vehicle: {selected_car}")
