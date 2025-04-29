@@ -608,6 +608,13 @@ def run_dnn_workflow(vehicle_files, selected_car, plot=False, save_dir="models_d
         # Calculate the difference between actual and predicted residual for the third plot
         y_pred_test2_plot = (y_test.values - y_pred_test_dnn) # Error in residual prediction
 
+
+        # 플랫폼에 따라 저장 경로 설정
+        if platform.system() == "Windows":
+            save_fig_dir = r"C:\Users\BSL\Desktop\Figures\RF_Importance"
+        else:
+            save_fig_dir = os.path.expanduser("~/SamsungSTF/Figures/")
+
         try:
              plot_composite_contour(
                   X_train=X_train_plot,
@@ -622,7 +629,7 @@ def run_dnn_workflow(vehicle_files, selected_car, plot=False, save_dir="models_d
                   terminology3=f'{selected_car} DNN: Test Residual Error',
                   num_grids=30,
                   min_count=10,
-                  save_directory=r"C:\Users\BSL\Desktop\Figures", # Adjust path
+                  save_directory=save_fig_dir, # Adjust path
                   filename_suffix="_DNN" # Add suffix to distinguish from XGB plots
              )
              print("Composite contour plot generated.")

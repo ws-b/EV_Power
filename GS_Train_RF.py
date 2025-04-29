@@ -1,6 +1,7 @@
 # GS_Train_RF.py
 import os
 import pandas as pd
+import platform
 import pickle
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -8,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from scipy.integrate import cumulative_trapezoid
-from GS_Functions import calculate_mape # Assuming GS_Functions.py exists
+from GS_Functions import calculate_mape
 # from GS_plot import plot_composite_contour # RF는 SHAP이나 특정 플롯이 적합하지 않을 수 있음
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
@@ -257,14 +258,20 @@ def run_rf_workflow(vehicle_files, selected_car, plot=False, save_dir="models_rf
             plt.xlim([-1, X_train.shape[1]])
             plt.tight_layout()
 
-            # 저장 경로 설정
-            save_fig_dir = r"C:\Users\BSL\Desktop\Figures\RF_Importance" # 예시 경로
+            # 플랫폼에 따라 저장 경로 설정
+            if platform.system() == "Windows":
+                save_fig_dir = r"C:\Users\BSL\Desktop\Figures\RF_Importance"
+            else:
+                save_fig_dir = os.path.expanduser("~/SamsungSTF/Figures/RF_Importance")
+
             if not os.path.exists(save_fig_dir):
                 os.makedirs(save_fig_dir)
+
             fig_save_path = os.path.join(save_fig_dir, f"RF_FeatureImportance_{selected_car}.png")
             plt.savefig(fig_save_path, dpi=300)
             print(f"Feature importance plot saved to {fig_save_path}")
             plt.show()
+
         except Exception as e:
             print(f"Could not generate feature importance plot: {e}")
 
