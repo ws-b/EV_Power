@@ -16,8 +16,6 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from optuna.trial import TrialState
 import time
 
-# GS_Functions.py 에서 calculate_mape를 가져온다고 가정
-# GS_plot.py 에서 plot_composite_contour 등을 가져온다고 가정 (여기서는 직접 사용하지 않음)
 try:
     from GS_Functions import calculate_mape
 except ImportError:
@@ -97,11 +95,11 @@ def scale_data_lstm(df_list, scaler=None):
     return scaled_df_list, scaler
 
 def create_sequences(data, sequence_length):
-    xs, ys, idxs, trip_ids_for_seq = [], [], [], [] # trip_id도 함께 저장
+    xs, ys, idxs, trip_ids_for_seq = [], [], [], [] 
     feature_values = data[FEATURE_COLS].values
     target_values = data['Residual'].values
     original_indices = data['original_index'].values
-    trip_id_value = data['trip_id'].iloc[0] # 해당 DataFrame의 trip_id
+    trip_id_value = data['trip_id'].iloc[0] 
 
     if len(data) >= sequence_length:
         for i in range(len(data) - sequence_length + 1):
@@ -112,7 +110,7 @@ def create_sequences(data, sequence_length):
             xs.append(sequence_x)
             ys.append(sequence_y)
             idxs.append(target_idx)
-            trip_ids_for_seq.append(trip_id_value) # 각 시퀀스의 타겟에 해당하는 trip_id 저장
+            trip_ids_for_seq.append(trip_id_value) 
 
     return np.array(xs), np.array(ys), np.array(idxs), np.array(trip_ids_for_seq)
 
@@ -125,19 +123,26 @@ class VehicleSequenceDataset(Dataset):
         self.sequences_data = []
         self.targets_data = []
         self.target_indices_data = []
-        self.target_trip_ids_data = [] # 각 타겟에 해당하는 trip_id 저장
+        self.target_trip_ids_data = [] 
 
         print(f"Creating sequences with length {sequence_length}...")
         num_processed = 0
         total_sequences = 0
+        # trip_id_value를 루프 전에 정의되지 않도록 초기화 (np.empty의 dtype 결정용)
+        # 실제 trip_id_value는 루프 내에서 첫번째 유효한 df로부터 얻어짐
+        first_trip_id_example = None 
+
         for df in scaled_trip_df_list:
             if df is not None and not df.empty and len(df) >= sequence_length:
+                if first_trip_id_example is None: # 첫번째 유효한 df에서 trip_id 예시 저장
+                    first_trip_id_example = df['trip_id'].iloc[0]
+                
                 seqs, targs, idxs, t_ids = create_sequences(df, sequence_length)
                 if len(seqs) > 0:
                     self.sequences_data.append(seqs)
                     self.targets_data.append(targs)
                     self.target_indices_data.append(idxs)
-                    self.target_trip_ids_data.append(t_ids) # trip_id 저장
+                    self.target_trip_ids_data.append(t_ids) 
                     num_processed += 1
                     total_sequences += len(seqs)
 
@@ -146,12 +151,13 @@ class VehicleSequenceDataset(Dataset):
             self.sequences = np.empty((0, sequence_length, NUM_FEATURES))
             self.targets = np.empty((0,))
             self.target_indices = np.empty((0,), dtype=int)
-            self.target_trip_ids = np.empty((0,), dtype=type(trip_id_value) if 'trip_id_value' in locals() else int) # trip_id 타입 주의
+            # first_trip_id_example이 None일 수 있으므로 object로 설정
+            self.target_trip_ids = np.empty((0,), dtype=object) 
         else:
             self.sequences = np.concatenate(self.sequences_data, axis=0)
             self.targets = np.concatenate(self.targets_data, axis=0)
             self.target_indices = np.concatenate(self.target_indices_data, axis=0)
-            self.target_trip_ids = np.concatenate(self.target_trip_ids_data, axis=0) # trip_id 결합
+            self.target_trip_ids = np.concatenate(self.target_trip_ids_data, axis=0) 
         print(f"Processed {num_processed} trips, created {total_sequences} sequences.")
 
     def __len__(self):
@@ -163,8 +169,8 @@ class VehicleSequenceDataset(Dataset):
         sequence = torch.tensor(self.sequences[idx], dtype=torch.float32)
         target = torch.tensor(self.targets[idx], dtype=torch.float32).view(1)
         target_idx = self.target_indices[idx]
-        target_trip_id = self.target_trip_ids[idx] # trip_id 반환
-        return sequence, target, target_idx, target_trip_id # trip_id도 반환
+        target_trip_id = self.target_trip_ids[idx] 
+        return sequence, target, target_idx, target_trip_id 
 
 class LSTMModel(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers, dropout_rate):
@@ -185,7 +191,7 @@ class LSTMModel(nn.Module):
 def train_epoch_lstm(model, dataloader, optimizer, criterion):
     model.train()
     total_loss = 0
-    for sequences, targets, _, _ in dataloader: # target_idx, target_trip_id는 학습에 미사용
+    for sequences, targets, _, _ in dataloader: 
         sequences, targets = sequences.to(DEVICE), targets.to(DEVICE)
         optimizer.zero_grad()
         outputs = model(sequences)
@@ -198,26 +204,38 @@ def train_epoch_lstm(model, dataloader, optimizer, criterion):
 def evaluate_model_lstm(model, dataloader, criterion):
     model.eval()
     total_loss = 0
-    all_preds, all_labels, all_indices, all_trip_ids = [], [], [], []
+    all_preds_batches, all_labels_batches, all_indices_batches = [], [], []
+    all_trip_ids_collected = [] # 변경: trip ID들을 모으는 리스트
+
     with torch.no_grad():
-        for sequences, targets, target_idxs, target_trip_ids_batch in dataloader: # trip_id도 받음
+        for sequences, targets, target_idxs_batch, target_trip_ids_batch in dataloader: 
             sequences, targets = sequences.to(DEVICE), targets.to(DEVICE)
             outputs = model(sequences)
             loss = criterion(outputs, targets)
-            total_loss += loss.item()
-            all_preds.append(outputs.cpu().numpy())
-            all_labels.append(targets.cpu().numpy())
-            all_indices.append(target_idxs.cpu().numpy())
-            all_trip_ids.append(target_trip_ids_batch.cpu().numpy()) # trip_id 저장
+            total_loss += loss.item() # .detach()는 이미 no_grad() 컨텍스트이므로 불필요할 수 있으나, item()은 필요
+            all_preds_batches.append(outputs.cpu().numpy())
+            all_labels_batches.append(targets.cpu().numpy())
+            
+            # target_idxs_batch는 숫자형이므로 텐서로 반환될 가능성 높음
+            if torch.is_tensor(target_idxs_batch):
+                all_indices_batches.append(target_idxs_batch.cpu().numpy())
+            else: # 안전장치
+                all_indices_batches.append(np.array(target_idxs_batch))
+            
+            # target_trip_ids_batch는 문자열의 리스트임 (DataLoader가 그렇게 만듦)
+            # .cpu().numpy() 대신 extend 사용
+            all_trip_ids_collected.extend(target_trip_ids_batch) # 수정된 부분
 
     avg_loss = total_loss / len(dataloader)
-    all_preds = np.concatenate(all_preds, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
-    all_indices = np.concatenate(all_indices, axis=0)
-    all_trip_ids = np.concatenate(all_trip_ids, axis=0) # trip_id 결합
+    all_preds = np.concatenate(all_preds_batches, axis=0)
+    all_labels = np.concatenate(all_labels_batches, axis=0)
+    all_indices = np.concatenate(all_indices_batches, axis=0)
+    
+    # 모든 trip ID를 모은 후 NumPy 배열로 변환
+    all_trip_ids_np = np.array(all_trip_ids_collected) # 수정된 부분
 
     rmse = np.sqrt(mean_squared_error(all_labels, all_preds))
-    return avg_loss, rmse, all_preds, all_indices, all_trip_ids # trip_id 반환 추가
+    return avg_loss, rmse, all_preds, all_indices, all_trip_ids_np # 수정된 NumPy 배열 반환
 
 # ----------------------------
 # Optuna Objective 함수
@@ -229,7 +247,7 @@ def lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length):
     lstm_dropout = trial.suggest_float('lstm_dropout', 0.1, 0.5)
     optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'AdamW'])
     batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
-    epochs = 70
+    epochs = 70 # Optuna는 수렴 속도도 중요하므로 적절히 설정
     patience = 10
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -246,9 +264,9 @@ def lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length):
 
         if len(train_dataset) == 0 or len(val_dataset) == 0:
             print(f"Skipping fold {fold_i+1} due to lack of sequences.")
-            continue
+            continue # 다음 폴드로
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True) # num_workers=0 for potential memory saving
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True) 
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
         model = LSTMModel(NUM_FEATURES, lstm_hidden_dim, lstm_num_layers, lstm_dropout).to(DEVICE)
@@ -259,7 +277,7 @@ def lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length):
         epochs_no_improve = 0
         for epoch in range(epochs):
             train_loss = train_epoch_lstm(model, train_loader, optimizer, criterion)
-            val_loss, val_rmse, _, _, _ = evaluate_model_lstm(model, val_loader, criterion) # 추가 반환값 _ 처리
+            val_loss, val_rmse, _, _, _ = evaluate_model_lstm(model, val_loader, criterion) 
             # print(f'Fold {fold_i+1}, Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val RMSE: {val_rmse:.4f}')
 
             if val_rmse < best_val_rmse:
@@ -267,6 +285,7 @@ def lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length):
                 epochs_no_improve = 0
             else:
                 epochs_no_improve += 1
+            
             if epochs_no_improve >= patience:
                 print(f'Early stopping triggered at epoch {epoch+1}')
                 break
@@ -279,11 +298,11 @@ def lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length):
         if best_val_rmse != float('inf'):
             fold_val_rmse_list.append(best_val_rmse)
         else:
-            print(f"Fold {fold_i+1} did not produce a valid RMSE.")
+            print(f"Fold {fold_i+1} did not produce a valid RMSE (remained inf).")
             
-    if not fold_val_rmse_list: # 모든 폴드가 실패했거나 유효한 RMSE가 없는 경우
+    if not fold_val_rmse_list:
         print("Warning: No valid folds completed for this trial. Returning high error.")
-        return float('inf')
+        return float('inf') # Pruning이 이 값을 사용하게 됨
 
     mean_cv_rmse = np.mean(fold_val_rmse_list)
     print(f"Trial {trial.number} finished. Mean CV RMSE: {mean_cv_rmse:.4f}")
@@ -291,14 +310,14 @@ def lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length):
 
 def tune_lstm_hyperparameters(train_trip_dfs_scaled, selected_car, sequence_length, plot, n_trials=50):
     study = optuna.create_study(direction='minimize', pruner=optuna.pruners.MedianPruner())
-    objective_func = lambda trial: lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length) # scaler는 objective 내부에서 사용 안함
+    objective_func = lambda trial: lstm_cv_objective(trial, train_trip_dfs_scaled, sequence_length)
     study.optimize(objective_func, n_trials=n_trials)
 
     print(f"Best trial for {selected_car} (LSTM): {study.best_trial.params}")
     print(f"Best CV RMSE (LSTM): {study.best_value}")
 
     if plot:
-        # Optuna 결과 플로팅 (생략, 필요시 DNN 버전 참고)
+        # Optuna 결과 플로팅 (필요시 구현)
         pass
     
     if study.best_value == float('inf') or study.best_trial is None :
@@ -314,13 +333,13 @@ def train_final_lstm_model(train_trip_dfs_scaled, best_params, sequence_length):
     lr = best_params['lr']
     optimizer_name = best_params['optimizer']
     batch_size = best_params['batch_size']
-    epochs = 100 # 최종 학습 에폭
+    epochs = 100 
 
     train_dataset = VehicleSequenceDataset(train_trip_dfs_scaled, sequence_length)
     if len(train_dataset) == 0:
         print("Error: Cannot train final model, no sequences created.")
         return None
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True) # num_workers=0
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
 
     model = LSTMModel(NUM_FEATURES, lstm_hidden_dim, lstm_num_layers, lstm_dropout).to(DEVICE)
     criterion = nn.MSELoss()
@@ -330,14 +349,14 @@ def train_final_lstm_model(train_trip_dfs_scaled, best_params, sequence_length):
     for epoch in range(epochs):
         model.train()
         epoch_loss = 0
-        for sequences, targets, _, _ in train_loader: # target_idx, target_trip_id 미사용
+        for sequences, targets, _, _ in train_loader: 
             sequences, targets = sequences.to(DEVICE), targets.to(DEVICE)
             optimizer.zero_grad()
             outputs = model(sequences)
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
-            epoch_loss += loss.item()
+            epoch_loss += loss.detach().item() # 수정: .detach() 추가
         avg_epoch_loss = epoch_loss / len(train_loader)
         if (epoch + 1) % 10 == 0:
             print(f'Final Training Epoch {epoch+1}/{epochs}, Loss: {avg_epoch_loss:.4f}')
@@ -345,20 +364,11 @@ def train_final_lstm_model(train_trip_dfs_scaled, best_params, sequence_length):
     print(f"Final LSTM training finished in {end_time - start_time:.2f} seconds.")
     return model
 
-# MAPE 계산을 위한 에너지 적분 함수 (XGBoost 코드의 함수와 호환되도록 정의)
-# GS_Functions.py에 있거나, 여기서 직접 정의
 def integrate_and_compare(trip_data_df, pred_col_name='y_pred'):
-    """
-    단일 트립 DataFrame을 받아 Power_data와 Power_hybrid (Power_phys + pred_col_name)의
-    누적 에너지를 계산하고 반환.
-    'time' 컬럼은 datetime 객체여야 함.
-    'Power_phys', pred_col_name, 'Power_data' 컬럼이 필요.
-    """
     if trip_data_df.empty or len(trip_data_df) < 2:
-        return 0, 0 # 또는 (np.nan, np.nan) 등 오류 값
+        return 0, 0 
 
-    # 시간 순 정렬 및 초 단위 변환
-    trip_data_df = trip_data_df.sort_values(by='time').copy() # 복사본 사용
+    trip_data_df = trip_data_df.sort_values(by='time').copy() 
     time_seconds = (trip_data_df['time'] - trip_data_df['time'].iloc[0]).dt.total_seconds().values
 
     if pred_col_name not in trip_data_df.columns:
@@ -379,7 +389,7 @@ def integrate_and_compare(trip_data_df, pred_col_name='y_pred'):
     return hybrid_integral, data_integral
 
 # ----------------------------
-# LSTM 워크플로우 함수 (OOM 해결)
+# LSTM 워크플로우 함수 (OOM 해결된 버전)
 # ----------------------------
 def run_lstm_workflow(vehicle_files_dict, selected_car_name, sequence_length=60, plot_flag=False, save_models_dir="models_lstm", existing_best_params=None):
     start_workflow_time = time.time()
@@ -396,7 +406,7 @@ def run_lstm_workflow(vehicle_files_dict, selected_car_name, sequence_length=60,
     print("Processing training files...")
     train_trip_dfs_raw = []
     with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_single_file_lstm, f, trip_id=i) for i, f in enumerate(train_files)]
+        futures = [executor.submit(process_single_file_lstm, f, trip_id=os.path.basename(f)) for i, f in enumerate(train_files)] # trip_id를 파일명으로 변경
         for future in as_completed(futures):
             result = future.result()
             if result is not None and not result.empty:
@@ -416,28 +426,28 @@ def run_lstm_workflow(vehicle_files_dict, selected_car_name, sequence_length=60,
         return [], fitted_scaler
 
     print("Processing test files (raw data for MAPE)...")
-    test_trip_dfs_raw = [] # 원본 테스트 데이터 (스케일링X, MAPE 계산용)
-    with ProcessPoolExecutor() as executor: # trip_id는 파일명 또는 고유 ID로 설정하는 것이 더 좋음
+    test_trip_dfs_raw = [] 
+    with ProcessPoolExecutor() as executor: 
         futures = [executor.submit(process_single_file_lstm, f, trip_id=os.path.basename(f)) for f in test_files]
         for future in as_completed(futures):
             result = future.result()
             if result is not None and not result.empty:
                 test_trip_dfs_raw.append(result)
+    
+    # test_trip_dfs_raw가 비어있어도 다음 단계 진행은 가능 (MAPE 계산만 스킵)
     if not test_trip_dfs_raw:
-        print(f"Warning: No valid test data processed for {selected_car_name}. Cannot evaluate fully.")
-        # 스케일러만 반환하거나 빈 결과 반환
-        # return [], fitted_scaler 
+        print(f"Warning: No valid raw test data processed for {selected_car_name}. MAPE calculation will be skipped.")
 
     print("Scaling test data (for model evaluation)...")
-    test_trip_dfs_s, _ = scale_data_lstm(test_trip_dfs_raw, fitted_scaler) # 원본 리스트를 스케일링
+    # test_trip_dfs_raw가 비어있을 수 있으므로, 이 경우 test_trip_dfs_s도 비게 됨
+    test_trip_dfs_s, _ = scale_data_lstm(test_trip_dfs_raw, fitted_scaler) 
     test_trip_dfs_s = [df for df in test_trip_dfs_s if df is not None and not df.empty]
     
-    # Hyperparameter Tuning or Use Predefined
     if existing_best_params is None:
         print("Starting hyperparameter tuning with Optuna...")
         tune_start_time = time.time()
         best_params = tune_lstm_hyperparameters(
-            train_trip_dfs_s, selected_car_name, sequence_length, plot_flag, n_trials=30 # trial 수 조정
+            train_trip_dfs_s, selected_car_name, sequence_length, plot_flag, n_trials=30 
         )
         tune_end_time = time.time()
         if best_params is None:
@@ -448,17 +458,15 @@ def run_lstm_workflow(vehicle_files_dict, selected_car_name, sequence_length=60,
         best_params = existing_best_params
         print(f"Using predefined best_params: {best_params}")
 
-    # 최종 모델 학습
     final_model = train_final_lstm_model(train_trip_dfs_s, best_params, sequence_length)
     if final_model is None:
         print("Final model training failed.")
         return [], fitted_scaler
 
-    # Test Set 평가
     print("Evaluating final model on the test set...")
     test_set_results = [{'rmse': float('nan'), 'test_mape': float('nan'), 'best_params': best_params, 'sequence_length': sequence_length}]
 
-    if not test_trip_dfs_s: # 스케일링된 테스트 데이터가 없는 경우
+    if not test_trip_dfs_s: 
         print("Warning: No scaled test data available for RMSE evaluation.")
     else:
         test_dataset = VehicleSequenceDataset(test_trip_dfs_s, sequence_length)
@@ -471,54 +479,40 @@ def run_lstm_workflow(vehicle_files_dict, selected_car_name, sequence_length=60,
             print(f"Test RMSE (on Residual): {test_rmse:.4f}")
             test_set_results[0]['rmse'] = test_rmse
 
-            # --- MAPE 계산 (OOM 해결된 방식) ---
-            # 예측값을 (trip_id, original_index) 기준으로 매핑할 수 있는 DataFrame 생성
-            # test_preds_arr: 예측된 잔차값 배열
-            # test_indices_arr: 각 잔차값에 해당하는 원본 DataFrame 내 original_index 배열
-            # test_trip_ids_arr: 각 잔차값에 해당하는 trip_id 배열
-            predictions_map_df = pd.DataFrame({
-                'trip_id': test_trip_ids_arr.flatten(),
-                'original_index': test_indices_arr.flatten(),
-                'y_pred': test_preds_arr.flatten() # 컬럼명을 'y_pred'로 하여 integrate_and_compare와 호환
-            })
-
-            hybrid_integrals_for_mape, data_integrals_for_mape = [], []
-            processed_trips_count_mape = 0
-            error_trips_count_mape = 0
-
-            if not test_trip_dfs_raw: # 원본 테스트 데이터가 없는 경우 MAPE 계산 불가
-                 print("Warning: No raw test data available for MAPE calculation.")
+            if not test_trip_dfs_raw: 
+                 print("Warning: No raw test data available for MAPE calculation (already noted).")
                  test_set_results[0]['test_mape'] = float('nan')
             else:
-                for original_trip_df in test_trip_dfs_raw: # 스케일링 안된 원본 DataFrame 리스트 사용
+                predictions_map_df = pd.DataFrame({
+                    'trip_id': test_trip_ids_arr.flatten(),
+                    'original_index': test_indices_arr.flatten(),
+                    'y_pred': test_preds_arr.flatten() 
+                })
+
+                hybrid_integrals_for_mape, data_integrals_for_mape = [], []
+                processed_trips_count_mape = 0
+                error_trips_count_mape = 0
+
+                for original_trip_df in test_trip_dfs_raw: 
                     if original_trip_df is None or original_trip_df.empty or len(original_trip_df) < 2:
                         error_trips_count_mape += 1
                         continue
                     
                     current_trip_id = original_trip_df['trip_id'].iloc[0]
-                    
-                    # 해당 trip_id에 대한 예측값만 필터링
                     trip_specific_preds = predictions_map_df[predictions_map_df['trip_id'] == current_trip_id]
                     
-                    # 원본 트립 데이터에 예측값(y_pred) 병합
-                    # original_index를 기준으로 join
-                    # copy()를 사용하여 SettingWithCopyWarning 방지
                     mape_calc_df = original_trip_df.copy()
                     mape_calc_df = pd.merge(mape_calc_df, trip_specific_preds[['original_index', 'y_pred']], 
                                             on='original_index', how='left')
-                    
-                    # LSTM 예측은 시퀀스 길이만큼 앞부분에 NaN이 있을 수 있음. 0으로 채움.
-                    # 또는 다른 전략(예: 해당 지점 예측 안 함) 사용 가능
                     mape_calc_df['y_pred'] = mape_calc_df['y_pred'].fillna(0) 
 
                     try:
-                        # integrate_and_compare 함수는 'y_pred' 컬럼을 사용
                         hybrid_e, data_e = integrate_and_compare(mape_calc_df, pred_col_name='y_pred')
-                        if abs(data_e) > 1e-9: # 실제 에너지가 0에 매우 가까운 경우 제외 (0으로 나누기 방지)
+                        if abs(data_e) > 1e-9: 
                             hybrid_integrals_for_mape.append(hybrid_e)
                             data_integrals_for_mape.append(data_e)
                             processed_trips_count_mape += 1
-                        else: # 실제 에너지가 0인 트립은 MAPE 계산에서 제외
+                        else: 
                             error_trips_count_mape +=1
                     except Exception as e:
                         print(f"Error during MAPE integration for trip {current_trip_id}: {e}")
@@ -533,7 +527,6 @@ def run_lstm_workflow(vehicle_files_dict, selected_car_name, sequence_length=60,
                 print(f"MAPE (Energy): {mape_val_test:.2f}%" if not np.isnan(mape_val_test) else "MAPE: Not Available")
                 test_set_results[0]['test_mape'] = mape_val_test
 
-    # 모델 및 스케일러 저장
     if save_models_dir:
         if not os.path.exists(save_models_dir):
             os.makedirs(save_models_dir)

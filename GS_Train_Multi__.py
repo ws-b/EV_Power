@@ -2,16 +2,14 @@ import os
 import random
 import json
 from threading import Thread
-import numpy as np # Numpy import 추가
+import numpy as np
 import matplotlib.pyplot as plt
 
 # ------------------------------
-# 고정 경로 설정 – 사용자 요청
+# 고정 경로 설정
 # ------------------------------
-# GS_Model_Main.py에서 base_processed_path를 사용하므로, DATA_FOLDER는 여기서 필수적이지 않을 수 있음
-# RESULT_DIR은 GS_Model_Main.py에서 comparison_save_path 등으로 전달받는 것이 더 유연함
-# 여기서는 기존 GS_Train_Multi__.py의 방식을 따르되, GS_Model_Main.py와 연동 시 경로 전달 방식을 고려해야 함.
-DATA_FOLDER = "/home/ubuntu/SamsungSTF/Processed_Data/TripByTrip" # 필요시 GS_Model_Main에서 전달받도록 수정 가능
+
+DATA_FOLDER = "/home/ubuntu/SamsungSTF/Processed_Data/TripByTrip" 
 RESULT_DIR = "/home/ubuntu/SamsungSTF/Results_Multi"  # 결과 JSON 및 그림 저장 위치 (폴더명 명확히)
 
 # 결과 저장 폴더가 없으면 생성
@@ -24,7 +22,7 @@ os.makedirs(FIGURE_SAVE_DIR, exist_ok=True)
 # 내부 모듈 import
 # ------------------------------
 from GS_vehicle_dict import vehicle_dict
-from GS_Functions import get_vehicle_files, compute_rmse # get_vehicle_files는 main에서 사용
+from GS_Functions import get_vehicle_files, compute_rmse
 
 # Hybrid / Only XGBoost
 from GS_Train_XGboost import run_workflow as xgb_run_workflow
@@ -32,12 +30,11 @@ from GS_Train_Only_XGboost import run_workflow as only_xgb_run_workflow
 
 # Hybrid / Only Linear Regression
 from GS_Train_LinearR import train_validate_test as lr_run_workflow
-# GS_Train_Only_LR.py의 train_validate_test 함수는 vehicle_files 인자만 받으므로 selected_car 불필요
 from GS_Train_Only_LR import train_validate_test as only_lr_run_workflow_direct
 
 # Hybrid DNN / LSTM / Random-Forest
 from GS_Train_DNN import run_dnn_workflow
-from GS_Train_LSTM import run_lstm_workflow # GS_Train_LSTM.py가 존재하고 run_lstm_workflow 함수가 정의되어 있어야 함
+from GS_Train_LSTM import run_lstm_workflow
 from GS_Train_RF import run_rf_workflow
 
 # ------------------------------
@@ -88,7 +85,6 @@ def run_evaluate(vehicle_files_all_cars: dict[str, list[str]], selected_car_to_e
     base_sizes = [10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 10000]
     max_samples_for_car = len(vehicle_files_all_cars[selected_car_to_eval])
     
-    # 실제 사용 가능한 샘플 크기 필터링 및 최대 샘플 크기 추가
     actual_sample_sizes = sorted(list(set(s for s in base_sizes if s <= max_samples_for_car) | {max_samples_for_car}))
     if not actual_sample_sizes:
         print(f"{selected_car_to_eval}: 평가할 샘플 크기가 없습니다 (트립 부족).")
@@ -102,116 +98,109 @@ def run_evaluate(vehicle_files_all_cars: dict[str, list[str]], selected_car_to_e
     print(f"\n[{selected_car_to_eval} 전체 데이터 기반 하이퍼파라미터 튜닝 (필요시)]")
     
     best_params_xgb, best_params_only_xgb, best_params_dnn, best_params_lstm = None, None, None, None
+    # Random Forest는 이 예제에서 전체 데이터 튜닝을 생략하고, 샘플별 학습에서 기본 또는 고정 파라미터 사용 가정.
+    # 필요하다면 RF도 여기서 튜닝 로직 추가.
 
     try:
-        print("  - Hybrid XGBoost 파라미터 탐색...")
+        print("   - Hybrid XGBoost 파라미터 탐색...")
         full_xgb_results, _ = xgb_run_workflow(vehicle_files_all_cars, selected_car_to_eval, plot=False, save_dir=None, predefined_best_params=None)
         if full_xgb_results and "best_params" in full_xgb_results[0]:
             best_params_xgb = full_xgb_results[0]["best_params"]
-            print(f"    Hybrid XGBoost 최적 파라미터: {best_params_xgb}")
+            print(f"     Hybrid XGBoost 최적 파라미터: {best_params_xgb}")
         else:
-            print("    Hybrid XGBoost 파라미터 탐색 실패 또는 결과 없음.")
+            print("     Hybrid XGBoost 파라미터 탐색 실패 또는 결과 없음.")
     except Exception as e:
-        print(f"    Hybrid XGBoost 파라미터 탐색 중 오류: {e}")
+        print(f"     Hybrid XGBoost 파라미터 탐색 중 오류: {e}")
 
     try:
-        print("  - Only ML(XGBoost) 파라미터 탐색...")
-        # GS_Train_Only_XGboost.py의 run_workflow는 results, scaler, _ (3개) 또는 results, scaler (2개)를 반환할 수 있음.
-        # 여기서는 2개만 받는 것으로 통일 (이전 검토 내용 반영)
+        print("   - Only ML(XGBoost) 파라미터 탐색...")
         full_only_xgb_results, _ = only_xgb_run_workflow(vehicle_files_all_cars, selected_car_to_eval, plot=False, save_dir=None, predefined_best_params=None)
         if full_only_xgb_results and "best_params" in full_only_xgb_results[0]:
             best_params_only_xgb = full_only_xgb_results[0]["best_params"]
-            print(f"    Only ML(XGBoost) 최적 파라미터: {best_params_only_xgb}")
+            print(f"     Only ML(XGBoost) 최적 파라미터: {best_params_only_xgb}")
         else:
-            print("    Only ML(XGBoost) 파라미터 탐색 실패 또는 결과 없음.")
+            print("     Only ML(XGBoost) 파라미터 탐색 실패 또는 결과 없음.")
     except Exception as e:
-        print(f"    Only ML(XGBoost) 파라미터 탐색 중 오류: {e}")
+        print(f"     Only ML(XGBoost) 파라미터 탐색 중 오류: {e}")
     
     try:
-        print("  - Hybrid DNN 파라미터 탐색...")
+        print("   - Hybrid DNN 파라미터 탐색...")
         full_dnn_results, _ = run_dnn_workflow(vehicle_files_all_cars, selected_car_to_eval, plot=False, save_dir=None, predefined_best_params=None)
         if full_dnn_results and "best_params" in full_dnn_results[0]:
             best_params_dnn = full_dnn_results[0]["best_params"]
-            print(f"    Hybrid DNN 최적 파라미터: {best_params_dnn}")
+            print(f"     Hybrid DNN 최적 파라미터: {best_params_dnn}")
         else:
-            print("    Hybrid DNN 파라미터 탐색 실패 또는 결과 없음.")
+            print("     Hybrid DNN 파라미터 탐색 실패 또는 결과 없음.")
     except Exception as e:
-        print(f"    Hybrid DNN 파라미터 탐색 중 오류: {e}")
+        print(f"     Hybrid DNN 파라미터 탐색 중 오류: {e}")
 
-    # LSTM은 sequence_length 인자가 필요
-    default_sequence_length = 60
-    try:
-        print(f"  - Hybrid LSTM (sequence_length={default_sequence_length}) 파라미터 탐색...")
-        full_lstm_results, _ = run_lstm_workflow(vehicle_files_all_cars, selected_car_to_eval, 
-                                                 sequence_length=default_sequence_length, 
-                                                 plot=False, save_dir=None, predefined_best_params=None)
-        if full_lstm_results and "best_params" in full_lstm_results[0]:
-            best_params_lstm = full_lstm_results[0]["best_params"]
-            print(f"    Hybrid LSTM 최적 파라미터: {best_params_lstm}")
-        else:
-            print("    Hybrid LSTM 파라미터 탐색 실패 또는 결과 없음.")
-    except NameError: # GS_Train_LSTM 모듈 또는 함수가 없을 경우
-        print("    경고: GS_Train_LSTM 모듈 또는 run_lstm_workflow 함수를 찾을 수 없습니다. LSTM 평가는 건너<0xEB><0xA4>니다.")
-    except Exception as e:
-        print(f"    Hybrid LSTM 파라미터 탐색 중 오류: {e}")
+    default_sequence_length = 60 # LSTM 기본 시퀀스 길이
+    if 'run_lstm_workflow' in globals() and callable(run_lstm_workflow): # LSTM 함수가 실제로 로드되었는지 확인
+        try:
+            print(f"   - Hybrid LSTM (sequence_length={default_sequence_length}) 파라미터 탐색...")
+            full_lstm_results, _ = run_lstm_workflow(
+                vehicle_files_dict=vehicle_files_all_cars, # GS_Train_LSTM 에서 수정된 인자명 사용
+                selected_car_name=selected_car_to_eval,    # GS_Train_LSTM 에서 수정된 인자명 사용
+                sequence_length=default_sequence_length, 
+                plot_flag=False,                           # GS_Train_LSTM 에서 수정된 인자명 사용
+                save_models_dir=None,                      # GS_Train_LSTM 에서 수정된 인자명 사용
+                existing_best_params=None                  # GS_Train_LSTM 에서 수정된 인자명 사용
+            )
+            if full_lstm_results and "best_params" in full_lstm_results[0]:
+                best_params_lstm = full_lstm_results[0]["best_params"]
+                print(f"     Hybrid LSTM 최적 파라미터: {best_params_lstm}")
+            else:
+                print("     Hybrid LSTM 파라미터 탐색 실패 또는 결과 없음.")
+        except NameError: 
+            print("     경고: run_lstm_workflow 함수를 찾을 수 없습니다 (로드 실패). LSTM 평가는 건너뜁니다.")
+        except Exception as e:
+            print(f"     Hybrid LSTM 파라미터 탐색 중 오류: {e}")
+    else:
+        print("     정보: GS_Train_LSTM 모듈이 로드되지 않아 LSTM 파라미터 탐색을 건너뜁니다.")
 
 
-    # 최종 결과를 저장할 딕셔너리 (키: 샘플 크기, 값: 해당 크기에서의 모델별 결과 리스트)
-    # 예: {10: [{'model': 'Physics-Based', 'rmse': [2.5]}, {'model': 'Hybrid XGBoost', 'rmse': [1.8]} ...], 20: [...]}
     vehicle_eval_results: dict[int, list] = {size_val: [] for size_val in actual_sample_sizes}
 
-    # ------------------------------
-    # 2) 샘플 크기별 반복 평가
-    # ------------------------------
     print(f"\n[{selected_car_to_eval} 샘플 크기별 모델 평가 시작]")
     for current_sample_size in actual_sample_sizes:
-        # 샘플링 반복 횟수 결정
         if current_sample_size < 20:
-            num_repeats = 20 # 작은 샘플은 많이 반복하여 안정적인 평균 RMSE 확보 (시간 제약 고려하여 조정)
+            num_repeats = 20 
         elif current_sample_size < 50:
             num_repeats = 10
-        elif current_sample_size <= 100:
+        elif current_sample_size <= 100: # DNN/LSTM 최대 샘플 크기와 일치 또는 더 작게 설정 가능
             num_repeats = 5
-        else:
-            num_repeats = 1 # 큰 샘플은 1회 또는 적게 (시간 제약 고려)
+        else: # 200개를 초과하는 샘플 크기
+            num_repeats = 1 
         
-        print(f"  샘플 크기: {current_sample_size}, 반복 횟수: {num_repeats}")
+        print(f"   샘플 크기: {current_sample_size}, 반복 횟수: {num_repeats}")
 
         for i_repeat in range(num_repeats):
-            print(f"    - 반복 {i_repeat+1}/{num_repeats}")
-            # 현재 차량의 전체 파일 목록에서 current_sample_size 만큼 랜덤 샘플링
+            print(f"     - 반복 {i_repeat+1}/{num_repeats}")
             sampled_trip_files = random.sample(vehicle_files_all_cars[selected_car_to_eval], current_sample_size)
-            # 각 workflow 함수에 전달할 형태로 딕셔너리 생성
             sampled_files_for_eval = {selected_car_to_eval: sampled_trip_files}
 
-            # 1. Physics-Based 모델 RMSE 계산
             try:
                 rmse_physics = compute_rmse(sampled_files_for_eval, selected_car_to_eval)
                 if rmse_physics is not None:
                     vehicle_eval_results[current_sample_size].append({"model": "Physics-Based", "rmse": [rmse_physics]})
             except Exception as e:
-                print(f"    Physics-Based 모델 RMSE 계산 오류: {e}")
+                print(f"     Physics-Based 모델 RMSE 계산 오류: {e}")
 
-            # 2. ML 모델 평가 (스레드 사용)
             threads: list[Thread] = []
-            
-            # kwargs 공통 설정 (plot=False, save_dir=None)
             common_kwargs = dict(plot=False, save_dir=None)
 
             # ---- XGBoost (Hybrid) ----
             if best_params_xgb:
-                # 파라미터 조정 로직 (기존 GS_Train_Multi.py 방식과 유사하게 eta 제외하고 조정)
                 adj_factor = max_samples_for_car / current_sample_size if current_sample_size > 0 else 1
                 current_xgb_params = {
                     k: (v if k == 'eta' else max(1e-9, v * adj_factor) if isinstance(v, (int, float)) else v) 
                     for k, v in best_params_xgb.items()
                 }
                 threads.append(Thread(target=_run_and_record, 
-                                       args=(xgb_run_workflow, "Hybrid XGBoost", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]), 
-                                       kwargs=dict(**common_kwargs, predefined_best_params=current_xgb_params)))
+                                      args=(xgb_run_workflow, "Hybrid XGBoost", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]), 
+                                      kwargs=dict(**common_kwargs, predefined_best_params=current_xgb_params)))
             else:
-                print(f"    Hybrid XGBoost 평가 건너<0xEB><0xA4> (최적 파라미터 없음)")
-
+                print(f"     Hybrid XGBoost 평가 건너뜀 (최적 파라미터 없음, 샘플 크기: {current_sample_size})")
 
             # ---- Only ML(XGBoost) ----
             if best_params_only_xgb:
@@ -221,56 +210,60 @@ def run_evaluate(vehicle_files_all_cars: dict[str, list[str]], selected_car_to_e
                     for k, v in best_params_only_xgb.items()
                 }
                 threads.append(Thread(target=_run_and_record,
-                                       args=(only_xgb_run_workflow, "Only ML(XGBoost)", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
-                                       kwargs=dict(**common_kwargs, predefined_best_params=current_only_xgb_params)))
+                                      args=(only_xgb_run_workflow, "Only ML(XGBoost)", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
+                                      kwargs=dict(**common_kwargs, predefined_best_params=current_only_xgb_params)))
             else:
-                print(f"    Only ML(XGBoost) 평가 건너<0xEB><0xA4> (최적 파라미터 없음)")
+                print(f"     Only ML(XGBoost) 평가 건너뜀 (최적 파라미터 없음, 샘플 크기: {current_sample_size})")
 
             # ---- Hybrid Linear Regression ----
-            # lr_run_workflow는 selected_car 인자를 직접 받지 않고, vehicle_files (여기서는 샘플링된 파일 리스트)만 받음
             threads.append(Thread(target=_run_and_record,
-                                   args=(lr_run_workflow, "Hybrid LinearR", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
-                                   kwargs=common_kwargs)) # predefined_best_params 없음
+                                  args=(lr_run_workflow, "Hybrid LinearR", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
+                                  kwargs=common_kwargs)) 
 
             # ---- Only ML(Linear Regression) ----
             threads.append(Thread(target=_run_and_record,
-                                   args=(only_lr_run_workflow_direct, "Only ML(LinearR)", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
-                                   kwargs=common_kwargs)) # predefined_best_params 없음
+                                  args=(only_lr_run_workflow_direct, "Only ML(LinearR)", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
+                                  kwargs=common_kwargs)) 
             
             # ---- Hybrid DNN ----
-            if best_params_dnn:
-                # DNN은 일반적으로 파라미터 스케일링을 하지 않음. 전체 데이터로 찾은 파라미터 사용.
-                threads.append(Thread(target=_run_and_record,
-                                       args=(run_dnn_workflow, "Hybrid DNN", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
-                                       kwargs=dict(**common_kwargs, predefined_best_params=best_params_dnn)))
-            else:
-                print(f"    Hybrid DNN 평가 건너<0xEB><0xA4> (최적 파라미터 없음)")
+            if current_sample_size <= 200: # DNN은 200개 샘플까지만 실행
+                if best_params_dnn:
+                    threads.append(Thread(target=_run_and_record,
+                                          args=(run_dnn_workflow, "Hybrid DNN", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
+                                          kwargs=dict(**common_kwargs, predefined_best_params=best_params_dnn)))
+                else:
+                    print(f"     Hybrid DNN 평가 건너뜀 (최적 파라미터 없음, 샘플 크기: {current_sample_size})")
+            elif best_params_dnn : # 파라미터는 있지만 샘플 크기 제한으로 건너뛸 때 메시지 명확화
+                 print(f"     Hybrid DNN 평가 건너뜀 (샘플 크기: {current_sample_size} > 200)")
+            # else : # 파라미터도 없고 샘플 크기도 큰 경우 (굳이 메시지 중복 출력 필요 없음)
 
             # ---- Hybrid LSTM ----
-            if 'run_lstm_workflow' in globals() and best_params_lstm: # LSTM 함수 존재하고 파라미터 있을 때만
-                threads.append(Thread(target=_run_and_record,
-                                       args=(run_lstm_workflow, "Hybrid LSTM", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
-                                       kwargs=dict(**common_kwargs, predefined_best_params=best_params_lstm, sequence_length=default_sequence_length)))
-            elif 'run_lstm_workflow' in globals() and not best_params_lstm:
-                 print(f"    Hybrid LSTM 평가 건너<0xEB><0xA4> (최적 파라미터 없음)")
+            if current_sample_size <= 200: # LSTM은 200개 샘플까지만 실행
+                if 'run_lstm_workflow' in globals() and callable(run_lstm_workflow) and best_params_lstm: 
+                    threads.append(Thread(target=_run_and_record,
+                                          args=(run_lstm_workflow, "Hybrid LSTM", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
+                                          kwargs=dict(**common_kwargs, 
+                                                      existing_best_params=best_params_lstm, # GS_Train_LSTM.py의 인자명 사용
+                                                      sequence_length=default_sequence_length)))
+                elif 'run_lstm_workflow' in globals() and callable(run_lstm_workflow) and not best_params_lstm:
+                     print(f"     Hybrid LSTM 평가 건너뜀 (최적 파라미터 없음, 샘플 크기: {current_sample_size})")
+                # LSTM 모듈 자체가 없는 경우는 이미 파라미터 튜닝 단계에서 메시지 출력됨
+            elif 'run_lstm_workflow' in globals() and callable(run_lstm_workflow) and best_params_lstm: # 파라미터는 있지만 샘플 크기 제한
+                 print(f"     Hybrid LSTM 평가 건너뜀 (샘플 크기: {current_sample_size} > 200)")
 
 
             # ---- Hybrid Random Forest ----
-            # RF는 일반적으로 파라미터 스케일링보다는 고정된 좋은 값 사용 또는 샘플별 튜닝 필요. 여기서는 튜닝 없이 기본값으로 실행.
             threads.append(Thread(target=_run_and_record,
-                                   args=(run_rf_workflow, "Hybrid RandomForest", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
-                                   kwargs=common_kwargs))
+                                  args=(run_rf_workflow, "Hybrid RandomForest", sampled_files_for_eval, selected_car_to_eval, vehicle_eval_results[current_sample_size]),
+                                  kwargs=common_kwargs))
 
-
-            # 모든 스레드 시작 및 종료 대기
             for t in threads:
                 t.start()
             for t in threads:
                 t.join()
         
-        print(f"  샘플 크기 {current_sample_size} 완료.\n")
+        print(f"   샘플 크기 {current_sample_size} 완료.\n")
 
-    # 결과 JSON 파일로 저장
     json_output_filename = f"ML_Eval_Results_{selected_car_to_eval}.json"
     json_output_path = os.path.join(RESULT_DIR, json_output_filename)
     try:
